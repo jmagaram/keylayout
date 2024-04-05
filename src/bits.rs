@@ -1,6 +1,8 @@
 #[derive(PartialEq, PartialOrd, Debug)]
 pub struct Bits(u32);
 
+// add type alias for u32 like 'bitCount' or 'bitIndex'
+
 use std::iter;
 
 impl Bits {
@@ -23,6 +25,7 @@ impl Bits {
     }
 
     pub fn except_bit(&self, bit: u32) -> Bits {
+        debug_assert!(bit <= Self::MAX_BIT_VALUE);
         Bits(self.0 & !(1 << bit))
     }
 
@@ -51,27 +54,33 @@ impl Bits {
         iterator
     }
 
-    // fn increment_with_same_ones_count(&self) -> Bits {
-    //     match x {
-    //         EMPTY => 0,
-    //         _ => {
-    //             let rightOne = x & (-x);
-    //             let nextHigherOneBit = x + rightOne;
-    //             let rightOnesPattern = x ^ nextHigherOneBit;
-    //             let rightOnesPattern = rightOnesPattern / rightOne;
-    //             let rightOnesPattern = rightOnesPattern >> 2;
-    //             let next = nextHigherOneBit | rightOnesPattern;
-    //             next
-    //         }
-    //     }
-    // }
-    // pub fn subsets_of_size(size: u32) -> Iterator<Item = BitSet> {
-    //     debug_assert!(size < usize::BITS);
-    //     match size {
-    //         0 => BitSet(0),
-    //         size => BitSet(1 << size & usize::MAX),
-    //     }
-    // }
+    // https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
+    fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Bits> {
+        debug_assert!(size <= Self::MAX_BITS, "subset size is too big");
+        debug_assert!(size > 0, "the size of subset must be bigger than 0");
+        let items = self.ones().collect::<Vec<u32>>();
+        let items_count = items.len();
+        debug_assert!(items_count >= size as usize);
+        let mut n: i64 = (1 << size) - 1;
+        let next = move || match n >= (1 << items_count) {
+            true => None,
+            false => {
+                let res = Bits(n as u32).ones().fold(Bits::EMPTY, |total, i| {
+                    let aa = items[i as usize];
+                    total.set_bit(aa)
+                });
+                let right_one = n & (-n);
+                let next_higher_one_bit = n + right_one;
+                let right_ones_pattern = n ^ next_higher_one_bit;
+                let right_ones_pattern = right_ones_pattern / right_one;
+                let right_ones_pattern = right_ones_pattern >> 2;
+                n = next_higher_one_bit | right_ones_pattern; // next
+                Some(res)
+            }
+        };
+        let iterator = iter::from_fn(next);
+        iterator
+    }
 }
 
 #[cfg(test)]
@@ -84,15 +93,6 @@ mod tests {
             .map(|i| i.to_string())
             .collect::<Vec<String>>()
             .join(",")
-    }
-
-    fn string_to_vec(s: String) -> Vec<u32> {
-        s.split(",")
-            .map(|i| {
-                i.parse::<u32>()
-                    .expect("could not convert the string to a u32")
-            })
-            .collect::<Vec<u32>>()
     }
 
     fn string_to_bits(s: &str) -> Bits {
@@ -240,31 +240,12 @@ mod tests {
         data.into_iter()
             .for_each(|(input, expected)| test(input, expected));
     }
+
+    #[test]
+    fn subsets_of_size() {
+        Bits::set_lowest(6)
+            .except_bit(2)
+            .subsets_of_size(2)
+            .for_each(|i| println!("{:?}", bits_to_string(&i)));
+    }
 }
-
-// let empty: t
-// let isEmpty: t => bool
-// let fromInt: int => t
-// let every: size => t
-// let only: index => t
-// let union: (t, t) => t
-// let remove: (t, t) => t
-// let removeBiggest: t => option<(t, t)>
-// let combinations: (t, size) => Seq.t<t>
-// let toString: t => string
-// let compare: (t, t) => float
-// let ones: t => Seq.t<index>
-
-// EMPTY
-// MAX_BITS
-// MAX_BIT_VALUE
-
-// set_lowest
-// set_bit
-// except
-// except_bit
-// union
-// highest_bit
-// ones
-//
-// increment same bit count
