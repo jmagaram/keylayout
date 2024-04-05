@@ -1,13 +1,11 @@
+use std::iter;
+
 #[derive(PartialEq, PartialOrd, Debug)]
 pub struct Bits(u32);
 
-// add type alias for u32 like 'bitCount' or 'bitIndex'
-
-use std::iter;
-
 impl Bits {
     const EMPTY: Bits = Bits(0);
-    const MAX_BITS: u32 = 30;
+    const MAX_BITS: u32 = 30; // using this or u32::BITS consistently?
     const MAX_BIT_VALUE: u32 = 31;
 
     pub fn set_lowest(count: u32) -> Bits {
@@ -243,6 +241,9 @@ mod tests {
 
     #[test]
     fn subsets_of_size() {
+        fn test(size: u32) {
+            // if size is 5, every item return should have size 5
+        }
         Bits::set_lowest(6)
             .except_bit(2)
             .subsets_of_size(2)
