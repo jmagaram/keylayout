@@ -52,32 +52,40 @@ impl Bits {
         iterator
     }
 
+    fn same_ones_count(count: u32) -> impl Iterator<Item = i64> {
+        let mut n: i64 = (1 << count) - 1;
+        let next = move || {
+            let result = n;
+            let right_one = n & (-n);
+            let next_higher_one_bit = n + right_one;
+            let right_ones_pattern = n ^ next_higher_one_bit;
+            let right_ones_pattern = right_ones_pattern / right_one;
+            let right_ones_pattern = right_ones_pattern >> 2;
+            n = next_higher_one_bit | right_ones_pattern;
+            Some(result)
+        };
+        let iterator = iter::from_fn(next);
+        iterator
+    }
+
     // https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
     fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Bits> {
         debug_assert!(size <= Self::MAX_BITS, "subset size is too big");
         debug_assert!(size > 0, "the size of subset must be bigger than 0");
         let items = self.ones().collect::<Vec<u32>>();
         let items_count = items.len();
+        let max_exclusive = 1 << items_count;
         debug_assert!(items_count >= size as usize);
-        let mut n: i64 = (1 << size) - 1;
-        let next = move || match n >= (1 << items_count) {
-            true => None,
-            false => {
-                let res = Bits(n as u32).ones().fold(Bits::EMPTY, |total, i| {
+        let r = Bits::same_ones_count(size)
+            .take_while(move |i| *i < max_exclusive)
+            .map(move |i| {
+                let res = Bits(i as u32).ones().fold(Bits::EMPTY, |total, i| {
                     let aa = items[i as usize];
                     total.set_bit(aa)
                 });
-                let right_one = n & (-n);
-                let next_higher_one_bit = n + right_one;
-                let right_ones_pattern = n ^ next_higher_one_bit;
-                let right_ones_pattern = right_ones_pattern / right_one;
-                let right_ones_pattern = right_ones_pattern >> 2;
-                n = next_higher_one_bit | right_ones_pattern; // next
-                Some(res)
-            }
-        };
-        let iterator = iter::from_fn(next);
-        iterator
+                res
+            });
+        r
     }
 }
 
@@ -245,8 +253,8 @@ mod tests {
             // if size is 5, every item return should have size 5
         }
         Bits::set_lowest(6)
-            .except_bit(2)
-            .subsets_of_size(2)
+            .except_bit(3)
+            .subsets_of_size(3)
             .for_each(|i| println!("{:?}", bits_to_string(&i)));
     }
 }
