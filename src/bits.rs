@@ -1,7 +1,7 @@
 #[derive(PartialEq, PartialOrd, Debug)]
 pub struct Bits(u32);
 
-use std::{iter, ops::Not};
+use std::iter;
 
 impl Bits {
     const EMPTY: Bits = Bits(0);
@@ -13,16 +13,24 @@ impl Bits {
         Bits((1 << count) - 1)
     }
 
-    pub fn set(&self, bit: u32) -> Bits {
+    pub fn set_bit(&self, bit: u32) -> Bits {
         debug_assert!(bit <= Self::MAX_BIT_VALUE);
         Bits(self.0 | 1 << bit)
     }
 
-    pub fn remove(&self, other: Bits) -> Bits {
+    pub fn except(&self, other: Bits) -> Bits {
         Bits(self.0 & !other.0)
     }
 
-    pub fn biggest(&self) -> Option<u32> {
+    pub fn except_bit(&self, bit: u32) -> Bits {
+        Bits(self.0 & !(1 << bit))
+    }
+
+    pub fn union(&self, other: Bits) -> Bits {
+        Bits(self.0 | other.0)
+    }
+
+    pub fn highest_bit(&self) -> Option<u32> {
         match self.0.leading_zeros() {
             u32::BITS => None,
             n => Some(u32::BITS - n - 1),
@@ -100,7 +108,7 @@ mod tests {
                 })
                 .collect::<Vec<u32>>()
                 .into_iter()
-                .fold(Bits::EMPTY, |total, i| total.set(i))
+                .fold(Bits::EMPTY, |total, i| total.set_bit(i))
         }
     }
 
@@ -140,16 +148,16 @@ mod tests {
     }
 
     #[test]
-    fn set() {
+    fn set_bit() {
         let zero = Bits::EMPTY;
         assert_has_set_bits(&zero, vec![]);
-        assert_has_set_bits(&zero.set(2), vec![2]);
-        assert_has_set_bits(&zero.set(2).set(5), vec![2, 5]);
-        assert_has_set_bits(&zero.set(30).set(8).set(13), vec![8, 13, 30]);
+        assert_has_set_bits(&zero.set_bit(2), vec![2]);
+        assert_has_set_bits(&zero.set_bit(2).set_bit(5), vec![2, 5]);
+        assert_has_set_bits(&zero.set_bit(30).set_bit(8).set_bit(13), vec![8, 13, 30]);
     }
 
     #[test]
-    fn remove() {
+    fn except() {
         let data = [
             ("", "", ""),
             ("1", "1", ""),
@@ -157,10 +165,10 @@ mod tests {
             ("5,6,7", "1", "5,6,7"),
             ("23,1,8,3,4", "8,1", "3,4,23"),
         ];
-        fn test(start: &str, minus: &str, expected: &str) -> () {
+        fn test(start: &str, except: &str, expected: &str) -> () {
             let start = string_to_bits(start);
-            let minus = string_to_bits(minus);
-            let actual = start.remove(minus);
+            let other = string_to_bits(except);
+            let actual = start.except(other);
             let expected = string_to_bits(expected);
             assert_eq!(actual, expected);
         }
@@ -168,7 +176,45 @@ mod tests {
     }
 
     #[test]
-    fn biggest() {
+    fn except_bit() {
+        let data = [
+            ("1", 1, ""),
+            ("1,2", 2, "1"),
+            ("1,2,10", 10, "1,2"),
+            ("5,6,7", 1, "5,6,7"),
+            ("", 8, ""),
+        ];
+        fn test(start: &str, bit: u32, expected: &str) -> () {
+            let start = string_to_bits(start);
+            let actual = start.except_bit(bit);
+            let expected = string_to_bits(expected);
+            assert_eq!(actual, expected);
+        }
+        data.into_iter().for_each(|(a, b, c)| test(a, b, c));
+    }
+
+    #[test]
+    fn union() {
+        let data = [
+            ("", "", ""),
+            ("1", "1", "1"),
+            ("1,2,3", "2,3", "1,2,3"),
+            ("5,6,7", "1,2,3", "1,2,3,5,6,7"),
+            ("2", "1", "1,2"),
+            ("", "5", "5"),
+        ];
+        fn test(start: &str, except: &str, expected: &str) -> () {
+            let start = string_to_bits(start);
+            let other = string_to_bits(except);
+            let actual = start.union(other);
+            let expected = string_to_bits(expected);
+            assert_eq!(actual, expected);
+        }
+        data.into_iter().for_each(|(a, b, c)| test(a, b, c));
+    }
+
+    #[test]
+    fn highest_bit() {
         let data = [
             ("1,2,3", 3),
             ("0", 0),
@@ -181,7 +227,7 @@ mod tests {
         ];
         fn test(start: &str, expected: u32) -> () {
             let start = string_to_bits(start);
-            let actual = start.biggest();
+            let actual = start.highest_bit();
             assert_eq!(
                 actual,
                 if expected == u32::MAX {
@@ -208,3 +254,17 @@ mod tests {
 // let toString: t => string
 // let compare: (t, t) => float
 // let ones: t => Seq.t<index>
+
+// EMPTY
+// MAX_BITS
+// MAX_BIT_VALUE
+
+// set_lowest
+// set_bit
+// except
+// except_bit
+// union
+// highest_bit
+// ones
+//
+// increment same bit count
