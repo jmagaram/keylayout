@@ -1,5 +1,18 @@
 use std::iter::once;
 
+struct Subsets<T> {
+    items: Vec<T>,
+    mask: usize,
+}
+
+// let rec subsets found set =
+//      match set with
+//      | [] -> found
+//      | head::tail ->
+//         let with_x = found |> Seq.map(fun f -> head::f)
+//         let found = found |> Seq.append (with_x)
+//         subsets found tail
+
 type RESULT = Box<dyn Iterator<Item = Vec<i32>>>;
 
 fn combos(n: i32) -> RESULT {
@@ -211,13 +224,18 @@ fn combos(n: i32) -> RESULT {
 
 #[cfg(test)]
 mod tests {
-    use im::vector;
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
+    // #[test]
+    // fn perf() {
+    //     let count = 25;
+    //     println!("total of {} is {}", count, combos(count).count());
+    // }
+
     #[test]
-    fn perf() {
+    fn perf_im() {
         let count = 25;
         println!("total of {} is {}", count, combos(count).count());
     }
@@ -225,12 +243,5 @@ mod tests {
     #[test]
     fn dumb() {
         assert_eq!(combos(6).filter(|i| i.len() > 0).count(), 63);
-    }
-
-    #[test]
-    fn try_immutable_vector() {
-        let a = vector![1, 2, 3, 4];
-        let b = a.skip(1);
-        assert_eq!(3, b.len());
     }
 }

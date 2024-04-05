@@ -22,7 +22,7 @@
 //     fn mutate(&self) -> Self;
 // }
 
-mod bit_set;
+mod bits;
 mod utility;
 
 fn main() {
