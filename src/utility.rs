@@ -20,19 +20,20 @@ impl Partitions {
                 })
                 .into_iter()
                 .flat_map(|digit| {
-                    let m = Partitions {
+                    let solutions = Partitions {
                         sum: self.sum - digit,
                         parts: self.parts - 1,
                         min: self.min,
                         max: digit,
                     }
-                    .partitions();
-                    let zz = m.into_iter().map(move |dd| {
-                        let mut ddCopy = dd.clone();
-                        ddCopy.push(digit);
-                        ddCopy
+                    .partitions()
+                    .into_iter()
+                    .map(move |digits| {
+                        let mut digits_copy = digits.clone();
+                        digits_copy.push(digit);
+                        digits_copy
                     });
-                    zz
+                    solutions
                 })
                 .collect::<Vec<Vec<u32>>>(),
         }
