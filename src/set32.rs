@@ -1,4 +1,7 @@
-use std::{iter, u32};
+use std::{
+    fmt::{self},
+    iter, u32,
+};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Set32(u32);
@@ -110,14 +113,16 @@ impl Set32 {
                     .fold(Set32::EMPTY, |total, i| total.add(items[i as usize]))
             })
     }
+}
 
-    pub fn to_string(&self) -> String {
-        let result = self
+impl fmt::Display for Set32 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let digits = self
             .into_iter()
             .map(|i| i.to_string())
             .collect::<Vec<String>>()
             .join(",");
-        format!("[{}]", result)
+        write!(f, "[{}]", digits)
     }
 }
 
@@ -155,6 +160,12 @@ mod tests {
                 .into_iter()
                 .fold(Set32::EMPTY, |total, i| total.add(i))
         }
+    }
+
+    #[test]
+    fn display_trait() {
+        println!("{}", Set32::EMPTY.add(1).add(5));
+        println!("The set is {}", Set32::EMPTY.add(1).add(5))
     }
 
     #[test]
