@@ -126,11 +126,6 @@ mod tests {
         }
     }
 
-    fn assert_has_set_bits(target: &Bits, expected: Vec<u32>) -> () {
-        let actual = target.ones().into_iter().collect::<Vec<u32>>();
-        assert_eq!(actual, expected);
-    }
-
     #[test]
     fn set_lowest_when_zero() {
         assert_eq!(Bits::set_lowest(0), Bits::EMPTY);
@@ -149,10 +144,9 @@ mod tests {
     #[test]
     fn set_bit() {
         let zero = Bits::EMPTY;
-        assert_has_set_bits(&zero, vec![]);
-        assert_has_set_bits(&zero.set_bit(2), vec![2]);
-        assert_has_set_bits(&zero.set_bit(2).set_bit(5), vec![2, 5]);
-        assert_has_set_bits(&zero.set_bit(30).set_bit(8).set_bit(13), vec![8, 13, 30]);
+        assert_eq!(zero.to_string(), "[]");
+        assert_eq!(zero.set_bit(3).set_bit(8).to_string(), "[3,8]");
+        assert_eq!(zero.set_bit(31).to_string(), "[31]");
     }
 
     #[test]
