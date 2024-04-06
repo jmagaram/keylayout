@@ -105,10 +105,9 @@ impl Set32 {
         Set32::same_ones_count(size)
             .take_while(move |i| *i < max_exclusive)
             .map(move |i| {
-                Set32(i as u32).into_iter().fold(Set32::EMPTY, |total, i| {
-                    let aa = items[i as usize];
-                    total.add(aa)
-                })
+                Set32(i as u32)
+                    .into_iter()
+                    .fold(Set32::EMPTY, |total, i| total.add(items[i as usize]))
             })
     }
 
