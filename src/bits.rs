@@ -3,6 +3,19 @@ use std::{iter, u32};
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Bits(u32);
 
+// EMPTY
+// MAX_BITS
+// MAX_BIT_VALUE
+// set_lowest
+// set_bit
+// except
+// except_bit
+// union
+// highest_bit
+// same_ones_count
+// subsets_of_size
+// to_string
+
 impl Bits {
     const EMPTY: Bits = Bits(0);
     const MAX_BITS: u32 = 30; // using this or u32::BITS consistently?
@@ -38,20 +51,6 @@ impl Bits {
         }
     }
 
-    pub fn ones(&self) -> impl Iterator<Item = u32> {
-        let mut current = self.0;
-        let next = move || match current {
-            0 => None,
-            _ => {
-                let trailing_zeros = current.trailing_zeros();
-                current = current ^ (1 << (trailing_zeros));
-                Some(trailing_zeros)
-            }
-        };
-        let iterator = iter::from_fn(next);
-        iterator
-    }
-
     fn same_ones_count(count: u32) -> impl Iterator<Item = i64> {
         debug_assert!(count >= 1 && count <= 32);
         let mut n: i64 = (1 << count) - 1;
@@ -75,17 +74,17 @@ impl Bits {
     }
 
     // https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
-    fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Bits> {
+    pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Bits> {
         debug_assert!(size <= Self::MAX_BITS, "subset size is too big");
         debug_assert!(size > 0, "the size of subset must be bigger than 0");
-        let items = self.ones().collect::<Vec<u32>>();
+        let items = self.into_iter().collect::<Vec<u32>>();
         let items_count = items.len();
         let max_exclusive = 1 << items_count;
         debug_assert!(items_count >= size as usize);
         let r = Bits::same_ones_count(size)
             .take_while(move |i| *i < max_exclusive)
             .map(move |i| {
-                let res = Bits(i as u32).ones().fold(Bits::EMPTY, |total, i| {
+                let res = Bits(i as u32).into_iter().fold(Bits::EMPTY, |total, i| {
                     let aa = items[i as usize];
                     total.set_bit(aa)
                 });
@@ -94,14 +93,41 @@ impl Bits {
         r
     }
 
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         let result = self
-            .ones()
             .into_iter()
             .map(|i| i.to_string())
             .collect::<Vec<String>>()
             .join(",");
         format!("[{}]", result)
+    }
+}
+
+pub struct BitsIntoIterator {
+    bits: u32,
+}
+
+impl IntoIterator for Bits {
+    type Item = u32;
+    type IntoIter = BitsIntoIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        BitsIntoIterator { bits: self.0 }
+    }
+}
+
+impl Iterator for BitsIntoIterator {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<u32> {
+        match self.bits {
+            0 => None,
+            _ => {
+                let trailing_zeros = self.bits.trailing_zeros();
+                self.bits = self.bits ^ (1 << (trailing_zeros));
+                Some(trailing_zeros)
+            }
+        }
     }
 }
 
@@ -127,6 +153,20 @@ mod tests {
     }
 
     #[test]
+    fn into_iterator() {
+        assert_eq!(Bits::EMPTY.into_iter().count(), 0);
+        assert_eq!(Bits::EMPTY.set_bit(1).set_bit(2).into_iter().count(), 2);
+        assert_eq!(
+            Bits::EMPTY
+                .set_bit(5)
+                .set_bit(3)
+                .into_iter()
+                .fold(0, |total, i| total + i),
+            8,
+        );
+    }
+
+    #[test]
     fn set_lowest_when_zero() {
         assert_eq!(Bits::set_lowest(0), Bits::EMPTY);
     }
@@ -135,7 +175,7 @@ mod tests {
     fn set_lowest_when_not_zero() {
         for bit_count in 1u32..10u32 {
             let target = Bits::set_lowest(bit_count);
-            let actual = target.ones().into_iter().collect::<Vec<u32>>();
+            let actual = target.into_iter().collect::<Vec<u32>>();
             let expected: Vec<u32> = (0..=bit_count - 1).into_iter().collect();
             assert_eq!(actual, expected);
         }
@@ -147,6 +187,12 @@ mod tests {
         assert_eq!(zero.to_string(), "[]");
         assert_eq!(zero.set_bit(3).set_bit(8).to_string(), "[3,8]");
         assert_eq!(zero.set_bit(31).to_string(), "[31]");
+    }
+
+    #[test]
+    #[should_panic]
+    fn set_bit_panic_if_invalid_index() {
+        Bits::EMPTY.set_bit(32);
     }
 
     #[test]
@@ -266,7 +312,7 @@ mod tests {
     fn with_ones_count_test() {
         for expected_ones in [1, 5, 9, 12, 23, 31, 32] {
             let all_correct_ones = Bits::same_ones_count(expected_ones).take(1000).all(|n| {
-                let actual_ones = Bits(n as u32).ones().count();
+                let actual_ones = Bits(n as u32).into_iter().count();
                 actual_ones == (expected_ones as usize)
             });
             assert!(all_correct_ones)
@@ -286,7 +332,7 @@ mod tests {
     fn subsets_of_size() {
         fn test(items: &str) {
             let bits = string_to_bits(items);
-            let ones_count = bits.ones().count();
+            let ones_count = bits.into_iter().count();
 
             // subsets have correct number of items (no duplicates)
             (1..ones_count).for_each(|subset_size| {
