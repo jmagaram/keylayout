@@ -18,7 +18,6 @@ impl Partitions {
                         false => None,
                     }
                 })
-                .into_iter()
                 .flat_map(|digit| {
                     let solutions = Partitions {
                         sum: self.sum - digit,
