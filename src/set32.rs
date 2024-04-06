@@ -124,28 +124,15 @@ impl Set32 {
     }
 }
 
-pub struct Set32IntoIterator {
-    bits: u32,
-}
-
-impl IntoIterator for Set32 {
-    type Item = u32;
-    type IntoIter = Set32IntoIterator;
-
-    fn into_iter(self) -> Self::IntoIter {
-        Set32IntoIterator { bits: self.0 }
-    }
-}
-
-impl Iterator for Set32IntoIterator {
+impl Iterator for Set32 {
     type Item = u32;
 
     fn next(&mut self) -> Option<u32> {
-        match self.bits {
+        match self.0 {
             0 => None,
             _ => {
-                let trailing_zeros = self.bits.trailing_zeros();
-                self.bits = self.bits ^ (1 << (trailing_zeros));
+                let trailing_zeros = self.0.trailing_zeros();
+                self.0 = self.0 ^ (1 << (trailing_zeros));
                 Some(trailing_zeros)
             }
         }
