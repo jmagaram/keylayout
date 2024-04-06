@@ -7,6 +7,7 @@ impl Set32 {
     const EMPTY: Set32 = Set32(0);
     const MAX_SIZE: u32 = 32;
     const MAX_ITEM_VALUE: u32 = 31;
+    const MIN_ITEM_VALUE: u32 = 0;
 
     pub fn fill(count: u32) -> Set32 {
         debug_assert!(count <= Self::MAX_SIZE);
@@ -71,6 +72,7 @@ impl Set32 {
         }
     }
 
+    // https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
     fn same_ones_count(count: u32) -> impl Iterator<Item = i64> {
         debug_assert!(count >= 1 && count <= 32);
         let mut n: i64 = (1 << count) - 1;
@@ -93,7 +95,6 @@ impl Set32 {
         iterator
     }
 
-    // https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
     pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Set32> {
         debug_assert!(size <= Self::MAX_SIZE, "subset size is too big");
         debug_assert!(size > 0, "the size of subset must be bigger than 0");
