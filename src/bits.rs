@@ -1,6 +1,6 @@
 use std::{iter, u32};
 
-#[derive(PartialEq, PartialOrd, Debug)]
+#[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Bits(u32);
 
 impl Bits {
@@ -309,7 +309,14 @@ mod tests {
             let bits = string_to_bits(items);
             let ones_count = bits.ones().count();
 
-            // subsets are unique and correct size
+            // subsets have correct number of items (no duplicates)
+            (1..ones_count).for_each(|subset_size| {
+                let actual_size = bits.subsets_of_size(subset_size as u32).count();
+                let expected_count = choose_count(ones_count as u32, subset_size as u32);
+                assert_eq!(actual_size, expected_count as usize);
+            });
+
+            // subsets items are unique
             (1..ones_count).for_each(|subset_size| {
                 let set = bits
                     .subsets_of_size(subset_size as u32)
@@ -317,7 +324,16 @@ mod tests {
                     .collect::<std::collections::HashSet<String>>();
                 let expected_count = choose_count(ones_count as u32, subset_size as u32);
                 assert_eq!(set.len(), expected_count as usize);
-            })
+            });
+
+            // subsets items are all in the source bits
+            (1..ones_count).for_each(|subset_size| {
+                let all_valid_items = bits.subsets_of_size(subset_size as u32).all(move |subset| {
+                    let m = subset.except(bits) == Bits::EMPTY;
+                    m
+                });
+                assert!(all_valid_items)
+            });
         }
         let data = [
             "0,1,5,7",
