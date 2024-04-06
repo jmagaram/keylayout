@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use set32::Set32;
 
+mod partitions;
 mod set32;
 mod utility;
 
@@ -28,7 +29,12 @@ fn calc_subsets(print_each: bool, max_items: u32) {
 }
 
 fn main() {
-    (0..1).for_each(|n| {
-        println!("{},{}", n, n & -n);
-    });
+    calc_subsets(false, 28);
+    // fn print_one(n: i32) {
+    //     println!("{:08b}", n);
+    //     println!("{:08b}", n & -n);
+    //     println!("")
+    // }
+    // (0..100).for_each(|n| print_one(n));
+    // print_one(-1);
 }
