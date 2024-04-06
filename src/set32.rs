@@ -80,7 +80,7 @@ impl Set32 {
         let expected_max = ((1 << count) - 1) << (max_bits - count);
         let next = move || {
             let result = n;
-            let right_one = n & (-n);
+            let right_one = 1 << n.trailing_zeros();
             let next_higher_one_bit = n + right_one;
             let right_ones_pattern = n ^ next_higher_one_bit;
             let right_ones_pattern = right_ones_pattern / right_one;
