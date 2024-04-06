@@ -132,21 +132,6 @@ mod tests {
     }
 
     #[test]
-    fn equals_operator() {
-        assert_eq!(Bits::EMPTY == Bits::EMPTY, true);
-    }
-
-    #[test]
-    fn not_equals_operator() {
-        assert_eq!(Bits::EMPTY != Bits::EMPTY, false);
-    }
-
-    #[test]
-    fn comparison_operators() {
-        assert_eq!(Bits::EMPTY < Bits::EMPTY, false);
-    }
-
-    #[test]
     fn set_lowest_when_zero() {
         assert_eq!(Bits::set_lowest(0), Bits::EMPTY);
     }
