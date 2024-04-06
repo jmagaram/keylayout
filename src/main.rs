@@ -22,10 +22,14 @@
 //     fn mutate(&self) -> Self;
 // }
 
+use crate::set32::Set32;
+
 mod set32;
 mod utility;
 
 fn main() {
+    let z = Set32::fill(3);
+    let y = z.into_iter().for_each(|i| print!("{}", i));
     // let z = Things::zero();
     // let _q = z.increment();
     // let _max: i64 = 160_787_493_266_400_000;
