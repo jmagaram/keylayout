@@ -109,10 +109,10 @@ mod tests {
                 for min in 1..=sum {
                     for max in min..=sum {
                         let all_correct_sum = Partitions {
-                            sum: sum,
-                            parts: parts,
-                            min: min,
-                            max: max,
+                            sum,
+                            parts,
+                            min,
+                            max,
                         }
                         .calculate()
                         .into_iter()
@@ -127,16 +127,16 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn print() {
+    fn print_a_sample() {
         let sum = 10;
         let parts = 3;
         let min = 1;
         let max = sum;
         Partitions {
-            sum: sum,
-            parts: parts,
-            min: min,
-            max: max,
+            sum,
+            parts,
+            min,
+            max,
         }
         .calculate()
         .into_iter()
