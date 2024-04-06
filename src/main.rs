@@ -5,10 +5,8 @@ use set32::Set32;
 mod set32;
 mod utility;
 
-fn main() {
-    let max_total_items = 30;
-    let print_each = false;
-    (1..max_total_items).for_each(|item_count| {
+fn calc_subsets(print_each: bool, max_items: u32) {
+    (1..max_items).for_each(|item_count| {
         println!("");
         println!("== Items: {} ==", item_count);
         let set = Set32::fill(item_count);
@@ -26,5 +24,11 @@ fn main() {
         });
         let duration = start.elapsed();
         println!("     subsets:{} duration: {:?}", subsets_found, duration);
+    });
+}
+
+fn main() {
+    (0..1).for_each(|n| {
+        println!("{},{}", n, n & -n);
     });
 }
