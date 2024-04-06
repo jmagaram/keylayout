@@ -1,4 +1,4 @@
-use std::iter;
+use std::{iter, u32};
 
 #[derive(PartialEq, PartialOrd, Debug)]
 pub struct Bits(u32);
@@ -54,6 +54,8 @@ impl Bits {
 
     fn same_ones_count(count: u32) -> impl Iterator<Item = i64> {
         let mut n: i64 = (1 << count) - 1;
+        let max_bits = u32::BITS;
+        let expected_max = ((1 << count) - 1) << (max_bits - count);
         let next = move || {
             let result = n;
             let right_one = n & (-n);
@@ -62,7 +64,10 @@ impl Bits {
             let right_ones_pattern = right_ones_pattern / right_one;
             let right_ones_pattern = right_ones_pattern >> 2;
             n = next_higher_one_bit | right_ones_pattern;
-            Some(result)
+            match result <= expected_max {
+                true => Some(result),
+                false => None,
+            }
         };
         let iterator = iter::from_fn(next);
         iterator
@@ -248,10 +253,33 @@ mod tests {
     }
 
     #[test]
-    fn subsets_of_size() {
-        fn test(size: u32) {
-            // if size is 5, every item return should have size 5
+    fn with_ones_count_test_ends_at_max() {
+        for expected_ones in [1, 5, 9, 12, 32] {
+            let max_bits = 32;
+            let expected_max = ((1 << expected_ones) - 1) << (max_bits - expected_ones);
+            let actual_max = Bits::same_ones_count(expected_ones).last().unwrap_or(-1);
+            assert_eq!(actual_max, expected_max);
         }
+    }
+
+    #[test]
+    fn with_ones_count_test() {
+        for expected_ones in 1u32..28 {
+            // works > 1
+            let r = Bits::same_ones_count(expected_ones).take(100).all(|n| {
+                let actual_ones = Bits(n as u32).ones().count();
+                println!("{},{}", actual_ones, expected_ones);
+                actual_ones == (expected_ones as usize)
+            });
+            assert!(r)
+        }
+    }
+
+    #[test]
+    fn subsets_of_size() {
+        // fn test(size: u32) {
+        //     // if size is 5, every item return should have size 5
+        // }
         Bits::set_lowest(6)
             .except_bit(3)
             .subsets_of_size(3)
