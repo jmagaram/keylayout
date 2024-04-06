@@ -53,6 +53,7 @@ impl Bits {
     }
 
     fn same_ones_count(count: u32) -> impl Iterator<Item = i64> {
+        debug_assert!(count >= 1 && count <= 32);
         let mut n: i64 = (1 << count) - 1;
         let max_bits = u32::BITS;
         let expected_max = ((1 << count) - 1) << (max_bits - count);
@@ -253,7 +254,7 @@ mod tests {
     }
 
     #[test]
-    fn with_ones_count_test_ends_at_max() {
+    fn same_ones_count_ends_at_max() {
         for expected_ones in [1, 5, 9, 12, 32] {
             let max_bits = 32;
             let expected_max = ((1 << expected_ones) - 1) << (max_bits - expected_ones);
@@ -264,14 +265,12 @@ mod tests {
 
     #[test]
     fn with_ones_count_test() {
-        for expected_ones in 1u32..28 {
-            // works > 1
-            let r = Bits::same_ones_count(expected_ones).take(100).all(|n| {
+        for expected_ones in [1, 5, 9, 12, 23, 31, 32] {
+            let all_correct_ones = Bits::same_ones_count(expected_ones).take(1000).all(|n| {
                 let actual_ones = Bits(n as u32).ones().count();
-                println!("{},{}", actual_ones, expected_ones);
                 actual_ones == (expected_ones as usize)
             });
-            assert!(r)
+            assert!(all_correct_ones)
         }
     }
 
