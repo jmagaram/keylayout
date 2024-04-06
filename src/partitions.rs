@@ -6,36 +6,42 @@ pub struct Partitions {
 }
 
 impl Partitions {
-    fn partitions(&self) -> Vec<Vec<u32>> {
-        match self.sum == 0 {
-            true => vec![vec![]],
-            false => (self.min..=self.max)
-                .into_iter()
-                .filter_map(|n| {
-                    match n + (self.min * self.parts - 1) <= self.sum && n * self.parts >= self.sum
-                    {
-                        true => Some(n),
-                        false => None,
-                    }
-                })
-                .flat_map(|digit| {
-                    let solutions = Partitions {
-                        sum: self.sum - digit,
-                        parts: self.parts - 1,
-                        min: self.min,
-                        max: digit,
-                    }
-                    .partitions()
-                    .into_iter()
-                    .map(move |digits| {
-                        let mut digits_copy = digits.clone();
-                        digits_copy.push(digit);
-                        digits_copy
-                    });
-                    solutions
-                })
-                .collect::<Vec<Vec<u32>>>(),
+    pub fn calculate(&self) -> Vec<Vec<u32>> {
+        if self.max < self.min {
+            panic!("expected max >= min")
         }
+        if self.sum == 0 {
+            panic!("expected sum >= 1")
+        }
+        if self.parts == 0 {
+            panic!("expected parts >= 1")
+        }
+        fn go(sum: u32, parts: u32, min: u32, max: u32) -> Vec<Vec<u32>> {
+            match sum == 0 {
+                true => vec![vec![]],
+                false => {
+                    let q = (min..=max)
+                        .into_iter()
+                        .filter_map(|n| match n + (min * parts - 1) <= sum && n * parts >= sum {
+                            true => Some(n),
+                            false => None,
+                        })
+                        .flat_map(|digit| {
+                            let solutions = go(sum - digit, parts - 1, min, digit).into_iter().map(
+                                move |digits| {
+                                    let mut digits_copy = digits.clone();
+                                    digits_copy.push(digit);
+                                    digits_copy
+                                },
+                            );
+                            solutions
+                        })
+                        .collect::<Vec<Vec<u32>>>();
+                    q
+                }
+            }
+        }
+        go(self.sum, self.parts, self.min, self.max)
     }
 }
 
@@ -43,6 +49,42 @@ impl Partitions {
 mod tests {
 
     use super::*;
+
+    #[test]
+    #[should_panic]
+    fn panic_if_max_less_than_min() {
+        Partitions {
+            sum: 100,
+            parts: 1,
+            min: 5,
+            max: 4,
+        }
+        .calculate();
+    }
+
+    #[test]
+    #[should_panic]
+    fn panic_if_parts_is_zero() {
+        Partitions {
+            sum: 100,
+            parts: 0,
+            min: 1,
+            max: 100,
+        }
+        .calculate();
+    }
+
+    #[test]
+    #[should_panic]
+    fn panic_if_sum_is_zero() {
+        Partitions {
+            sum: 0,
+            parts: 1,
+            min: 1,
+            max: 10,
+        }
+        .calculate();
+    }
 
     #[test]
     fn partitions_have_proper_count() {
@@ -61,7 +103,7 @@ mod tests {
                     min: min,
                     max: max
                 }
-                .partitions()
+                .calculate()
                 .len(),
                 expected
             );
@@ -80,7 +122,7 @@ mod tests {
                             min: min,
                             max: max,
                         }
-                        .partitions()
+                        .calculate()
                         .into_iter()
                         .map(|digits| digits.into_iter().fold(0, |total, i| total + i))
                         .all(|r| r == sum);
@@ -104,7 +146,7 @@ mod tests {
             min: min,
             max: max,
         }
-        .partitions()
+        .calculate()
         .into_iter()
         .for_each(|p| println!("{:?}", p))
     }
