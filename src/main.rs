@@ -3,6 +3,7 @@ use std::time::Instant;
 use set32::Set32;
 
 mod partitions;
+mod penalty;
 mod set32;
 mod utility;
 
@@ -38,3 +39,22 @@ fn main() {
     // (0..100).for_each(|n| print_one(n));
     // print_one(-1);
 }
+
+// @unboxed type word = Word(string)
+// @unboxed type frequency = Frequency(float)
+// @unboxed type penalty = Penalty(float)
+
+// type dictionary = {
+//   dict: Map.t<word, frequency>,
+//   words: array<(word, frequency)>,
+//   count: int,
+//   frequencyTotal: frequency,
+// }
+
+// @unboxed type character = Character(string)
+// @unboxed type keyLabel = KeyLabel(int)
+
+// type keyboard = {
+//   keys: Map.t<keyLabel, array<character>>,
+//   characters: Map.t<character, keyLabel>,
+// }

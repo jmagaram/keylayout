@@ -122,7 +122,9 @@ impl fmt::Display for Set32 {
             .map(|i| i.to_string())
             .collect::<Vec<String>>()
             .join(",");
-        write!(f, "[{}]", digits)
+        let left = "{";
+        let right = "}";
+        write!(f, "{}{}{}", left, digits, right)
     }
 }
 
@@ -163,9 +165,13 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn display_trait() {
-        println!("{}", Set32::EMPTY.add(1).add(5));
-        println!("The set is {}", Set32::EMPTY.add(1).add(5))
+        let data = ["1,2,3", "1", "15,25,2", "0"];
+        data.into_iter().for_each(|d| {
+            let bit = string_to_bits(d);
+            println!("The characters are {}", bit)
+        })
     }
 
     #[test]
@@ -191,22 +197,22 @@ mod tests {
     fn fill_when_max() {
         assert_eq!(
             Set32::fill(32).to_string(),
-            "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]"
+            "{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31}"
         );
     }
 
     #[test]
     fn fill_when_not_zero() {
-        assert_eq!(Set32::fill(1).to_string(), "[0]");
-        assert_eq!(Set32::fill(2).to_string(), "[0,1]");
+        assert_eq!(Set32::fill(1).to_string(), "{0}");
+        assert_eq!(Set32::fill(2).to_string(), "{0,1}");
     }
 
     #[test]
     fn add() {
         let zero = Set32::EMPTY;
-        assert_eq!(zero.to_string(), "[]");
-        assert_eq!(zero.add(3).add(8).to_string(), "[3,8]");
-        assert_eq!(zero.add(31).to_string(), "[31]");
+        assert_eq!(zero.to_string(), "{}");
+        assert_eq!(zero.add(3).add(8).to_string(), "{3,8}");
+        assert_eq!(zero.add(31).to_string(), "{31}");
     }
 
     #[test]
@@ -239,25 +245,25 @@ mod tests {
         fn test(bits: &str, item: u32, expected: &str) {
             assert_eq!(string_to_bits(bits).remove(item).to_string(), expected);
         }
-        test("", 0, "[]");
-        test("", 1, "[]");
-        test("", 31, "[]");
-        test("0", 0, "[]");
-        test("0", 1, "[0]");
-        test("0,1,2", 1, "[0,2]");
-        test("0,1,2,3,4,5", 5, "[0,1,2,3,4]");
-        test("0,1,2,3,4,5,31", 31, "[0,1,2,3,4,5]");
-        test("0,1,2,3,4,5,31", 0, "[1,2,3,4,5,31]");
+        test("", 0, "{}");
+        test("", 1, "{}");
+        test("", 31, "{}");
+        test("0", 0, "{}");
+        test("0", 1, "{0}");
+        test("0,1,2", 1, "{0,2}");
+        test("0,1,2,3,4,5", 5, "{0,1,2,3,4}");
+        test("0,1,2,3,4,5,31", 31, "{0,1,2,3,4,5}");
+        test("0,1,2,3,4,5,31", 0, "{1,2,3,4,5,31}");
     }
 
     #[test]
     fn to_string_test() {
         let data = [
-            ("", "[]"),
-            ("1", "[1]"),
-            ("1,2,3", "[1,2,3]"),
-            ("5,4,3", "[3,4,5]"),
-            ("15,4,0", "[0,4,15]"),
+            ("", "{}"),
+            ("1", "{1}"),
+            ("1,2,3", "{1,2,3}"),
+            ("5,4,3", "{3,4,5}"),
+            ("15,4,0", "{0,4,15}"),
         ];
         fn test(start: &str, expected: &str) -> () {
             let start = string_to_bits(start);
@@ -285,9 +291,9 @@ mod tests {
 
     #[test]
     fn singleton_test() {
-        assert_eq!(Set32::singleton(0).to_string(), "[0]");
-        assert_eq!(Set32::singleton(31).to_string(), "[31]");
-        assert_eq!(Set32::singleton(5).to_string(), "[5]");
+        assert_eq!(Set32::singleton(0).to_string(), "{0}");
+        assert_eq!(Set32::singleton(31).to_string(), "{31}");
+        assert_eq!(Set32::singleton(5).to_string(), "{5}");
     }
 
     #[test]
