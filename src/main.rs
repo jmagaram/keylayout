@@ -1,47 +1,30 @@
-// #[derive(PartialOrd, Ord, PartialEq, Eq)]
-// struct KeyLabel(i32);
+use std::time::Instant;
 
-// impl KeyLabel {
-//     pub fn zero() -> KeyLabel {
-//         KeyLabel(0)
-//     }
-
-//     pub fn increment(&self) -> KeyLabel {
-//         KeyLabel(self.0 + 1)
-//     }
-
-//     pub fn to_string(&self) -> String {
-//         self.0.to_string()
-//     }
-// }
-
-// pub trait BitSet {
-//     const EMPTY: Self;
-//     fn isEmpty(&self) -> bool;
-//     fn summarize(&self) -> String;
-//     fn mutate(&self) -> Self;
-// }
-
-use crate::set32::Set32;
+use set32::Set32;
 
 mod set32;
 mod utility;
 
 fn main() {
-    let z = Set32::fill(3);
-    let y = z.into_iter().for_each(|i| print!("{}", i));
-    // let z = Things::zero();
-    // let _q = z.increment();
-    // let _max: i64 = 160_787_493_266_400_000;
-    // let loop_until: i64 = 1_000_000_000_000;
-    // for i in 0i64..loop_until {
-    //     let n: f32 = rand::random();
-    //     if n < 0.00000001 {
-    //         println!("Found at {}", i);
-    //     }
-    // }
-
-    // let m = bits::Bits::
-
-    println!("Hello, world!");
+    let max_total_items = 30;
+    let print_each = false;
+    (1..max_total_items).for_each(|item_count| {
+        println!("");
+        println!("== Items: {} ==", item_count);
+        let set = Set32::fill(item_count);
+        let start = Instant::now();
+        let mut subsets_found = 0;
+        (1..=item_count).for_each(|subset_size| {
+            println!("  items:{} choose:{}", item_count, subset_size,);
+            set.subsets_of_size(subset_size).for_each(|subset| {
+                subsets_found += 1;
+                match print_each {
+                    true => println!("     {}", subset.to_string()),
+                    false => (),
+                }
+            });
+        });
+        let duration = start.elapsed();
+        println!("     subsets:{} duration: {:?}", subsets_found, duration);
+    });
 }
