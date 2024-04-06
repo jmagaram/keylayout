@@ -1,53 +1,73 @@
 use std::{iter, u32};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
-pub struct Bits(u32);
+pub struct Set32(u32);
 
-// EMPTY
-// MAX_BITS
-// MAX_BIT_VALUE
-// set_lowest
-// set_bit
-// except
-// except_bit
-// union
-// highest_bit
-// same_ones_count
-// subsets_of_size
-// to_string
+impl Set32 {
+    const EMPTY: Set32 = Set32(0);
+    const MAX_SIZE: u32 = 32;
+    const MAX_ITEM_VALUE: u32 = 31;
 
-impl Bits {
-    const EMPTY: Bits = Bits(0);
-    const MAX_BITS: u32 = 30; // using this or u32::BITS consistently?
-    const MAX_BIT_VALUE: u32 = 31;
-
-    pub fn set_lowest(count: u32) -> Bits {
-        debug_assert!(count <= Self::MAX_BITS);
-        Bits((1 << count) - 1)
+    pub fn fill(count: u32) -> Set32 {
+        debug_assert!(count <= Self::MAX_SIZE);
+        let bits = match count {
+            32 => !0,
+            count => (1 << count) - 1,
+        };
+        Set32(bits)
     }
 
-    pub fn set_bit(&self, bit: u32) -> Bits {
-        debug_assert!(bit <= Self::MAX_BIT_VALUE);
-        Bits(self.0 | 1 << bit)
+    pub fn add(&self, bit: u32) -> Set32 {
+        debug_assert!(bit <= Self::MAX_ITEM_VALUE);
+        Set32(self.0 | 1 << bit)
     }
 
-    pub fn except(&self, other: Bits) -> Bits {
-        Bits(self.0 & !other.0)
+    pub fn singleton(bit: u32) -> Set32 {
+        debug_assert!(bit <= Self::MAX_ITEM_VALUE);
+        Set32(1 << bit)
     }
 
-    pub fn except_bit(&self, bit: u32) -> Bits {
-        debug_assert!(bit <= Self::MAX_BIT_VALUE);
-        Bits(self.0 & !(1 << bit))
+    pub fn contains(&self, bit: u32) -> bool {
+        debug_assert!(bit <= Self::MAX_ITEM_VALUE);
+        self.0 & (1 << bit) != 0
     }
 
-    pub fn union(&self, other: Bits) -> Bits {
-        Bits(self.0 | other.0)
+    pub fn count(&self) -> usize {
+        self.into_iter().count()
     }
 
-    pub fn highest_bit(&self) -> Option<u32> {
+    pub fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn difference(&self, other: Set32) -> Set32 {
+        Set32(self.0 & !other.0)
+    }
+
+    pub fn remove(&self, bit: u32) -> Set32 {
+        debug_assert!(bit <= Self::MAX_ITEM_VALUE);
+        Set32(self.0 & !(1 << bit))
+    }
+
+    pub fn union(&self, other: Set32) -> Set32 {
+        Set32(self.0 | other.0)
+    }
+
+    pub fn intersect(&self, other: Set32) -> Set32 {
+        Set32(self.0 & other.0)
+    }
+
+    pub fn max_item(&self) -> Option<u32> {
         match self.0.leading_zeros() {
             u32::BITS => None,
             n => Some(u32::BITS - n - 1),
+        }
+    }
+
+    pub fn min_item(&self) -> Option<u32> {
+        match self.0.trailing_zeros() {
+            32 => None,
+            n => Some(n),
         }
     }
 
@@ -74,19 +94,19 @@ impl Bits {
     }
 
     // https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
-    pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Bits> {
-        debug_assert!(size <= Self::MAX_BITS, "subset size is too big");
+    pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Set32> {
+        debug_assert!(size <= Self::MAX_SIZE, "subset size is too big");
         debug_assert!(size > 0, "the size of subset must be bigger than 0");
         let items = self.into_iter().collect::<Vec<u32>>();
         let items_count = items.len();
         let max_exclusive = 1 << items_count;
         debug_assert!(items_count >= size as usize);
-        let r = Bits::same_ones_count(size)
+        let r = Set32::same_ones_count(size)
             .take_while(move |i| *i < max_exclusive)
             .map(move |i| {
-                let res = Bits(i as u32).into_iter().fold(Bits::EMPTY, |total, i| {
+                let res = Set32(i as u32).into_iter().fold(Set32::EMPTY, |total, i| {
                     let aa = items[i as usize];
-                    total.set_bit(aa)
+                    total.add(aa)
                 });
                 res
             });
@@ -103,20 +123,20 @@ impl Bits {
     }
 }
 
-pub struct BitsIntoIterator {
+pub struct Set32IntoIterator {
     bits: u32,
 }
 
-impl IntoIterator for Bits {
+impl IntoIterator for Set32 {
     type Item = u32;
-    type IntoIter = BitsIntoIterator;
+    type IntoIter = Set32IntoIterator;
 
     fn into_iter(self) -> Self::IntoIter {
-        BitsIntoIterator { bits: self.0 }
+        Set32IntoIterator { bits: self.0 }
     }
 }
 
-impl Iterator for BitsIntoIterator {
+impl Iterator for Set32IntoIterator {
     type Item = u32;
 
     fn next(&mut self) -> Option<u32> {
@@ -135,10 +155,10 @@ impl Iterator for BitsIntoIterator {
 mod tests {
     use super::*;
 
-    fn string_to_bits(s: &str) -> Bits {
+    fn string_to_bits(s: &str) -> Set32 {
         let s = s.trim();
         if s == "" {
-            Bits::EMPTY
+            Set32::EMPTY
         } else {
             s.split(",")
                 .map(|i| {
@@ -148,18 +168,18 @@ mod tests {
                 })
                 .collect::<Vec<u32>>()
                 .into_iter()
-                .fold(Bits::EMPTY, |total, i| total.set_bit(i))
+                .fold(Set32::EMPTY, |total, i| total.add(i))
         }
     }
 
     #[test]
     fn into_iterator() {
-        assert_eq!(Bits::EMPTY.into_iter().count(), 0);
-        assert_eq!(Bits::EMPTY.set_bit(1).set_bit(2).into_iter().count(), 2);
+        assert_eq!(Set32::EMPTY.into_iter().count(), 0);
+        assert_eq!(Set32::EMPTY.add(1).add(2).into_iter().count(), 2);
         assert_eq!(
-            Bits::EMPTY
-                .set_bit(5)
-                .set_bit(3)
+            Set32::EMPTY
+                .add(5)
+                .add(3)
                 .into_iter()
                 .fold(0, |total, i| total + i),
             8,
@@ -167,36 +187,40 @@ mod tests {
     }
 
     #[test]
-    fn set_lowest_when_zero() {
-        assert_eq!(Bits::set_lowest(0), Bits::EMPTY);
+    fn fill_when_zero() {
+        assert_eq!(Set32::fill(0), Set32::EMPTY);
     }
 
     #[test]
-    fn set_lowest_when_not_zero() {
-        for bit_count in 1u32..10u32 {
-            let target = Bits::set_lowest(bit_count);
-            let actual = target.into_iter().collect::<Vec<u32>>();
-            let expected: Vec<u32> = (0..=bit_count - 1).into_iter().collect();
-            assert_eq!(actual, expected);
-        }
+    fn fill_when_max() {
+        assert_eq!(
+            Set32::fill(32).to_string(),
+            "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]"
+        );
     }
 
     #[test]
-    fn set_bit() {
-        let zero = Bits::EMPTY;
+    fn fill_when_not_zero() {
+        assert_eq!(Set32::fill(1).to_string(), "[0]");
+        assert_eq!(Set32::fill(2).to_string(), "[0,1]");
+    }
+
+    #[test]
+    fn add() {
+        let zero = Set32::EMPTY;
         assert_eq!(zero.to_string(), "[]");
-        assert_eq!(zero.set_bit(3).set_bit(8).to_string(), "[3,8]");
-        assert_eq!(zero.set_bit(31).to_string(), "[31]");
+        assert_eq!(zero.add(3).add(8).to_string(), "[3,8]");
+        assert_eq!(zero.add(31).to_string(), "[31]");
     }
 
     #[test]
     #[should_panic]
-    fn set_bit_panic_if_invalid_index() {
-        Bits::EMPTY.set_bit(32);
+    fn add_panic_if_invalid_index() {
+        Set32::EMPTY.add(32);
     }
 
     #[test]
-    fn except() {
+    fn difference() {
         let data = [
             ("", "", ""),
             ("1", "1", ""),
@@ -207,7 +231,7 @@ mod tests {
         fn test(start: &str, except: &str, expected: &str) -> () {
             let start = string_to_bits(start);
             let other = string_to_bits(except);
-            let actual = start.except(other);
+            let actual = start.difference(other);
             let expected = string_to_bits(expected);
             assert_eq!(actual, expected);
         }
@@ -215,21 +239,19 @@ mod tests {
     }
 
     #[test]
-    fn except_bit() {
-        let data = [
-            ("1", 1, ""),
-            ("1,2", 2, "1"),
-            ("1,2,10", 10, "1,2"),
-            ("5,6,7", 1, "5,6,7"),
-            ("", 8, ""),
-        ];
-        fn test(start: &str, bit: u32, expected: &str) -> () {
-            let start = string_to_bits(start);
-            let actual = start.except_bit(bit);
-            let expected = string_to_bits(expected);
-            assert_eq!(actual, expected);
+    fn remove_test() {
+        fn test(bits: &str, item: u32, expected: &str) {
+            assert_eq!(string_to_bits(bits).remove(item).to_string(), expected);
         }
-        data.into_iter().for_each(|(a, b, c)| test(a, b, c));
+        test("", 0, "[]");
+        test("", 1, "[]");
+        test("", 31, "[]");
+        test("0", 0, "[]");
+        test("0", 1, "[0]");
+        test("0,1,2", 1, "[0,2]");
+        test("0,1,2,3,4,5", 5, "[0,1,2,3,4]");
+        test("0,1,2,3,4,5,31", 31, "[0,1,2,3,4,5]");
+        test("0,1,2,3,4,5,31", 0, "[1,2,3,4,5,31]");
     }
 
     #[test]
@@ -248,6 +270,28 @@ mod tests {
         }
         data.into_iter()
             .for_each(|(start, expected)| test(start, expected));
+    }
+
+    #[test]
+    fn contains() {
+        assert_eq!(Set32::EMPTY.contains(3), false);
+        assert_eq!(Set32::EMPTY.add(1).contains(2), false);
+        assert_eq!(Set32::EMPTY.add(1).add(2).contains(1), true);
+    }
+
+    #[test]
+    fn count_test() {
+        assert_eq!(Set32::EMPTY.count(), 0);
+        assert_eq!(Set32::EMPTY.add(1).count(), 1);
+        assert_eq!(Set32::EMPTY.add(1).add(2).count(), 2);
+        assert_eq!(Set32::fill(32).count(), 32);
+    }
+
+    #[test]
+    fn singleton_test() {
+        assert_eq!(Set32::singleton(0).to_string(), "[0]");
+        assert_eq!(Set32::singleton(31).to_string(), "[31]");
+        assert_eq!(Set32::singleton(5).to_string(), "[5]");
     }
 
     #[test]
@@ -271,31 +315,47 @@ mod tests {
     }
 
     #[test]
-    fn highest_bit() {
+    fn intersect() {
         let data = [
-            ("1,2,3", 3),
-            ("0", 0),
-            ("1", 1),
-            ("2", 2),
-            ("5,6,7", 7),
-            ("23,1,8,3,4", 23),
-            ("30", 30),
-            ("", u32::MAX),
+            ("", "", ""),
+            ("1", "1", "1"),
+            ("1,2,3", "2,3", "2,3"),
+            ("5,6,7", "1,2,3", ""),
+            ("1,2,3,4,5", "1,2,3,4,5", "1,2,3,4,5"),
+            ("0,31", "5,31", "31"),
+            ("2", "1,2", "2"),
+            ("", "5", ""),
         ];
-        fn test(start: &str, expected: u32) -> () {
+        fn test(start: &str, except: &str, expected: &str) -> () {
             let start = string_to_bits(start);
-            let actual = start.highest_bit();
-            assert_eq!(
-                actual,
-                if expected == u32::MAX {
-                    None
-                } else {
-                    Some(expected)
-                }
-            );
+            let other = string_to_bits(except);
+            let actual = start.intersect(other);
+            let expected = string_to_bits(expected);
+            assert_eq!(actual, expected);
         }
-        data.into_iter()
-            .for_each(|(input, expected)| test(input, expected));
+        data.into_iter().for_each(|(a, b, c)| test(a, b, c));
+    }
+
+    #[test]
+    fn max_item() {
+        assert_eq!(Set32::EMPTY.max_item(), None);
+        assert_eq!(Set32::EMPTY.add(0).max_item(), Some(0));
+        assert_eq!(Set32::EMPTY.add(0).add(1).max_item(), Some(1));
+        assert_eq!(Set32::EMPTY.add(5).max_item(), Some(5));
+        assert_eq!(Set32::EMPTY.add(5).add(17).add(3).max_item(), Some(17));
+        assert_eq!(Set32::EMPTY.add(31).max_item(), Some(31));
+        assert_eq!(Set32::EMPTY.add(31).add(5).max_item(), Some(31));
+        assert_eq!(Set32::fill(32).max_item(), Some(31));
+    }
+
+    #[test]
+    fn min_item() {
+        assert_eq!(Set32::EMPTY.min_item(), None);
+        assert_eq!(Set32::EMPTY.add(0).min_item(), Some(0));
+        assert_eq!(Set32::EMPTY.add(0).add(1).min_item(), Some(0));
+        assert_eq!(Set32::EMPTY.add(5).min_item(), Some(5));
+        assert_eq!(Set32::EMPTY.add(5).add(17).add(3).min_item(), Some(3));
+        assert_eq!(Set32::EMPTY.add(31).min_item(), Some(31));
     }
 
     #[test]
@@ -303,7 +363,7 @@ mod tests {
         for expected_ones in [1, 5, 9, 12, 32] {
             let max_bits = 32;
             let expected_max = ((1 << expected_ones) - 1) << (max_bits - expected_ones);
-            let actual_max = Bits::same_ones_count(expected_ones).last().unwrap_or(-1);
+            let actual_max = Set32::same_ones_count(expected_ones).last().unwrap_or(-1);
             assert_eq!(actual_max, expected_max);
         }
     }
@@ -311,8 +371,8 @@ mod tests {
     #[test]
     fn with_ones_count_test() {
         for expected_ones in [1, 5, 9, 12, 23, 31, 32] {
-            let all_correct_ones = Bits::same_ones_count(expected_ones).take(1000).all(|n| {
-                let actual_ones = Bits(n as u32).into_iter().count();
+            let all_correct_ones = Set32::same_ones_count(expected_ones).take(1000).all(|n| {
+                let actual_ones = Set32(n as u32).into_iter().count();
                 actual_ones == (expected_ones as usize)
             });
             assert!(all_correct_ones)
@@ -354,7 +414,7 @@ mod tests {
             // subsets items are all in the source bits
             (1..ones_count).for_each(|subset_size| {
                 let all_valid_items = bits.subsets_of_size(subset_size as u32).all(move |subset| {
-                    let m = subset.except(bits) == Bits::EMPTY;
+                    let m = subset.difference(bits) == Set32::EMPTY;
                     m
                 });
                 assert!(all_valid_items)
@@ -377,8 +437,8 @@ mod tests {
     #[test]
     #[ignore]
     fn subsets_print_out() {
-        Bits::set_lowest(6)
-            .except_bit(3)
+        Set32::fill(6)
+            .remove(3)
             .subsets_of_size(3)
             .for_each(|i| println!("{:?}", i.to_string()));
     }
