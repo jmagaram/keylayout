@@ -24,7 +24,7 @@ impl Partitions {
                             go(sum - digit, parts - 1, min, digit)
                                 .into_iter()
                                 .map(move |digits| {
-                                    let mut digits_copy = digits.clone();
+                                    let mut digits_copy = digits.to_vec();
                                     digits_copy.push(digit);
                                     digits_copy
                                 });
