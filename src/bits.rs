@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn subsets_of_size2() {
+    fn subsets_print_out() {
         Bits::set_lowest(6)
             .except_bit(3)
             .subsets_of_size(3)
