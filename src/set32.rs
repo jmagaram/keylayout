@@ -4,10 +4,10 @@ use std::{iter, u32};
 pub struct Set32(u32);
 
 impl Set32 {
-    const EMPTY: Set32 = Set32(0);
-    const MAX_SIZE: u32 = 32;
-    const MAX_ITEM_VALUE: u32 = 31;
-    const MIN_ITEM_VALUE: u32 = 0;
+    pub const EMPTY: Set32 = Set32(0);
+    pub const MAX_SIZE: u32 = 32;
+    pub const MAX_ITEM_VALUE: u32 = 31;
+    pub const MIN_ITEM_VALUE: u32 = 0;
 
     pub fn fill(count: u32) -> Set32 {
         debug_assert!(count <= Self::MAX_SIZE);
