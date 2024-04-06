@@ -7,38 +7,30 @@ pub struct Partitions {
 
 impl Partitions {
     pub fn calculate(&self) -> Vec<Vec<u32>> {
-        if self.max < self.min {
-            panic!("expected max >= min")
-        }
-        if self.sum == 0 {
-            panic!("expected sum >= 1")
-        }
-        if self.parts == 0 {
-            panic!("expected parts >= 1")
-        }
+        debug_assert!(self.max >= self.min);
+        debug_assert!(self.sum > 0);
+        debug_assert!(self.parts > 0);
         fn go(sum: u32, parts: u32, min: u32, max: u32) -> Vec<Vec<u32>> {
             match sum == 0 {
                 true => vec![vec![]],
-                false => {
-                    let q = (min..=max)
-                        .into_iter()
-                        .filter_map(|n| match n + (min * parts - 1) <= sum && n * parts >= sum {
-                            true => Some(n),
-                            false => None,
-                        })
-                        .flat_map(|digit| {
-                            let solutions = go(sum - digit, parts - 1, min, digit).into_iter().map(
-                                move |digits| {
+                false => (min..=max)
+                    .into_iter()
+                    .filter_map(|n| match n + (min * parts - 1) <= sum && n * parts >= sum {
+                        true => Some(n),
+                        false => None,
+                    })
+                    .flat_map(|digit| {
+                        let solutions =
+                            go(sum - digit, parts - 1, min, digit)
+                                .into_iter()
+                                .map(move |digits| {
                                     let mut digits_copy = digits.clone();
                                     digits_copy.push(digit);
                                     digits_copy
-                                },
-                            );
-                            solutions
-                        })
-                        .collect::<Vec<Vec<u32>>>();
-                    q
-                }
+                                });
+                        solutions
+                    })
+                    .collect::<Vec<Vec<u32>>>(),
             }
         }
         go(self.sum, self.parts, self.min, self.max)
