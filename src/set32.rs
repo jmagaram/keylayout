@@ -73,9 +73,9 @@ impl Set32 {
     }
 
     // https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
-    fn same_ones_count(count: u32) -> impl Iterator<Item = i64> {
+    fn same_ones_count(count: u32) -> impl Iterator<Item = u64> {
         debug_assert!(count >= 1 && count <= 32);
-        let mut n: i64 = (1 << count) - 1;
+        let mut n: u64 = (1 << count) - 1;
         let max_bits = u32::BITS;
         let expected_max = ((1 << count) - 1) << (max_bits - count);
         let next = move || {
@@ -349,7 +349,9 @@ mod tests {
         for expected_ones in [1, 5, 9, 12, 32] {
             let max_bits = 32;
             let expected_max = ((1 << expected_ones) - 1) << (max_bits - expected_ones);
-            let actual_max = Set32::same_ones_count(expected_ones).last().unwrap_or(-1);
+            let actual_max = Set32::same_ones_count(expected_ones)
+                .last()
+                .unwrap_or(u64::MAX);
             assert_eq!(actual_max, expected_max);
         }
     }
