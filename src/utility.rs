@@ -1,9 +1,9 @@
-use std::iter::once;
+// use std::iter::once;
 
-struct Subsets<T> {
-    items: Vec<T>,
-    mask: usize,
-}
+// struct Subsets<T> {
+//     items: Vec<T>,
+//     mask: usize,
+// }
 
 // let rec subsets found set =
 //      match set with
@@ -13,28 +13,28 @@ struct Subsets<T> {
 //         let found = found |> Seq.append (with_x)
 //         subsets found tail
 
-type RESULT = Box<dyn Iterator<Item = Vec<i32>>>;
+// type RESULT = Box<dyn Iterator<Item = Vec<i32>>>;
 
-fn combos(n: i32) -> RESULT {
-    fn from_vector(v: Vec<i32>) -> RESULT {
-        Box::new(once(v))
-    }
-    match n {
-        0 => from_vector(vec![]),
-        n => {
-            let rest = combos(n - 1);
-            let answer: RESULT = Box::new(rest.flat_map(move |without_n| {
-                let mut with_n = without_n.clone();
-                with_n.push(n);
-                let with_n: RESULT = from_vector(with_n);
-                let without_n: RESULT = from_vector(without_n);
-                let result: RESULT = Box::new(with_n.chain(without_n));
-                result
-            }));
-            answer
-        }
-    }
-}
+// fn combos(n: i32) -> RESULT {
+//     fn from_vector(v: Vec<i32>) -> RESULT {
+//         Box::new(once(v))
+//     }
+//     match n {
+//         0 => from_vector(vec![]),
+//         n => {
+//             let rest = combos(n - 1);
+//             let answer: RESULT = Box::new(rest.flat_map(move |without_n| {
+//                 let mut with_n = without_n.clone();
+//                 with_n.push(n);
+//                 let with_n: RESULT = from_vector(with_n);
+//                 let without_n: RESULT = from_vector(without_n);
+//                 let result: RESULT = Box::new(with_n.chain(without_n));
+//                 result
+//             }));
+//             answer
+//         }
+//     }
+// }
 
 // pub struct Partitions {
 //     sum: i32,
@@ -222,26 +222,26 @@ fn combos(n: i32) -> RESULT {
 //   Seq.unfoldMany((sum, parts, sum), expand)
 // }
 
-#[cfg(test)]
-mod tests {
+// #[cfg(test)]
+// mod tests {
 
-    // Note this useful idiom: importing names from outer (for mod tests) scope.
-    use super::*;
+//     // Note this useful idiom: importing names from outer (for mod tests) scope.
+//     use super::*;
 
-    // #[test]
-    // fn perf() {
-    //     let count = 25;
-    //     println!("total of {} is {}", count, combos(count).count());
-    // }
+//     // #[test]
+//     // fn perf() {
+//     //     let count = 25;
+//     //     println!("total of {} is {}", count, combos(count).count());
+//     // }
 
-    #[test]
-    fn perf_im() {
-        let count = 25;
-        println!("total of {} is {}", count, combos(count).count());
-    }
+//     #[test]
+//     fn perf_im() {
+//         let count = 25;
+//         println!("total of {} is {}", count, combos(count).count());
+//     }
 
-    #[test]
-    fn dumb() {
-        assert_eq!(combos(6).filter(|i| i.len() > 0).count(), 63);
-    }
-}
+//     #[test]
+//     fn dumb() {
+//         assert_eq!(combos(6).filter(|i| i.len() > 0).count(), 63);
+//     }
+// }

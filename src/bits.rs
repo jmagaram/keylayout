@@ -93,19 +93,21 @@ impl Bits {
             });
         r
     }
+
+    fn to_string(&self) -> String {
+        let result = self
+            .ones()
+            .into_iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<String>>()
+            .join(",");
+        format!("[{}]", result)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn bits_to_string(b: &Bits) -> String {
-        b.ones()
-            .into_iter()
-            .map(|i| i.to_string())
-            .collect::<Vec<String>>()
-            .join(",")
-    }
 
     fn string_to_bits(s: &str) -> Bits {
         let s = s.trim();
@@ -206,6 +208,24 @@ mod tests {
     }
 
     #[test]
+    fn to_string_test() {
+        let data = [
+            ("", "[]"),
+            ("1", "[1]"),
+            ("1,2,3", "[1,2,3]"),
+            ("5,4,3", "[3,4,5]"),
+            ("15,4,0", "[0,4,15]"),
+        ];
+        fn test(start: &str, expected: &str) -> () {
+            let start = string_to_bits(start);
+            let actual = start.to_string();
+            assert_eq!(actual, expected);
+        }
+        data.into_iter()
+            .for_each(|(start, expected)| test(start, expected));
+    }
+
+    #[test]
     fn union() {
         let data = [
             ("", "", ""),
@@ -274,14 +294,51 @@ mod tests {
         }
     }
 
+    fn choose_count(n: u32, k: u32) -> u128 {
+        let n = n as u128;
+        let k = k as u128;
+        fn factorial(n: u128) -> u128 {
+            (1..=n).product()
+        }
+        factorial(n) / factorial(n - k) / factorial(k)
+    }
+
     #[test]
     fn subsets_of_size() {
-        // fn test(size: u32) {
-        //     // if size is 5, every item return should have size 5
-        // }
+        fn test(items: &str) {
+            let bits = string_to_bits(items);
+            let ones_count = bits.ones().count();
+
+            // subsets are unique and correct size
+            (1..ones_count).for_each(|subset_size| {
+                let set = bits
+                    .subsets_of_size(subset_size as u32)
+                    .map(|b| b.to_string())
+                    .collect::<std::collections::HashSet<String>>();
+                let expected_count = choose_count(ones_count as u32, subset_size as u32);
+                assert_eq!(set.len(), expected_count as usize);
+            })
+        }
+        let data = [
+            "0,1,5,7",
+            "2,4,10,30",
+            "1,2,3,4,5,6,7,30",
+            "1,2,3,4,5,6,7,8,9,10,12,13,14",
+            "6,1,8,7,2,9",
+            "1",
+            "1,2",
+        ];
+        data.iter().for_each(|s| {
+            test(&s);
+        })
+    }
+
+    #[test]
+    #[ignore]
+    fn subsets_of_size2() {
         Bits::set_lowest(6)
             .except_bit(3)
             .subsets_of_size(3)
-            .for_each(|i| println!("{:?}", bits_to_string(&i)));
+            .for_each(|i| println!("{:?}", i.to_string()));
     }
 }
