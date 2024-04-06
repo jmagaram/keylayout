@@ -102,16 +102,14 @@ impl Set32 {
         let items_count = items.len();
         let max_exclusive = 1 << items_count;
         debug_assert!(items_count >= size as usize);
-        let r = Set32::same_ones_count(size)
+        Set32::same_ones_count(size)
             .take_while(move |i| *i < max_exclusive)
             .map(move |i| {
-                let res = Set32(i as u32).into_iter().fold(Set32::EMPTY, |total, i| {
+                Set32(i as u32).into_iter().fold(Set32::EMPTY, |total, i| {
                     let aa = items[i as usize];
                     total.add(aa)
-                });
-                res
-            });
-        r
+                })
+            })
     }
 
     pub fn to_string(&self) -> String {
