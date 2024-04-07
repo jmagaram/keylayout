@@ -2,12 +2,13 @@ use std::collections::HashSet;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
 use crate::set32::Set32;
+use crate::u6::U6;
 use crate::{frequency::Frequency, word::Word};
 
 pub struct Dictionary {
     words_highest_frequency_first: Vec<Word>,
     frequency_sum: Frequency,
-    letter_to_u6: HashMap<char, u32>,
+    letter_to_u6: HashMap<char, U6>,
     u6_to_letter: Vec<char>,
     letter_index_set: Set32,
 }
@@ -23,24 +24,6 @@ pub struct Dictionary {
 impl Dictionary {
     const FILE_NAME: &'static str = "./src/words.json";
 
-    // pub fn summarize_letters(
-    //     words: impl Iterator<Item = String>,
-    // ) -> (Set32, HashMap<char, u32>, Vec<char>) {
-    //     let mut letter_set = HashSet::new();
-    //     words.flat_map(|w| w.chars()).for_each(|c| {
-    //         letter_set.insert(c);
-    //     });
-    //     let mut letter_to_num = HashMap::new();
-    //     let mut num_to_letter = Vec::new();
-    //     letter_set.iter().enumerate().for_each(|(index, letter)| {
-    //         let index = u32::try_from(index).unwrap();
-    //         letter_to_num.insert(*letter, index);
-    //         num_to_letter.push(*letter);
-    //     });
-    //     let set = Set32::fill(letter_set.len().try_into().unwrap());
-    //     (set, letter_to_num, num_to_letter)
-    // }
-
     fn new(words: HashMap<String, f32>) -> Dictionary {
         let (_letter_set, letter_index_set, letter_to_u6, u6_to_letter) = {
             // create set of unique letters
@@ -54,7 +37,7 @@ impl Dictionary {
             let mut u6_to_letter = Vec::new();
             letter_set.iter().enumerate().for_each(|(i, c)| {
                 let index = u32::try_from(i).unwrap(); // switch to u6
-                letter_to_u6.insert(*c, index);
+                letter_to_u6.insert(*c, U6::new(index));
                 u6_to_letter.push(*c);
             });
 
@@ -73,7 +56,7 @@ impl Dictionary {
                     let char_as_u6 = letter_to_u6
                         .get(&c)
                         .expect("the letter could not be converted to a u6");
-                    set.add(*char_as_u6)
+                    set.add(*char_as_u6) // fix this
                 });
                 let word = Word::with_details(s.to_owned(), word_frequency, letter_set_in_word);
                 frequency_sum = frequency_sum + word_frequency;
@@ -91,12 +74,12 @@ impl Dictionary {
         }
     }
 
-    pub fn letter_for_u6(&self, inx: u32) -> char {
-        let result = self.u6_to_letter[inx as usize]; // fix
+    pub fn letter_for_u6(&self, inx: U6) -> char {
+        let result = self.u6_to_letter[inx.to_usize()]; // fix
         result
     }
 
-    pub fn u6_for_letter(&self, char: char) -> u32 {
+    pub fn u6_for_letter(&self, char: char) -> U6 {
         let result = self.letter_to_u6.get(&char).unwrap();
         *result
     }
@@ -149,8 +132,8 @@ mod tests {
         assert_eq!(d.letter_to_u6.len(), 11);
 
         // mapping back and forth is consistent
-        for i in 0..11 {
-            let char1 = d.letter_for_u6(i);
+        for i in 0u32..11 {
+            let char1 = d.letter_for_u6(i.into());
             let inx = d.u6_for_letter(char1);
             let char2 = d.letter_for_u6(inx);
             assert_eq!(char1, char2);

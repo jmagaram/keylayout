@@ -11,13 +11,21 @@ impl U6 {
         debug_assert!(value <= 31);
         U6(value as u8)
     }
+
+    pub fn to_u32(&self) -> u32 {
+        self.0.into()
+    }
+
+    pub fn to_usize(&self) -> usize {
+        self.0.into()
+    }
 }
 
 impl fmt::Display for U6 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let U6(n) = self;
-        let suffix = '\u{2807}';
-        write!(f, "{}{}", n, suffix)
+        let _suffix = '\u{2807}';
+        write!(f, "{}", n)
     }
 }
 
@@ -31,6 +39,13 @@ impl std::convert::From<usize> for U6 {
 impl std::convert::From<u32> for U6 {
     fn from(value: u32) -> Self {
         debug_assert!(value <= 31);
+        U6((value & 31) as u8)
+    }
+}
+
+impl std::convert::From<i32> for U6 {
+    fn from(value: i32) -> Self {
+        debug_assert!(value >= 0 && value <= 31);
         U6((value & 31) as u8)
     }
 }

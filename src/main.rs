@@ -1,6 +1,5 @@
 use std::time::Instant;
 
-use dictionary::Dictionary;
 use set32::Set32;
 
 mod dictionary;
@@ -8,6 +7,7 @@ mod frequency;
 mod partitions;
 mod penalty;
 mod set32;
+mod u6;
 mod utility;
 mod word;
 

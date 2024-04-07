@@ -3,14 +3,16 @@ use std::{
     iter, u32,
 };
 
+use crate::u6::U6;
+
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Set32(u32);
 
 impl Set32 {
     pub const EMPTY: Set32 = Set32(0);
     pub const MAX_SIZE: u32 = 32;
-    pub const MAX_ITEM_VALUE: u32 = 31;
-    pub const MIN_ITEM_VALUE: u32 = 0;
+    pub const MAX_ITEM_VALUE: U6 = U6::MAX;
+    pub const MIN_ITEM_VALUE: U6 = U6::MIN;
 
     pub fn fill(count: u32) -> Set32 {
         debug_assert!(count <= Self::MAX_SIZE);
@@ -21,19 +23,19 @@ impl Set32 {
         Set32(bits)
     }
 
-    pub fn add(&self, bit: u32) -> Set32 {
+    pub fn add(&self, bit: U6) -> Set32 {
         debug_assert!(bit <= Self::MAX_ITEM_VALUE);
-        Set32(self.0 | 1 << bit)
+        Set32(self.0 | 1 << bit.to_u32())
     }
 
-    pub fn singleton(bit: u32) -> Set32 {
+    pub fn singleton(bit: U6) -> Set32 {
         debug_assert!(bit <= Self::MAX_ITEM_VALUE);
-        Set32(1 << bit)
+        Set32(1 << bit.to_u32())
     }
 
-    pub fn contains(&self, bit: u32) -> bool {
+    pub fn contains(&self, bit: U6) -> bool {
         debug_assert!(bit <= Self::MAX_ITEM_VALUE);
-        self.0 & (1 << bit) != 0
+        self.0 & (1 << bit.to_u32()) != 0
     }
 
     pub fn count(&self) -> usize {
@@ -48,9 +50,9 @@ impl Set32 {
         Set32(self.0 & !other.0)
     }
 
-    pub fn remove(&self, bit: u32) -> Set32 {
+    pub fn remove(&self, bit: U6) -> Set32 {
         debug_assert!(bit <= Self::MAX_ITEM_VALUE);
-        Set32(self.0 & !(1 << bit))
+        Set32(self.0 & !(1 << bit.to_u32()))
     }
 
     pub fn union(&self, other: Set32) -> Set32 {
@@ -61,17 +63,17 @@ impl Set32 {
         Set32(self.0 & other.0)
     }
 
-    pub fn max_item(&self) -> Option<u32> {
+    pub fn max_item(&self) -> Option<U6> {
         match self.0.leading_zeros() {
             u32::BITS => None,
-            n => Some(u32::BITS - n - 1),
+            n => Some((u32::BITS - n - 1).into()),
         }
     }
 
-    pub fn min_item(&self) -> Option<u32> {
+    pub fn min_item(&self) -> Option<U6> {
         match self.0.trailing_zeros() {
             32 => None,
-            n => Some(n),
+            n => Some(n.into()),
         }
     }
 
@@ -101,7 +103,7 @@ impl Set32 {
     pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Set32> {
         debug_assert!(size <= Self::MAX_SIZE, "subset size is too big");
         debug_assert!(size > 0, "the size of subset must be bigger than 0");
-        let items = self.into_iter().collect::<Vec<u32>>();
+        let items = self.into_iter().collect::<Vec<U6>>();
         let items_count = items.len();
         let max_exclusive = 1 << items_count;
         debug_assert!(items_count >= size as usize);
@@ -110,7 +112,7 @@ impl Set32 {
             .map(move |i| {
                 Set32(i as u32)
                     .into_iter()
-                    .fold(Set32::EMPTY, |total, i| total.add(items[i as usize]))
+                    .fold(Set32::EMPTY, |total, i| total.add(items[i.to_usize()]))
             })
     }
 }
@@ -129,15 +131,15 @@ impl fmt::Display for Set32 {
 }
 
 impl Iterator for Set32 {
-    type Item = u32;
+    type Item = U6;
 
-    fn next(&mut self) -> Option<u32> {
+    fn next(&mut self) -> Option<U6> {
         match self.0 {
             0 => None,
             _ => {
                 let trailing_zeros = self.0.trailing_zeros();
                 self.0 = self.0 ^ (1 << (trailing_zeros));
-                Some(trailing_zeros)
+                Some(trailing_zeros.into())
             }
         }
     }
@@ -146,6 +148,25 @@ impl Iterator for Set32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    trait Int32Wrapper {
+        fn add_(&self, n: u32) -> Set32;
+        fn remove_(&self, n: u32) -> Set32;
+        fn contains_(&self, n: u32) -> bool;
+    }
+
+    impl Int32Wrapper for Set32 {
+        fn add_(&self, n: u32) -> Set32 {
+            self.add(n.into())
+        }
+
+        fn remove_(&self, n: u32) -> Set32 {
+            self.remove(n.into())
+        }
+
+        fn contains_(&self, n: u32) -> bool {
+            self.contains(n.into())
+        }
+    }
 
     fn string_to_bits(s: &str) -> Set32 {
         let s = s.trim();
@@ -160,7 +181,7 @@ mod tests {
                 })
                 .collect::<Vec<u32>>()
                 .into_iter()
-                .fold(Set32::EMPTY, |total, i| total.add(i))
+                .fold(Set32::EMPTY, |total, i| total.add_(i))
         }
     }
 
@@ -177,13 +198,13 @@ mod tests {
     #[test]
     fn into_iterator() {
         assert_eq!(Set32::EMPTY.into_iter().count(), 0);
-        assert_eq!(Set32::EMPTY.add(1).add(2).into_iter().count(), 2);
+        assert_eq!(Set32::EMPTY.add_(1).add_(2).into_iter().count(), 2);
         assert_eq!(
             Set32::EMPTY
-                .add(5)
-                .add(3)
+                .add_(5)
+                .add_(3)
                 .into_iter()
-                .fold(0, |total, i| total + i),
+                .fold(0u32, |total, i| total + i.to_u32()),
             8,
         );
     }
@@ -211,14 +232,14 @@ mod tests {
     fn add() {
         let zero = Set32::EMPTY;
         assert_eq!(zero.to_string(), "{}");
-        assert_eq!(zero.add(3).add(8).to_string(), "{3,8}");
-        assert_eq!(zero.add(31).to_string(), "{31}");
+        assert_eq!(zero.add_(3).add_(8).to_string(), "{3,8}");
+        assert_eq!(zero.add_(31).to_string(), "{31}");
     }
 
     #[test]
     #[should_panic]
     fn add_panic_if_invalid_index() {
-        Set32::EMPTY.add(32);
+        Set32::EMPTY.add_(32);
     }
 
     #[test]
@@ -243,7 +264,7 @@ mod tests {
     #[test]
     fn remove_test() {
         fn test(bits: &str, item: u32, expected: &str) {
-            assert_eq!(string_to_bits(bits).remove(item).to_string(), expected);
+            assert_eq!(string_to_bits(bits).remove_(item).to_string(), expected);
         }
         test("", 0, "{}");
         test("", 1, "{}");
@@ -276,24 +297,24 @@ mod tests {
 
     #[test]
     fn contains() {
-        assert_eq!(Set32::EMPTY.contains(3), false);
-        assert_eq!(Set32::EMPTY.add(1).contains(2), false);
-        assert_eq!(Set32::EMPTY.add(1).add(2).contains(1), true);
+        assert_eq!(Set32::EMPTY.contains_(3), false);
+        assert_eq!(Set32::EMPTY.add_(1).contains_(2), false);
+        assert_eq!(Set32::EMPTY.add_(1).add_(2).contains_(1), true);
     }
 
     #[test]
     fn count_test() {
         assert_eq!(Set32::EMPTY.count(), 0);
-        assert_eq!(Set32::EMPTY.add(1).count(), 1);
-        assert_eq!(Set32::EMPTY.add(1).add(2).count(), 2);
+        assert_eq!(Set32::EMPTY.add_(1).count(), 1);
+        assert_eq!(Set32::EMPTY.add_(1).add_(2).count(), 2);
         assert_eq!(Set32::fill(32).count(), 32);
     }
 
     #[test]
     fn singleton_test() {
-        assert_eq!(Set32::singleton(0).to_string(), "{0}");
-        assert_eq!(Set32::singleton(31).to_string(), "{31}");
-        assert_eq!(Set32::singleton(5).to_string(), "{5}");
+        assert_eq!(Set32::singleton(0.into()).to_string(), "{0}");
+        assert_eq!(Set32::singleton(31.into()).to_string(), "{31}");
+        assert_eq!(Set32::singleton(5.into()).to_string(), "{5}");
     }
 
     #[test]
@@ -341,23 +362,29 @@ mod tests {
     #[test]
     fn max_item() {
         assert_eq!(Set32::EMPTY.max_item(), None);
-        assert_eq!(Set32::EMPTY.add(0).max_item(), Some(0));
-        assert_eq!(Set32::EMPTY.add(0).add(1).max_item(), Some(1));
-        assert_eq!(Set32::EMPTY.add(5).max_item(), Some(5));
-        assert_eq!(Set32::EMPTY.add(5).add(17).add(3).max_item(), Some(17));
-        assert_eq!(Set32::EMPTY.add(31).max_item(), Some(31));
-        assert_eq!(Set32::EMPTY.add(31).add(5).max_item(), Some(31));
-        assert_eq!(Set32::fill(32).max_item(), Some(31));
+        assert_eq!(Set32::EMPTY.add_(0).max_item(), Some(0.into()));
+        assert_eq!(Set32::EMPTY.add_(0).add_(1).max_item(), Some(1.into()));
+        assert_eq!(Set32::EMPTY.add_(5).max_item(), Some(5.into()));
+        assert_eq!(
+            Set32::EMPTY.add_(5).add_(17).add_(3).max_item(),
+            Some(17.into())
+        );
+        assert_eq!(Set32::EMPTY.add_(31).max_item(), Some(31.into()));
+        assert_eq!(Set32::EMPTY.add_(31).add_(5).max_item(), Some(31.into()));
+        assert_eq!(Set32::fill(32).max_item(), Some(31.into()));
     }
 
     #[test]
     fn min_item() {
         assert_eq!(Set32::EMPTY.min_item(), None);
-        assert_eq!(Set32::EMPTY.add(0).min_item(), Some(0));
-        assert_eq!(Set32::EMPTY.add(0).add(1).min_item(), Some(0));
-        assert_eq!(Set32::EMPTY.add(5).min_item(), Some(5));
-        assert_eq!(Set32::EMPTY.add(5).add(17).add(3).min_item(), Some(3));
-        assert_eq!(Set32::EMPTY.add(31).min_item(), Some(31));
+        assert_eq!(Set32::EMPTY.add_(0).min_item(), Some(0.into()));
+        assert_eq!(Set32::EMPTY.add_(0).add_(1).min_item(), Some(0.into()));
+        assert_eq!(Set32::EMPTY.add_(5).min_item(), Some(5.into()));
+        assert_eq!(
+            Set32::EMPTY.add_(5).add_(17).add_(3).min_item(),
+            Some(3.into())
+        );
+        assert_eq!(Set32::EMPTY.add_(31).min_item(), Some(31.into()));
     }
 
     #[test]
@@ -442,7 +469,7 @@ mod tests {
     #[ignore]
     fn subsets_print_out() {
         Set32::fill(6)
-            .remove(3)
+            .remove_(3)
             .subsets_of_size(3)
             .for_each(|i| println!("{:?}", i.to_string()));
     }
