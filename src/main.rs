@@ -4,6 +4,7 @@ use set32::Set32;
 
 mod dictionary;
 mod frequency;
+mod letter_map;
 mod partitions;
 mod penalty;
 mod set32;

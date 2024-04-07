@@ -13,13 +13,21 @@ use std::{fmt, str::FromStr};
 // }
 // let random = (~minLength, ~maxLength, ~characters) => {
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct Word {
     word: String,
 }
 
-fn make(word: String) -> Word {
-    Word { word }
+impl Word {
+    const MIN_LENGTH: usize = 1;
+    const MAX_LENGTH: usize = 40;
+
+    pub fn new(word: String) -> Word {
+        let word = word.trim().to_string();
+        debug_assert!(word.len() >= Word::MIN_LENGTH, "{}", word);
+        debug_assert!(word.len() <= Word::MAX_LENGTH, "{}", word);
+        Word { word }
+    }
 }
 
 impl fmt::Display for Word {
@@ -30,14 +38,14 @@ impl fmt::Display for Word {
 
 impl std::convert::From<String> for Word {
     fn from(value: String) -> Self {
-        make(value)
+        Word::new(value)
     }
 }
 
 impl std::convert::From<&str> for Word {
     fn from(value: &str) -> Self {
         let w = String::from_str(value).expect("Could not convert the characters to a String");
-        make(w)
+        Word::new(w)
     }
 }
 

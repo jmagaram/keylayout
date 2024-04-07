@@ -11,6 +11,18 @@ impl fmt::Display for Penalty {
     }
 }
 
+impl Penalty {
+    pub fn new(value: f32) -> Penalty {
+        Penalty(value)
+    }
+}
+
+impl std::convert::From<f32> for Penalty {
+    fn from(value: f32) -> Self {
+        Penalty::new(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
