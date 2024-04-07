@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use dictionary::Dictionary;
 use set32::Set32;
 
 mod dictionary;
@@ -33,32 +34,12 @@ fn calc_subsets(print_each: bool, max_items: u32) {
     });
 }
 
-fn main() {
-    calc_subsets(false, 28);
-    // fn print_one(n: i32) {
-    //     println!("{:08b}", n);
-    //     println!("{:08b}", n & -n);
-    //     println!("")
-    // }
-    // (0..100).for_each(|n| print_one(n));
-    // print_one(-1);
+fn use_dictionary() {
+    let dict = Dictionary::load_large_dictionary().with_top_n_words(100);
+    dict.words().iter().for_each(|w| println!("{}", w));
 }
 
-// @unboxed type word = Word(string)
-// @unboxed type frequency = Frequency(float)
-// @unboxed type penalty = Penalty(float)
-
-// type dictionary = {
-//   dict: Map.t<word, frequency>,
-//   words: array<(word, frequency)>,
-//   count: int,
-//   frequencyTotal: frequency,
-// }
-
-// @unboxed type character = Character(string)
-// @unboxed type keyLabel = KeyLabel(int)
-
-// type keyboard = {
-//   keys: Map.t<keyLabel, array<character>>,
-//   characters: Map.t<character, keyLabel>,
-// }
+fn main() {
+    calc_subsets(false, 28);
+    use_dictionary();
+}

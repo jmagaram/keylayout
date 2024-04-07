@@ -40,6 +40,10 @@ impl Word {
         self.frequency
     }
 
+    pub fn to_tuple(&self) -> (String, f32) {
+        (self.word.to_owned(), self.frequency.to_f32())
+    }
+
     pub fn cmp_by_frequency(a: &Word, b: &Word) -> Ordering {
         a.frequency.cmp(&b.frequency)
     }

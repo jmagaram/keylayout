@@ -13,18 +13,10 @@ pub struct Dictionary {
     letter_index_set: Set32,
 }
 
-// let make: unit => dictionary
-// let makeFrom: Seq.t<(word, frequency)> => dictionary
-// let wordsByFreq: dictionary => array<(word, frequency)>
-// let lettersByFreq: dictionary => array<character>
-// let topWords: (dictionary, int) => dictionary
-// let letters: dictionary => Seq.t<character>
-// let random: (~characters: string, ~length: int) => dictionary
-
 impl Dictionary {
     const FILE_NAME: &'static str = "./src/words.json";
 
-    fn new(words: HashMap<String, f32>) -> Dictionary {
+    pub fn new(words: HashMap<String, f32>) -> Dictionary {
         let (_letter_set, letter_index_set, letter_to_u6, u6_to_letter) = {
             // create set of unique letters
             let mut letter_set = HashSet::new();
@@ -56,7 +48,7 @@ impl Dictionary {
                     let char_as_u6 = letter_to_u6
                         .get(&c)
                         .expect("the letter could not be converted to a u6");
-                    set.add(*char_as_u6) // fix this
+                    set.add(*char_as_u6)
                 });
                 let word = Word::with_details(s.to_owned(), word_frequency, letter_set_in_word);
                 frequency_sum = frequency_sum + word_frequency;
@@ -74,6 +66,18 @@ impl Dictionary {
         }
     }
 
+    pub fn with_top_n_words(&self, count: usize) -> Dictionary {
+        let mut map = HashMap::new();
+        self.words_highest_frequency_first
+            .iter()
+            .take(count)
+            .map(|w| w.to_tuple())
+            .for_each(|(s, f)| {
+                map.insert(s, f);
+            });
+        Dictionary::new(map)
+    }
+
     pub fn letter_for_u6(&self, inx: U6) -> char {
         let result = self.u6_to_letter[inx.to_usize()]; // fix
         result
@@ -84,6 +88,11 @@ impl Dictionary {
         *result
     }
 
+    pub fn words(&self) -> &Vec<Word> {
+        let result = &self.words_highest_frequency_first;
+        result
+    }
+
     fn load_json() -> HashMap<String, f32> {
         let file = File::open(Dictionary::FILE_NAME).expect("file not found");
         let reader = BufReader::new(file);
@@ -92,7 +101,7 @@ impl Dictionary {
         word_frequencies
     }
 
-    pub fn load() -> Dictionary {
+    pub fn load_large_dictionary() -> Dictionary {
         let items = Dictionary::load_json()
             .iter()
             .map(|(k, v)| (k.to_owned(), *v))
@@ -108,7 +117,7 @@ mod tests {
 
     #[test]
     fn standard_dictionary_has_proper_count_of_words() {
-        let d = Dictionary::load();
+        let d = Dictionary::load_large_dictionary();
         println!("{}", d.frequency_sum);
         let expected = 307629;
         assert_eq!(d.words_highest_frequency_first.len(), expected);
@@ -142,7 +151,7 @@ mod tests {
     #[test]
     #[ignore]
     fn display_top_words() {
-        let d = Dictionary::load();
+        let d = Dictionary::load_large_dictionary();
         d.words_highest_frequency_first
             .iter()
             .take(200)
