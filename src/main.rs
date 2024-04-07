@@ -49,6 +49,7 @@ fn get_keys(set: Set32, groups: Vec<U6>) {
             None => panic!("no groups left, but keys remain to be distributed"),
             Some((group_size, rest_of_groups)) => {
                 // let y = set.subsets_of_size(U6::new(group_size));
+                // get all
                 ()
             }
         },
