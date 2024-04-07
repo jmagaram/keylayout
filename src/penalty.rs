@@ -6,8 +6,8 @@ pub struct Penalty(f32);
 impl fmt::Display for Penalty {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Penalty(penalty) = self;
-        let prefix = '\u{1D561}';
-        write!(f, "{}{:.3}", prefix, penalty)
+        let suffix = '\u{1D561}';
+        write!(f, "{:.3}{}", penalty, suffix)
     }
 }
 

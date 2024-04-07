@@ -2,6 +2,8 @@ use std::time::Instant;
 
 use set32::Set32;
 
+mod dictionary;
+mod frequency;
 mod partitions;
 mod penalty;
 mod set32;
