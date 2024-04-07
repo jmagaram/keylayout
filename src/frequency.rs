@@ -1,13 +1,21 @@
-use std::fmt;
+use std::{fmt, ops::Add};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
-pub struct Frequency(f32);
+pub struct Frequency(pub f32);
 
 impl fmt::Display for Frequency {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Frequency(freq) = self;
         let suffix = '\u{1D41F}';
         write!(f, "{:.3}{}", freq, suffix)
+    }
+}
+
+impl Add for Frequency {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self(self.0 + other.0)
     }
 }
 
