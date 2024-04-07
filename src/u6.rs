@@ -6,6 +6,7 @@ pub struct U6(u8);
 impl U6 {
     pub const MAX: U6 = U6(31);
     pub const MIN: U6 = U6(0);
+    pub const MAX_VALUES: U6 = U6(32);
 
     pub fn new(value: u32) -> U6 {
         debug_assert!(value <= 31);

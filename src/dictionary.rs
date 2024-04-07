@@ -93,6 +93,10 @@ impl Dictionary {
         result
     }
 
+    pub fn letters(&self) -> Set32 {
+        self.letter_index_set
+    }
+
     fn load_json() -> HashMap<String, f32> {
         let file = File::open(Dictionary::FILE_NAME).expect("file not found");
         let reader = BufReader::new(file);

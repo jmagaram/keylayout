@@ -38,8 +38,8 @@ impl Set32 {
         self.0 & (1 << bit.to_u32()) != 0
     }
 
-    pub fn count_items(&self) -> U6 {
-        self.into_iter().count().into()
+    pub fn count_items(&self) -> u32 {
+        self.into_iter().count() as u32 // fix!
     }
 
     pub fn is_empty(&self) -> bool {
@@ -100,14 +100,17 @@ impl Set32 {
         iterator
     }
 
-    pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Set32> {
-        debug_assert!(size <= Self::MAX_SIZE, "subset size is too big");
-        debug_assert!(size > 0, "the size of subset must be bigger than 0");
+    pub fn subsets_of_size(&self, size: U6) -> impl Iterator<Item = Set32> {
+        debug_assert!(size.to_u32() <= Self::MAX_SIZE, "subset size is too big");
+        debug_assert!(
+            size.to_u32() >= 0,
+            "the size of subset must be bigger than 0"
+        );
         let items = self.into_iter().collect::<Vec<U6>>();
         let items_count = items.len();
         let max_exclusive = 1 << items_count;
-        debug_assert!(items_count >= size as usize);
-        Set32::same_ones_count(size)
+        debug_assert!(items_count >= size.to_usize());
+        Set32::same_ones_count(size.to_u32())
             .take_while(move |i| *i < max_exclusive)
             .map(move |i| {
                 Set32(i as u32)
@@ -304,10 +307,10 @@ mod tests {
 
     #[test]
     fn count_items_test() {
-        assert_eq!(Set32::EMPTY.count_items(), U6::new(0));
-        assert_eq!(Set32::EMPTY.add_(1).count_items(), 1.into());
-        assert_eq!(Set32::EMPTY.add_(1).add_(2).count_items(), 2.into());
-        assert_eq!(Set32::fill(32).count_items(), 32.into());
+        assert_eq!(Set32::EMPTY.count_items(), 0);
+        assert_eq!(Set32::EMPTY.add_(1).count_items(), 1);
+        assert_eq!(Set32::EMPTY.add_(1).add_(2).count_items(), 2);
+        assert_eq!(Set32::fill(32).count_items(), 32);
     }
 
     #[test]
@@ -427,7 +430,7 @@ mod tests {
 
             // subsets have correct number of items (no duplicates)
             (1..ones_count).for_each(|subset_size| {
-                let actual_size = bits.subsets_of_size(subset_size as u32).count();
+                let actual_size = bits.subsets_of_size(subset_size.into()).count();
                 let expected_count = choose_count(ones_count as u32, subset_size as u32);
                 assert_eq!(actual_size, expected_count as usize);
             });
@@ -435,7 +438,7 @@ mod tests {
             // subsets items are unique
             (1..ones_count).for_each(|subset_size| {
                 let set = bits
-                    .subsets_of_size(subset_size as u32)
+                    .subsets_of_size(subset_size.into())
                     .map(|b| b.to_string())
                     .collect::<std::collections::HashSet<String>>();
                 let expected_count = choose_count(ones_count as u32, subset_size as u32);
@@ -444,7 +447,7 @@ mod tests {
 
             // subsets items are all in the source bits
             (1..ones_count).for_each(|subset_size| {
-                let all_valid_items = bits.subsets_of_size(subset_size as u32).all(move |subset| {
+                let all_valid_items = bits.subsets_of_size(subset_size.into()).all(move |subset| {
                     let m = subset.difference(bits) == Set32::EMPTY;
                     m
                 });
@@ -470,7 +473,7 @@ mod tests {
     fn subsets_print_out() {
         Set32::fill(6)
             .remove_(3)
-            .subsets_of_size(3)
+            .subsets_of_size(3.into())
             .for_each(|i| println!("{:?}", i.to_string()));
     }
 }
