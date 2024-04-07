@@ -8,6 +8,7 @@ mod partitions;
 mod penalty;
 mod set32;
 mod utility;
+mod word;
 
 fn calc_subsets(print_each: bool, max_items: u32) {
     let start = Instant::now();

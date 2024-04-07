@@ -8,6 +8,14 @@ pub struct Dictionary {
     frequency_sum: Frequency,
 }
 
+// let make: unit => dictionary
+// let makeFrom: Seq.t<(word, frequency)> => dictionary
+// let wordsByFreq: dictionary => array<(word, frequency)>
+// let lettersByFreq: dictionary => array<character>
+// let topWords: (dictionary, int) => dictionary
+// let letters: dictionary => Seq.t<character>
+// let random: (~characters: string, ~length: int) => dictionary
+
 impl Dictionary {
     const FILE_NAME: &str = "./src/words.json";
 
