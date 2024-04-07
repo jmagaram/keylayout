@@ -38,7 +38,7 @@ impl Set32 {
         self.0 & (1 << bit.to_u32()) != 0
     }
 
-    pub fn count(&self) -> usize {
+    pub fn count_items(&self) -> usize {
         self.into_iter().count()
     }
 
@@ -303,11 +303,11 @@ mod tests {
     }
 
     #[test]
-    fn count_test() {
-        assert_eq!(Set32::EMPTY.count(), 0);
-        assert_eq!(Set32::EMPTY.add_(1).count(), 1);
-        assert_eq!(Set32::EMPTY.add_(1).add_(2).count(), 2);
-        assert_eq!(Set32::fill(32).count(), 32);
+    fn count_items_test() {
+        assert_eq!(Set32::EMPTY.count_items(), 0);
+        assert_eq!(Set32::EMPTY.add_(1).count_items(), 1);
+        assert_eq!(Set32::EMPTY.add_(1).add_(2).count_items(), 2);
+        assert_eq!(Set32::fill(32).count_items(), 32);
     }
 
     #[test]
