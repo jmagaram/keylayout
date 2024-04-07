@@ -1,6 +1,7 @@
 use crate::{frequency::Frequency, set32::Set32};
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::str::Chars;
 use std::{fmt, str::FromStr};
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
@@ -57,6 +58,10 @@ impl Word {
             frequency: Frequency::ZERO,
             letter_set: Set32::EMPTY,
         }
+    }
+
+    pub fn chars(&self) -> Chars<'_> {
+        self.word.chars()
     }
 }
 

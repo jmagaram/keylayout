@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, ops::Add};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Penalty(f32);
@@ -15,11 +15,21 @@ impl Penalty {
     pub fn new(value: f32) -> Penalty {
         Penalty(value)
     }
+
+    pub const ZERO: Penalty = Penalty(0.0);
 }
 
 impl std::convert::From<f32> for Penalty {
     fn from(value: f32) -> Self {
         Penalty::new(value)
+    }
+}
+
+impl Add for Penalty {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self(self.0 + other.0)
     }
 }
 

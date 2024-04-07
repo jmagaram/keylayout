@@ -19,6 +19,10 @@ impl U6 {
     pub fn to_usize(&self) -> usize {
         self.0.into()
     }
+
+    pub fn to_char(&self) -> char {
+        char::from_u32(self.0 as u32).unwrap()
+    }
 }
 
 impl fmt::Display for U6 {
@@ -62,5 +66,16 @@ mod tests {
             let p = U6(p);
             println!("The number is {}", p);
         })
+    }
+
+    #[test]
+    fn to_char_works_for_all() {
+        let mut s = String::new();
+        (0..=31).for_each(|i| {
+            let num = U6::new(i);
+            let char = num.to_char();
+            s.push(char);
+        });
+        assert_eq!(s.len(), 32);
     }
 }
