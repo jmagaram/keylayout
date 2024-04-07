@@ -1,11 +1,15 @@
-use std::{collections::HashMap, fs::File, io::BufReader, ops::Add};
+use std::collections::HashSet;
+use std::{collections::HashMap, fs::File, io::BufReader};
 
+use crate::set32::Set32;
 use crate::{frequency::Frequency, word::Word};
 
 pub struct Dictionary {
-    frequencies: HashMap<Word, Frequency>,
-    words_ordered_by_frequency: Vec<(Word, Frequency)>,
+    words_highest_frequency_first: Vec<Word>,
     frequency_sum: Frequency,
+    letter_to_u6: HashMap<char, u32>,
+    u6_to_letter: Vec<char>,
+    letter_index_set: Set32,
 }
 
 // let make: unit => dictionary
@@ -17,7 +21,75 @@ pub struct Dictionary {
 // let random: (~characters: string, ~length: int) => dictionary
 
 impl Dictionary {
-    const FILE_NAME: &str = "./src/words.json";
+    const FILE_NAME: &'static str = "./src/words.json";
+
+    // pub fn summarize_letters(
+    //     words: impl Iterator<Item = String>,
+    // ) -> (Set32, HashMap<char, u32>, Vec<char>) {
+    //     let mut letter_set = HashSet::new();
+    //     words.flat_map(|w| w.chars()).for_each(|c| {
+    //         letter_set.insert(c);
+    //     });
+    //     let mut letter_to_num = HashMap::new();
+    //     let mut num_to_letter = Vec::new();
+    //     letter_set.iter().enumerate().for_each(|(index, letter)| {
+    //         let index = u32::try_from(index).unwrap();
+    //         letter_to_num.insert(*letter, index);
+    //         num_to_letter.push(*letter);
+    //     });
+    //     let set = Set32::fill(letter_set.len().try_into().unwrap());
+    //     (set, letter_to_num, num_to_letter)
+    // }
+
+    fn new(words: HashMap<String, f32>) -> Dictionary {
+        let (_letter_set, letter_index_set, letter_to_u6, u6_to_letter) = {
+            // create set of unique letters
+            let mut letter_set = HashSet::new();
+            words.iter().flat_map(|(s, f)| s.chars()).for_each(|c| {
+                letter_set.insert(c);
+            });
+
+            // map each letter to an index and vice versa
+            let mut letter_to_u6 = HashMap::new();
+            let mut u6_to_letter = Vec::new();
+            letter_set.iter().enumerate().for_each(|(i, c)| {
+                let index = u32::try_from(i).unwrap(); // switch to u6
+                letter_to_u6.insert(*c, index);
+                u6_to_letter.push(*c);
+            });
+
+            // make a Set32 of the letters in all words
+            let letter_index_set = Set32::fill(letter_set.len().try_into().unwrap());
+
+            // return calculated values
+            (letter_set, letter_index_set, letter_to_u6, u6_to_letter)
+        };
+        let (words_highest_frequency_first, frequency_sum) = {
+            let mut words_highest_frequency_first = Vec::new();
+            let mut frequency_sum = Frequency::ZERO;
+            words.iter().for_each(|(s, f)| {
+                let word_frequency = Frequency::new(*f);
+                let letter_set_in_word = s.chars().fold(Set32::EMPTY, |set, c| {
+                    let char_as_u6 = letter_to_u6
+                        .get(&c)
+                        .expect("the letter could not be converted to a u6");
+                    set.add(*char_as_u6)
+                });
+                let word = Word::with_details(s.to_owned(), word_frequency, letter_set_in_word);
+                frequency_sum = frequency_sum + word_frequency;
+                words_highest_frequency_first.push(word)
+            });
+            words_highest_frequency_first.sort_by(|a, b| Word::cmp_by_frequency(b, a));
+            (words_highest_frequency_first, frequency_sum)
+        };
+        Dictionary {
+            words_highest_frequency_first,
+            frequency_sum,
+            letter_to_u6,
+            u6_to_letter,
+            letter_index_set,
+        }
+    }
 
     fn load_json() -> HashMap<String, f32> {
         let file = File::open(Dictionary::FILE_NAME).expect("file not found");
@@ -28,57 +100,42 @@ impl Dictionary {
     }
 
     pub fn load() -> Dictionary {
-        let frequencies = Dictionary::load_json()
-            .into_iter()
-            .map(|(k, v)| (Word::from(k), Frequency::from(v)))
-            .collect::<HashMap<Word, Frequency>>();
-        let mut words_ordered_by_frequency = frequencies
-            .clone()
-            .into_iter()
-            .collect::<Vec<(Word, Frequency)>>();
-        words_ordered_by_frequency.sort_by(|a, b| {
-            let (_a_word, a_freq) = a;
-            let (_b_word, b_freq) = b;
-            b_freq
-                .partial_cmp(a_freq)
-                .expect("expected every frequency to be comparable to any other.")
-        });
-        let frequency_sum = words_ordered_by_frequency
-            .clone()
-            .into_iter()
-            .map(|(_word, freq)| freq)
-            .fold(Frequency::ZERO, Frequency::add);
-        Dictionary {
-            words_ordered_by_frequency,
-            frequencies,
-            frequency_sum,
-        }
+        let items = Dictionary::load_json()
+            .iter()
+            .map(|(k, v)| (k.to_owned(), *v))
+            .collect();
+        Dictionary::new(items)
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
     fn standard_dictionary_has_proper_count_of_words() {
         let d = Dictionary::load();
+        println!("{}", d.frequency_sum);
         let expected = 307629;
-        assert_eq!(d.words_ordered_by_frequency.len(), expected);
-        assert_eq!(d.frequencies.len(), expected);
+        assert_eq!(d.words_highest_frequency_first.len(), expected);
+        assert_eq!(d.letter_to_u6.len(), 27);
+        assert_eq!(d.u6_to_letter.len(), 27);
+        assert_eq!(d.letter_index_set.count(), 27);
+        assert!(d.frequency_sum >= Frequency::new(0.95) && d.frequency_sum <= Frequency::new(0.97));
     }
 
     #[test]
     #[ignore]
     fn display_top_words() {
         let d = Dictionary::load();
-        d.words_ordered_by_frequency
-            .into_iter()
+        d.words_highest_frequency_first
+            .iter()
             .take(200)
-            .for_each(|f| {
-                println!("{0:?}", f);
+            .for_each(|w| {
+                println!("{:?}", w);
             });
-        let word_count = d.frequencies.len();
+        let word_count = d.words_highest_frequency_first.len();
         println!("total words {}", word_count);
     }
 }

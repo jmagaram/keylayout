@@ -1,11 +1,21 @@
-use std::{fmt, ops::Add};
+use std::{cmp::Ordering, fmt, ops::Add};
 
-#[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
-pub struct Frequency(pub f32);
+#[derive(PartialEq, PartialOrd, Debug, Clone, Copy, Default)]
+pub struct Frequency(f32);
+
+impl Ord for Frequency {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.partial_cmp(&other.0).unwrap()
+    }
+}
+
+impl Eq for Frequency {}
 
 impl Frequency {
     pub fn new(value: f32) -> Frequency {
         debug_assert!(value >= 0.0);
+        debug_assert!(!value.is_infinite());
+        debug_assert!(!value.is_nan());
         Frequency(value)
     }
 

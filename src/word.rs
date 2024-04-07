@@ -1,32 +1,58 @@
+use crate::{frequency::Frequency, set32::Set32};
+use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 use std::{fmt, str::FromStr};
 
-// let make = s => Word(s)
-// let toString = (Word(s)) => s
-// let characters = (Word(w)) => w->String.split("")->Seq.fromArray->Seq.map(Character.make)
-// let lastCharacter = (Word(w)) => Character(w->String.charAt(w->String.length - 1))
-// let excludeLetter = (Word(w), Character(c)) => {
-//   let result = w->String.replaceAll(c, "")
-//   switch result->String.length {
-//   | 0 => None
-//   | _ => Some(Word(result))
-//   }
-// }
-// let random = (~minLength, ~maxLength, ~characters) => {
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub struct Word {
     word: String,
+    frequency: Frequency,
+    letter_set: Set32,
+}
+
+impl Ord for Word {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.word.cmp(&other.word)
+    }
+}
+
+impl Eq for Word {}
+
+impl Hash for Word {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.word.hash(state);
+    }
 }
 
 impl Word {
     const MIN_LENGTH: usize = 1;
     const MAX_LENGTH: usize = 40;
 
+    pub fn with_details(word: String, frequency: Frequency, letter_set: Set32) -> Word {
+        Word {
+            word,
+            frequency,
+            letter_set,
+        }
+    }
+
+    pub fn frequency(&self) -> Frequency {
+        self.frequency
+    }
+
+    pub fn cmp_by_frequency(a: &Word, b: &Word) -> Ordering {
+        a.frequency.cmp(&b.frequency)
+    }
+
     pub fn new(word: String) -> Word {
         let word = word.trim().to_string();
         debug_assert!(word.len() >= Word::MIN_LENGTH, "{}", word);
         debug_assert!(word.len() <= Word::MAX_LENGTH, "{}", word);
-        Word { word }
+        Word {
+            word,
+            frequency: Frequency::ZERO,
+            letter_set: Set32::EMPTY,
+        }
     }
 }
 
