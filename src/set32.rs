@@ -102,10 +102,6 @@ impl Set32 {
 
     pub fn subsets_of_size(&self, size: U6) -> impl Iterator<Item = Set32> {
         debug_assert!(size.to_u32() <= Self::MAX_SIZE, "subset size is too big");
-        debug_assert!(
-            size.to_u32() >= 0,
-            "the size of subset must be bigger than 0"
-        );
         let items = self.into_iter().collect::<Vec<U6>>();
         let items_count = items.len();
         let max_exclusive = 1 << items_count;
