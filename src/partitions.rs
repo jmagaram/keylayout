@@ -1,8 +1,8 @@
 pub struct Partitions {
-    sum: u32,
-    parts: u32,
-    min: u32,
-    max: u32,
+    pub sum: u32,
+    pub parts: u32,
+    pub min: u32,
+    pub max: u32,
 }
 
 impl Partitions {
