@@ -91,6 +91,16 @@ impl Dictionary {
         }
     }
 
+    pub fn letter_for_u6(&self, inx: u32) -> char {
+        let result = self.u6_to_letter[inx as usize]; // fix
+        result
+    }
+
+    pub fn u6_for_letter(&self, char: char) -> u32 {
+        let result = self.letter_to_u6.get(&char).unwrap();
+        *result
+    }
+
     fn load_json() -> HashMap<String, f32> {
         let file = File::open(Dictionary::FILE_NAME).expect("file not found");
         let reader = BufReader::new(file);
@@ -125,6 +135,27 @@ mod tests {
         assert!(d.frequency_sum >= Frequency::new(0.95) && d.frequency_sum <= Frequency::new(0.97));
     }
 
+    #[test]
+    fn letter_map_works_properly() {
+        let words = vec!["apple", "banana", "charlie", "bob"];
+        let source: HashMap<_, _> = words.iter().map(|s| (s.to_string(), 0.0)).collect();
+        let d = Dictionary::new(source);
+
+        // correct size of the letter set: aplebnchrio
+        assert_eq!(d.letter_index_set.count(), 11);
+
+        // internal sizes correct
+        assert_eq!(d.u6_to_letter.len(), 11);
+        assert_eq!(d.letter_to_u6.len(), 11);
+
+        // mapping back and forth is consistent
+        for i in 0..11 {
+            let char1 = d.letter_for_u6(i);
+            let inx = d.u6_for_letter(char1);
+            let char2 = d.letter_for_u6(inx);
+            assert_eq!(char1, char2);
+        }
+    }
     #[test]
     #[ignore]
     fn display_top_words() {
