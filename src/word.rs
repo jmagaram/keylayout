@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 // let make = s => Word(s)
 // let toString = (Word(s)) => s
@@ -13,27 +13,31 @@ use std::fmt;
 // }
 // let random = (~minLength, ~maxLength, ~characters) => {
 
-#[derive(PartialOrd, PartialEq, Ord, Eq, Debug)]
-pub struct Word(String);
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct Word {
+    word: String,
+}
 
-impl Word {}
+fn make(word: String) -> Word {
+    Word { word }
+}
 
 impl fmt::Display for Word {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Word(word) = self;
-        write!(f, "\"{}\"", word)
+        write!(f, "{}", self.word)
     }
 }
 
 impl std::convert::From<String> for Word {
     fn from(value: String) -> Self {
-        Word(value.clone())
+        make(value)
     }
 }
 
 impl std::convert::From<&str> for Word {
     fn from(value: &str) -> Self {
-        Word(String::from(value))
+        let w = String::from_str(value).expect("Could not convert the characters to a String");
+        make(w)
     }
 }
 
@@ -43,36 +47,37 @@ mod tests {
     use super::*;
 
     #[test]
-    fn from_str() {
-        let word: Word = "abc".into();
-        assert_eq!(word.to_string(), "\"abc\"");
-    }
-
-    #[test]
     fn from_string_test() {
         let source = String::from("abc");
         let word = Word::from(source);
-        assert_eq!(word.to_string(), "\"abc\"");
+        assert_eq!(word.to_string(), "abc");
     }
 
     #[test]
-    fn display_trait() {
-        assert_eq!(Word::from("abc").to_string(), "\"abc\"");
+    fn from_str() {
+        let source: Word = "abc".into();
+        let word = Word::from(source);
+        assert_eq!(word.to_string(), "abc");
+    }
+
+    #[test]
+    fn display() {
+        assert_eq!(Word::from("abc").to_string(), "abc");
     }
 
     #[test]
     fn ord() {
-        let words = ["abc", "the", "box", "cat", "zebra", "banana"];
-        let mut sorted = words
+        let strs = ["a", "z", "b", "y", "c", "x", "d", "w", "p", "o", "n", "m"];
+        let mut word_vec = strs
             .into_iter()
             .map(|w| Word::from(w))
             .collect::<Vec<Word>>();
-        sorted.sort();
-        let combined = sorted
+        word_vec.sort();
+        let combined = word_vec
             .into_iter()
             .map(|w| w.to_string())
             .collect::<Vec<String>>()
-            .join(",");
-        assert_eq!(combined, "abc,banana,box,cat,the,zebra");
+            .join("");
+        assert_eq!(combined, "abcdmnopwxyz");
     }
 }
