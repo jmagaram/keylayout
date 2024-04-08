@@ -10,12 +10,12 @@ impl Keyboard {
     pub fn new(keys: Vec<Set32>) -> Keyboard {
         Keyboard { keys }
     }
-
+    // expected &mut i32, found i32
     fn spell(&self, dictionary: &Dictionary, word: &Word) -> String {
         let mut spell = String::new();
         word.chars().for_each(|c| {
             let u5 = dictionary.u5_for_letter(c);
-            spell.push(u5.to_char());
+            spell.push(u5.serialize());
             spell.push(',');
         });
         spell

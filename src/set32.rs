@@ -11,8 +11,6 @@ pub struct Set32(u32);
 impl Set32 {
     pub const EMPTY: Set32 = Set32(0);
     pub const MAX_SIZE: u32 = 32;
-    pub const MAX_ITEM_VALUE: U5 = U5::MAX;
-    pub const MIN_ITEM_VALUE: U5 = U5::MIN;
 
     pub fn fill(count: u32) -> Set32 {
         assert!(count <= Self::MAX_SIZE);
@@ -24,17 +22,14 @@ impl Set32 {
     }
 
     pub fn add(&self, bit: U5) -> Set32 {
-        assert!(bit <= Self::MAX_ITEM_VALUE);
         Set32(self.0 | 1 << bit.to_u32())
     }
 
     pub fn singleton(bit: U5) -> Set32 {
-        assert!(bit <= Self::MAX_ITEM_VALUE);
         Set32(1 << bit.to_u32())
     }
 
     pub fn contains(&self, bit: U5) -> bool {
-        assert!(bit <= Self::MAX_ITEM_VALUE);
         self.0 & (1 << bit.to_u32()) != 0
     }
 
@@ -51,7 +46,6 @@ impl Set32 {
     }
 
     pub fn remove(&self, bit: U5) -> Set32 {
-        assert!(bit <= Self::MAX_ITEM_VALUE);
         Set32(self.0 & !(1 << bit.to_u32()))
     }
 

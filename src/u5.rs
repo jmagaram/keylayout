@@ -4,12 +4,8 @@ use std::fmt;
 pub struct U5(u8);
 
 impl U5 {
-    pub const MAX: U5 = U5(31);
-    pub const MIN: U5 = U5(0);
-    pub const MAX_VALUES: U5 = U5(32);
-
     pub fn new(value: u32) -> U5 {
-        assert!(value <= 31);
+        assert!(value < 32);
         U5(value as u8)
     }
 
@@ -17,12 +13,16 @@ impl U5 {
         self.0.into()
     }
 
+    pub fn to_u8(&self) -> u8 {
+        self.0
+    }
+
     pub fn to_usize(&self) -> usize {
         self.0.into()
     }
 
-    pub fn to_char(&self) -> char {
-        char::from_u32(self.0 as u32).unwrap()
+    pub fn serialize(&self) -> char {
+        char::from_u32(self.to_u32()).expect("should be able to convert a u8 to a char")
     }
 }
 
@@ -34,24 +34,10 @@ impl fmt::Display for U5 {
     }
 }
 
-impl std::convert::From<usize> for U5 {
-    fn from(value: usize) -> Self {
-        assert!(value <= 31);
-        U5((value & 31) as u8)
-    }
-}
-
 impl std::convert::From<u32> for U5 {
     fn from(value: u32) -> Self {
-        assert!(value <= 31);
-        U5((value & 31) as u8)
-    }
-}
-
-impl std::convert::From<i32> for U5 {
-    fn from(value: i32) -> Self {
-        assert!(value >= 0 && value <= 31);
-        U5((value & 31) as u8)
+        assert!(value < 32);
+        U5(value as u8)
     }
 }
 
@@ -60,8 +46,14 @@ mod tests {
     use super::*;
 
     #[test]
+    #[should_panic]
+    fn new_panic_when_value_too_big() {
+        U5::new(32);
+    }
+
+    #[test]
     #[ignore]
-    fn display_property() {
+    fn display_is_just_a_simple_int() {
         let tests = [0, 1, 2, 13, 31];
         tests.into_iter().for_each(|p| {
             let p = U5(p);
@@ -70,11 +62,11 @@ mod tests {
     }
 
     #[test]
-    fn to_char_works_for_all() {
+    fn serialize_can_convert_all_values_to_char() {
         let mut s = String::new();
         (0..=31).for_each(|i| {
             let num = U5::new(i);
-            let char = num.to_char();
+            let char = num.serialize();
             s.push(char);
         });
         assert_eq!(s.len(), 32);
