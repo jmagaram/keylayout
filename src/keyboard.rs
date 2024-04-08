@@ -14,8 +14,8 @@ impl Keyboard {
     fn spell(&self, dictionary: &Dictionary, word: &Word) -> String {
         let mut spell = String::new();
         word.chars().for_each(|c| {
-            let u6 = dictionary.u6_for_letter(c);
-            spell.push(u6.to_char());
+            let u5 = dictionary.u5_for_letter(c);
+            spell.push(u5.to_char());
             spell.push(',');
         });
         spell

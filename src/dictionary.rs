@@ -2,14 +2,14 @@ use std::collections::HashSet;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
 use crate::set32::Set32;
-use crate::u6::U6;
+use crate::u5::U5;
 use crate::{frequency::Frequency, word::Word};
 
 pub struct Dictionary {
     words_highest_frequency_first: Vec<Word>,
     frequency_sum: Frequency,
-    letter_to_u6: HashMap<char, U6>,
-    u6_to_letter: Vec<char>,
+    letter_to_u5: HashMap<char, U5>,
+    u5_to_letter: Vec<char>,
     letter_index_set: Set32,
 }
 
@@ -17,7 +17,7 @@ impl Dictionary {
     const FILE_NAME: &'static str = "./src/words.json";
 
     pub fn new(words: HashMap<String, f32>) -> Dictionary {
-        let (_letter_set, letter_index_set, letter_to_u6, u6_to_letter) = {
+        let (_letter_set, letter_index_set, letter_to_u5, u5_to_letter) = {
             // create set of unique letters
             let mut letter_set = HashSet::new();
             words.iter().flat_map(|(s, f)| s.chars()).for_each(|c| {
@@ -25,19 +25,19 @@ impl Dictionary {
             });
 
             // map each letter to an index and vice versa
-            let mut letter_to_u6 = HashMap::new();
-            let mut u6_to_letter = Vec::new();
+            let mut letter_to_u5 = HashMap::new();
+            let mut u5_to_letter = Vec::new();
             letter_set.iter().enumerate().for_each(|(i, c)| {
-                let index = u32::try_from(i).unwrap(); // switch to u6
-                letter_to_u6.insert(*c, U6::new(index));
-                u6_to_letter.push(*c);
+                let index = u32::try_from(i).unwrap(); // switch to u5
+                letter_to_u5.insert(*c, U5::new(index));
+                u5_to_letter.push(*c);
             });
 
             // make a Set32 of the letters in all words
             let letter_index_set = Set32::fill(letter_set.len().try_into().unwrap());
 
             // return calculated values
-            (letter_set, letter_index_set, letter_to_u6, u6_to_letter)
+            (letter_set, letter_index_set, letter_to_u5, u5_to_letter)
         };
         let (words_highest_frequency_first, frequency_sum) = {
             let mut words_highest_frequency_first = Vec::new();
@@ -45,10 +45,10 @@ impl Dictionary {
             words.iter().for_each(|(s, f)| {
                 let word_frequency = Frequency::new(*f);
                 let letter_set_in_word = s.chars().fold(Set32::EMPTY, |set, c| {
-                    let char_as_u6 = letter_to_u6
+                    let char_as_u5 = letter_to_u5
                         .get(&c)
-                        .expect("the letter could not be converted to a u6");
-                    set.add(*char_as_u6)
+                        .expect("the letter could not be converted to a u5");
+                    set.add(*char_as_u5)
                 });
                 let word = Word::with_details(s.to_owned(), word_frequency, letter_set_in_word);
                 frequency_sum = frequency_sum + word_frequency;
@@ -60,8 +60,8 @@ impl Dictionary {
         Dictionary {
             words_highest_frequency_first,
             frequency_sum,
-            letter_to_u6,
-            u6_to_letter,
+            letter_to_u5,
+            u5_to_letter,
             letter_index_set,
         }
     }
@@ -78,13 +78,13 @@ impl Dictionary {
         Dictionary::new(map)
     }
 
-    pub fn letter_for_u6(&self, inx: U6) -> char {
-        let result = self.u6_to_letter[inx.to_usize()]; // fix
+    pub fn letter_for_u5(&self, inx: U5) -> char {
+        let result = self.u5_to_letter[inx.to_usize()]; // fix
         result
     }
 
-    pub fn u6_for_letter(&self, char: char) -> U6 {
-        let result = self.letter_to_u6.get(&char).unwrap();
+    pub fn u5_for_letter(&self, char: char) -> U5 {
+        let result = self.letter_to_u5.get(&char).unwrap();
         *result
     }
 
@@ -125,8 +125,8 @@ mod tests {
         println!("{}", d.frequency_sum);
         let expected = 307629;
         assert_eq!(d.words_highest_frequency_first.len(), expected);
-        assert_eq!(d.letter_to_u6.len(), 27);
-        assert_eq!(d.u6_to_letter.len(), 27);
+        assert_eq!(d.letter_to_u5.len(), 27);
+        assert_eq!(d.u5_to_letter.len(), 27);
         assert_eq!(d.letter_index_set.count(), 27);
         assert!(d.frequency_sum >= Frequency::new(0.95) && d.frequency_sum <= Frequency::new(0.97));
     }
@@ -141,14 +141,14 @@ mod tests {
         assert_eq!(d.letter_index_set.count(), 11);
 
         // internal sizes correct
-        assert_eq!(d.u6_to_letter.len(), 11);
-        assert_eq!(d.letter_to_u6.len(), 11);
+        assert_eq!(d.u5_to_letter.len(), 11);
+        assert_eq!(d.letter_to_u5.len(), 11);
 
         // mapping back and forth is consistent
         for i in 0u32..11 {
-            let char1 = d.letter_for_u6(i.into());
-            let inx = d.u6_for_letter(char1);
-            let char2 = d.letter_for_u6(inx);
+            let char1 = d.letter_for_u5(i.into());
+            let inx = d.u5_for_letter(char1);
+            let char2 = d.letter_for_u5(inx);
             assert_eq!(char1, char2);
         }
     }

@@ -3,7 +3,7 @@ use std::{
     iter, u32,
 };
 
-use crate::u6::U6;
+use crate::u5::U5;
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Set32(u32);
@@ -11,8 +11,8 @@ pub struct Set32(u32);
 impl Set32 {
     pub const EMPTY: Set32 = Set32(0);
     pub const MAX_SIZE: u32 = 32;
-    pub const MAX_ITEM_VALUE: U6 = U6::MAX;
-    pub const MIN_ITEM_VALUE: U6 = U6::MIN;
+    pub const MAX_ITEM_VALUE: U5 = U5::MAX;
+    pub const MIN_ITEM_VALUE: U5 = U5::MIN;
 
     pub fn fill(count: u32) -> Set32 {
         assert!(count <= Self::MAX_SIZE);
@@ -23,17 +23,17 @@ impl Set32 {
         Set32(bits)
     }
 
-    pub fn add(&self, bit: U6) -> Set32 {
+    pub fn add(&self, bit: U5) -> Set32 {
         assert!(bit <= Self::MAX_ITEM_VALUE);
         Set32(self.0 | 1 << bit.to_u32())
     }
 
-    pub fn singleton(bit: U6) -> Set32 {
+    pub fn singleton(bit: U5) -> Set32 {
         assert!(bit <= Self::MAX_ITEM_VALUE);
         Set32(1 << bit.to_u32())
     }
 
-    pub fn contains(&self, bit: U6) -> bool {
+    pub fn contains(&self, bit: U5) -> bool {
         assert!(bit <= Self::MAX_ITEM_VALUE);
         self.0 & (1 << bit.to_u32()) != 0
     }
@@ -50,7 +50,7 @@ impl Set32 {
         Set32(self.0 & !other.0)
     }
 
-    pub fn remove(&self, bit: U6) -> Set32 {
+    pub fn remove(&self, bit: U5) -> Set32 {
         assert!(bit <= Self::MAX_ITEM_VALUE);
         Set32(self.0 & !(1 << bit.to_u32()))
     }
@@ -63,14 +63,14 @@ impl Set32 {
         Set32(self.0 & other.0)
     }
 
-    pub fn max_item(&self) -> Option<U6> {
+    pub fn max_item(&self) -> Option<U5> {
         match self.0.leading_zeros() {
             u32::BITS => None,
             n => Some((u32::BITS - n - 1).into()),
         }
     }
 
-    pub fn min_item(&self) -> Option<U6> {
+    pub fn min_item(&self) -> Option<U5> {
         match self.0.trailing_zeros() {
             32 => None,
             n => Some(n.into()),
@@ -102,7 +102,7 @@ impl Set32 {
 
     pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Set32> {
         assert!(size <= Self::MAX_SIZE, "subset size is too big");
-        let items = self.into_iter().collect::<Vec<U6>>();
+        let items = self.into_iter().collect::<Vec<U5>>();
         let items_count = items.len();
         let max_exclusive = 1 << items_count;
         assert!(items_count >= size.try_into().unwrap()); // fix
@@ -130,9 +130,9 @@ impl fmt::Display for Set32 {
 }
 
 impl Iterator for Set32 {
-    type Item = U6;
+    type Item = U5;
 
-    fn next(&mut self) -> Option<U6> {
+    fn next(&mut self) -> Option<U5> {
         match self.0 {
             0 => None,
             _ => {

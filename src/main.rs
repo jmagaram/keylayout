@@ -11,7 +11,7 @@ mod keyboard;
 mod partitions;
 mod penalty;
 mod set32;
-mod u6;
+mod u5;
 mod utility;
 mod word;
 
