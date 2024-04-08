@@ -8,6 +8,28 @@ where
     fn items(&self) -> Vec<(&'a T, Self)>;
 }
 
+impl<'a> Deconstructable<'a, u32> for Vec<u32> {
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+
+    fn items(&self) -> Vec<(&'a u32, Self)> {
+        let mut result = vec![];
+        for index_to_remove in 0..self.len() {
+            let item = self.get(index_to_remove).unwrap();
+            let starts_with = &self[0..index_to_remove];
+            let ends_with = match index_to_remove == self.len() - 1 {
+                true => &self[index_to_remove..],
+                false => &[],
+            };
+            let rest = [starts_with, ends_with].concat();
+            let part = (item, rest);
+            result.push(part);
+        }
+        result
+    }
+}
+
 impl<'a> Deconstructable<'a, String> for HashMap<&'a String, u32> {
     fn is_empty(&self) -> bool {
         self.is_empty()
