@@ -100,13 +100,13 @@ impl Set32 {
         iterator
     }
 
-    pub fn subsets_of_size(&self, size: U6) -> impl Iterator<Item = Set32> {
-        debug_assert!(size.to_u32() <= Self::MAX_SIZE, "subset size is too big");
+    pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Set32> {
+        debug_assert!(size <= Self::MAX_SIZE, "subset size is too big");
         let items = self.into_iter().collect::<Vec<U6>>();
         let items_count = items.len();
         let max_exclusive = 1 << items_count;
-        debug_assert!(items_count >= size.to_usize());
-        Set32::same_ones_count(size.to_u32())
+        debug_assert!(items_count >= size.try_into().unwrap()); // fix
+        Set32::same_ones_count(size)
             .take_while(move |i| *i < max_exclusive)
             .map(move |i| {
                 Set32(i as u32)
@@ -419,14 +419,28 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn subsets_of_max_size_panic() {
+        let set = Set32::fill(2);
+        let results = set.subsets_of_size(3);
+    }
+
+    #[test]
+    fn subsets_of_max_size() {
+        let set = Set32::fill(32);
+        let results = set.subsets_of_size(32);
+        assert_eq!(results.count(), 1);
+    }
+
+    #[test]
     fn subsets_of_size() {
         fn test(items: &str) {
             let bits = string_to_bits(items);
-            let ones_count = bits.into_iter().count();
+            let ones_count = bits.into_iter().count() as u32; // fix
 
             // subsets have correct number of items (no duplicates)
             (1..ones_count).for_each(|subset_size| {
-                let actual_size = bits.subsets_of_size(subset_size.into()).count();
+                let actual_size = bits.subsets_of_size(subset_size).count();
                 let expected_count = choose_count(ones_count as u32, subset_size as u32);
                 assert_eq!(actual_size, expected_count as usize);
             });
@@ -469,7 +483,7 @@ mod tests {
     fn subsets_print_out() {
         Set32::fill(6)
             .remove_(3)
-            .subsets_of_size(3.into())
+            .subsets_of_size(3)
             .for_each(|i| println!("{:?}", i.to_string()));
     }
 }
