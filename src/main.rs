@@ -4,7 +4,6 @@ use dictionary::Dictionary;
 
 use partitions::Partitions;
 use set32::Set32;
-use u6::U6;
 
 mod dictionary;
 mod frequency;
@@ -43,13 +42,15 @@ fn use_dictionary() {
     dict.words().iter().for_each(|w| println!("{}", w));
 }
 
-fn get_keys(set: Set32, groups: Vec<U6>) {
+fn get_keys(set: Set32, groups: Vec<u32>) {
     match set.is_empty() {
         true => match groups.split_first() {
             None => panic!("no groups left, but keys remain to be distributed"),
             Some((group_size, rest_of_groups)) => {
-                // let y = set.subsets_of_size(U6::new(group_size));
+                let y = set.subsets_of_size(*group_size);
+                // y.flat_map...
                 // get all
+                // let g = set.subsets_of_size()
                 ()
             }
         },

@@ -7,9 +7,9 @@ pub struct Partitions {
 
 impl Partitions {
     pub fn calculate(&self) -> Vec<Vec<u32>> {
-        debug_assert!(self.max >= self.min);
-        debug_assert!(self.sum > 0);
-        debug_assert!(self.parts > 0);
+        assert!(self.max >= self.min);
+        assert!(self.sum > 0);
+        assert!(self.parts > 0);
         fn go(sum: u32, parts: u32, min: u32, max: u32) -> Vec<Vec<u32>> {
             match sum == 0 {
                 true => vec![vec![]],

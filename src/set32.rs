@@ -15,7 +15,7 @@ impl Set32 {
     pub const MIN_ITEM_VALUE: U6 = U6::MIN;
 
     pub fn fill(count: u32) -> Set32 {
-        debug_assert!(count <= Self::MAX_SIZE);
+        assert!(count <= Self::MAX_SIZE);
         let bits = match count {
             32 => !0,
             count => (1 << count) - 1,
@@ -24,17 +24,17 @@ impl Set32 {
     }
 
     pub fn add(&self, bit: U6) -> Set32 {
-        debug_assert!(bit <= Self::MAX_ITEM_VALUE);
+        assert!(bit <= Self::MAX_ITEM_VALUE);
         Set32(self.0 | 1 << bit.to_u32())
     }
 
     pub fn singleton(bit: U6) -> Set32 {
-        debug_assert!(bit <= Self::MAX_ITEM_VALUE);
+        assert!(bit <= Self::MAX_ITEM_VALUE);
         Set32(1 << bit.to_u32())
     }
 
     pub fn contains(&self, bit: U6) -> bool {
-        debug_assert!(bit <= Self::MAX_ITEM_VALUE);
+        assert!(bit <= Self::MAX_ITEM_VALUE);
         self.0 & (1 << bit.to_u32()) != 0
     }
 
@@ -51,7 +51,7 @@ impl Set32 {
     }
 
     pub fn remove(&self, bit: U6) -> Set32 {
-        debug_assert!(bit <= Self::MAX_ITEM_VALUE);
+        assert!(bit <= Self::MAX_ITEM_VALUE);
         Set32(self.0 & !(1 << bit.to_u32()))
     }
 
@@ -79,7 +79,7 @@ impl Set32 {
 
     // https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
     fn same_ones_count(count: u32) -> impl Iterator<Item = u64> {
-        debug_assert!(count >= 1 && count <= 32);
+        assert!(count >= 1 && count <= 32);
         let mut n: u64 = (1 << count) - 1;
         let max_bits = u32::BITS;
         let expected_max = ((1 << count) - 1) << (max_bits - count);
@@ -101,11 +101,11 @@ impl Set32 {
     }
 
     pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Set32> {
-        debug_assert!(size <= Self::MAX_SIZE, "subset size is too big");
+        assert!(size <= Self::MAX_SIZE, "subset size is too big");
         let items = self.into_iter().collect::<Vec<U6>>();
         let items_count = items.len();
         let max_exclusive = 1 << items_count;
-        debug_assert!(items_count >= size.try_into().unwrap()); // fix
+        assert!(items_count >= size.try_into().unwrap()); // fix
         Set32::same_ones_count(size)
             .take_while(move |i| *i < max_exclusive)
             .map(move |i| {

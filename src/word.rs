@@ -51,8 +51,8 @@ impl Word {
 
     pub fn new(word: String) -> Word {
         let word = word.trim().to_string();
-        debug_assert!(word.len() >= Word::MIN_LENGTH, "{}", word);
-        debug_assert!(word.len() <= Word::MAX_LENGTH, "{}", word);
+        assert!(word.len() >= Word::MIN_LENGTH, "{}", word);
+        assert!(word.len() <= Word::MAX_LENGTH, "{}", word);
         Word {
             word,
             frequency: Frequency::ZERO,

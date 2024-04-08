@@ -9,7 +9,7 @@ impl U6 {
     pub const MAX_VALUES: U6 = U6(32);
 
     pub fn new(value: u32) -> U6 {
-        debug_assert!(value <= 31);
+        assert!(value <= 31);
         U6(value as u8)
     }
 
@@ -36,21 +36,21 @@ impl fmt::Display for U6 {
 
 impl std::convert::From<usize> for U6 {
     fn from(value: usize) -> Self {
-        debug_assert!(value <= 31);
+        assert!(value <= 31);
         U6((value & 31) as u8)
     }
 }
 
 impl std::convert::From<u32> for U6 {
     fn from(value: u32) -> Self {
-        debug_assert!(value <= 31);
+        assert!(value <= 31);
         U6((value & 31) as u8)
     }
 }
 
 impl std::convert::From<i32> for U6 {
     fn from(value: i32) -> Self {
-        debug_assert!(value >= 0 && value <= 31);
+        assert!(value >= 0 && value <= 31);
         U6((value & 31) as u8)
     }
 }

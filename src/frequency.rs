@@ -13,9 +13,9 @@ impl Eq for Frequency {}
 
 impl Frequency {
     pub fn new(value: f32) -> Frequency {
-        debug_assert!(value >= 0.0);
-        debug_assert!(!value.is_infinite());
-        debug_assert!(!value.is_nan());
+        assert!(value >= 0.0);
+        assert!(!value.is_infinite());
+        assert!(!value.is_nan());
         Frequency(value)
     }
 
