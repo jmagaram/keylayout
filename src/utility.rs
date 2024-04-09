@@ -83,7 +83,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
 
     use super::*;
 
@@ -94,6 +93,7 @@ mod tests {
         let three = 3;
         let nums = [&one, &two, &three].to_vec();
         let results = permutations(nums);
+        println!("=== Permuations of integers in a vector ===");
         results.iter().for_each(|v| {
             println!("{:?}", v);
         })
@@ -104,9 +104,12 @@ mod tests {
         let mut map = HashMap::new();
         let a = String::from("a");
         let b = String::from("b");
+        let c = String::from("c");
         map.insert(&a, 2);
         map.insert(&b, 1);
+        map.insert(&c, 2);
         let results = permutations(map);
+        println!("=== Permuations by frequency count ===");
         results.iter().for_each(|v| {
             println!("{:?}", v);
         })
