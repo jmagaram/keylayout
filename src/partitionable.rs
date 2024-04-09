@@ -1,4 +1,4 @@
-fn unfold_many<STATE, T>(
+fn permutations<STATE, T>(
     first_time_called: bool,
     state: &STATE,
     is_empty: fn(&STATE) -> bool,
@@ -11,16 +11,15 @@ where
         (true, true) => vec![],
         (true, false) => vec![vec![]],
         (false, _) => {
-            let mut res = vec![];
-            for i in parts(state) {
-                let (item, rest) = i;
-                for j in unfold_many(false, &rest, is_empty, parts) {
-                    let mut x = j.to_vec();
-                    x.push(item);
-                    res.push(x);
+            let mut results = vec![];
+            for (item, rest) in parts(state) {
+                for children in permutations(false, &rest, is_empty, parts) {
+                    let mut results_copy = children.to_vec();
+                    results_copy.push(item);
+                    results.push(results_copy);
                 }
             }
-            res
+            results
         }
     }
 }
@@ -36,13 +35,13 @@ where
     where
         T: Copy,
     {
-        unfold_many(true, self, Self::is_empty, Self::parts)
+        permutations(true, self, Self::is_empty, Self::parts)
     }
 }
 
 impl<T> Partitionable<T> for Vec<T>
 where
-    T: PartialEq + Clone + Copy,
+    T: PartialEq + Copy,
 {
     fn is_empty(&self) -> bool {
         self.len() == 0
