@@ -1,3 +1,30 @@
+fn unfold_many<STATE, T>(
+    first_time_called: bool,
+    state: &STATE,
+    is_empty: fn(&STATE) -> bool,
+    parts: fn(&STATE) -> Vec<(T, STATE)>,
+) -> Vec<Vec<T>>
+where
+    T: Copy,
+{
+    match (is_empty(state), first_time_called) {
+        (true, true) => vec![],
+        (true, false) => vec![vec![]],
+        (false, _) => {
+            let mut res = vec![];
+            for i in parts(state) {
+                let (item, rest) = i;
+                for j in unfold_many(false, &rest, is_empty, parts) {
+                    let mut x = j.to_vec();
+                    x.push(item);
+                    res.push(x);
+                }
+            }
+            res
+        }
+    }
+}
+
 pub trait Partitionable<T>
 where
     Self: Sized,
@@ -9,21 +36,7 @@ where
     where
         T: Copy,
     {
-        match self.is_empty() {
-            true => vec![vec![]],
-            false => {
-                let mut res = vec![];
-                for i in self.parts() {
-                    let (item, rest) = i;
-                    for j in rest.permutations() {
-                        let mut x = j.to_vec();
-                        x.push(item);
-                        res.push(x);
-                    }
-                }
-                res
-            }
-        }
+        unfold_many(true, self, Self::is_empty, Self::parts)
     }
 }
 
