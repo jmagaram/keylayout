@@ -8,22 +8,25 @@ where
     fn items(&self) -> Vec<(&'a T, Self)>;
 }
 
-impl<'a> Deconstructable<'a, u32> for Vec<u32> {
+impl<'a> Deconstructable<'a, u32> for Vec<&'a u32> {
     fn is_empty(&self) -> bool {
         self.is_empty()
     }
 
     fn items(&self) -> Vec<(&'a u32, Self)> {
         let mut result = vec![];
-        for index_to_remove in 0..self.len() {
-            let item = self.get(index_to_remove).unwrap();
-            let starts_with = &self[0..index_to_remove];
-            let ends_with = match index_to_remove == self.len() - 1 {
-                true => &self[index_to_remove..],
-                false => &[],
+        for current_index in 0..self.len() {
+            let item = self.get(current_index).unwrap();
+            let before_item = match current_index {
+                0 => &[],
+                _ => &self[0..current_index],
             };
-            let rest = [starts_with, ends_with].concat();
-            let part = (item, rest);
+            let after_item = match current_index == self.len() - 1 {
+                true => &[],
+                false => &self[current_index + 1..],
+            };
+            let rest = [before_item, after_item].concat();
+            let part = (*item, rest);
             result.push(part);
         }
         result
@@ -80,10 +83,24 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
 
     #[test]
-    fn thisisit() {
+    fn perms_of_nums() {
+        let one = 1;
+        let two = 2;
+        let three = 3;
+        let nums = [&one, &two, &three].to_vec();
+        let results = permutations(nums);
+        results.iter().for_each(|v| {
+            println!("{:?}", v);
+        })
+    }
+
+    #[test]
+    fn perms_of_freq_count() {
         let mut map = HashMap::new();
         let a = String::from("a");
         let b = String::from("b");
