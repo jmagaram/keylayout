@@ -1,4 +1,4 @@
-fn permutations<STATE, T>(
+pub fn permutations<STATE, T>(
     first_time_called: bool,
     state: &STATE,
     is_empty: fn(&STATE) -> bool,
