@@ -170,4 +170,12 @@ mod tests {
             println!("{} as {}", w, spelling);
         })
     }
+
+    #[test]
+    fn penalty_score_is_correct() {
+        let d = Dictionary::load_large_dictionary();
+        let k = Keyboard::with_layout(&d, "abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
+        let actual: f32 = k.penalty(&d).to_f32(); // why into does not work
+        assert!(actual >= 0.0802 && actual <= 0.0804); // 0.0803
+    }
 }

@@ -16,6 +16,10 @@ impl Penalty {
         Penalty(value)
     }
 
+    pub fn to_f32(&self) -> f32 {
+        self.0
+    }
+
     pub const ZERO: Penalty = Penalty(0.0);
 }
 
