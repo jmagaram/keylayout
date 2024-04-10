@@ -1,5 +1,6 @@
 use crate::permutable::Permutable;
 
+#[derive(Debug)]
 pub struct Partitions {
     pub sum: u32,
     pub parts: u32,
@@ -16,7 +17,7 @@ impl Permutable<u32> for Partitions {
         (self.min..=self.max)
             .into_iter()
             .filter_map(|n| {
-                match n + (self.min * self.parts - 1) <= self.sum && n * self.parts >= self.sum {
+                match n + (self.min * (self.parts - 1)) <= self.sum && n * self.parts >= self.sum {
                     true => Some(n),
                     false => None,
                 }
@@ -42,18 +43,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn partitions_case() {
-        let p = Partitions {
-            sum: 27,
-            parts: 2,
-            min: 3,
-            max: 20,
-        }
-        .permute();
-        assert!(p.len() > 4);
-    }
-
-    #[test]
     fn partitions_have_proper_count() {
         let data = [
             (1, 1, 1, 1, 1),
@@ -61,6 +50,7 @@ mod tests {
             (27, 10, 1, 27, 267),
             (3, 2, 1, 3, 1),
             (4, 2, 1, 3, 2),
+            (13, 1, 3, 14, 1),
         ];
         for (sum, parts, min, max, expected) in data {
             assert_eq!(
