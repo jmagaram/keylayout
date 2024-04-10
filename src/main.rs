@@ -5,6 +5,7 @@ use dictionary::Dictionary;
 use item_count::ItemCount;
 use keyboard::Keyboard;
 use partitions::Partitions;
+use penalty::Penalty;
 use permutable::Permutable;
 use set32::Set32;
 
@@ -77,11 +78,15 @@ fn try_keyboard() {
 
 fn find_best_two_key_keyboard() {
     let d = Dictionary::load_large_dictionary();
+    let mut best = Penalty::MAX;
     for first_key in d.letters().subsets_of_size(13) {
         let second_key = d.letters().difference(first_key);
         let k = Keyboard::new(vec![first_key, second_key]);
-        let penalty = k.penalty(&d);
-        println!("{} {}", k.format(&d), penalty);
+        let penalty = k.penalty(&d, best);
+        if penalty.to_f32() < best.to_f32() {
+            best = penalty;
+            println!("{} {}", k.format(&d), penalty);
+        }
     }
 }
 

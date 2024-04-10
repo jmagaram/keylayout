@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     dictionary::Dictionary,
-    penalty::Penalty,
+    penalty::{self, Penalty},
     set32::Set32,
     u5::U5,
     word::{self, Word},
@@ -87,27 +87,28 @@ impl Keyboard {
         result
     }
 
-    pub fn penalty(&self, dictionary: &Dictionary) -> Penalty {
+    pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
         let mut found = HashMap::new();
-        let result = dictionary
-            .words()
-            .iter()
-            .map(move |word| {
-                let how_to_spell = self.spell(dictionary, word);
-                match found.get(&how_to_spell) {
-                    None => {
-                        found.insert(how_to_spell.to_string(), 1);
-                        Penalty::ZERO
-                    }
-                    Some(seen) => {
-                        let seen = *seen;
-                        found.insert(how_to_spell, seen + 1);
-                        Penalty::new(word.frequency().to_f32() * seen.min(4) as f32)
-                    }
+        let mut penalty = Penalty::ZERO;
+        for word in dictionary.words() {
+            let how_to_spell = self.spell(dictionary, word);
+            let word_penalty = match found.get(&how_to_spell) {
+                None => {
+                    found.insert(how_to_spell.to_string(), 1);
+                    Penalty::ZERO
                 }
-            })
-            .fold(Penalty::ZERO, |total, i| total + i);
-        result
+                Some(seen) => {
+                    let seen = *seen;
+                    found.insert(how_to_spell, seen + 1);
+                    Penalty::new(word.frequency().to_f32() * seen.min(4) as f32)
+                }
+            };
+            penalty = penalty + word_penalty;
+            if penalty >= to_beat {
+                break;
+            }
+        }
+        penalty
     }
 }
 

@@ -21,6 +21,7 @@ impl Penalty {
     }
 
     pub const ZERO: Penalty = Penalty(0.0);
+    pub const MAX: Penalty = Penalty(std::f32::MAX);
 }
 
 impl std::convert::From<f32> for Penalty {
