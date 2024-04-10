@@ -20,7 +20,7 @@ impl Dictionary {
         let (_letter_set, letter_index_set, letter_to_u5, u5_to_letter) = {
             // create set of unique letters
             let mut letter_set = HashSet::new();
-            words.iter().flat_map(|(s, f)| s.chars()).for_each(|c| {
+            words.iter().flat_map(|(s, _f)| s.chars()).for_each(|c| {
                 letter_set.insert(c);
             });
 

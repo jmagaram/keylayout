@@ -3,13 +3,17 @@ use std::time::Instant;
 use dictionary::Dictionary;
 
 use partitions::Partitions;
+use permutable::Permutable;
 use set32::Set32;
 
 mod dictionary;
+mod experiment;
 mod frequency;
+mod frequency_distribution;
 mod keyboard;
 mod partitions;
 mod penalty;
+mod permutable;
 mod set32;
 mod u5;
 mod utility;
@@ -67,7 +71,7 @@ fn try_keyboard() {
         min: 1,
         max: 5,
     }
-    .calculate();
+    .permute();
     partitions.iter().for_each(|p| println!("{:?}", p))
     // divide a set into those pieces
     //
