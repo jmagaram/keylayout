@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use dictionary::Dictionary;
 
+use item_count::ItemCount;
 use keyboard::Keyboard;
 use partitions::Partitions;
 use permutable::Permutable;
@@ -52,7 +53,7 @@ fn how_to_spell_words() {
     let keyboard = Keyboard::with_layout(&dict, "abc,def,ghi,jkl,mnop,qrst,uv,wx,yz'"); // error!
     dict.words().iter().for_each(|w| {
         let spell = keyboard.spell(&dict, w);
-        println!("word:{} spelling:{}", w, spell);
+        println!("{} : {}", w, spell);
     })
 }
 
@@ -74,9 +75,20 @@ fn try_keyboard() {
     // let keyboard = Keyboard::new(vec![])
 }
 
+fn find_best_two_key_keyboard() {
+    let d = Dictionary::load_large_dictionary();
+    for first_key in d.letters().subsets_of_size(13) {
+        let second_key = d.letters().difference(first_key);
+        let k = Keyboard::new(vec![first_key, second_key]);
+        let penalty = k.penalty(&d);
+        println!("{} {}", k.format(&d), penalty);
+    }
+}
+
 fn main() {
     calc_subsets(false, 12);
     use_dictionary();
     try_keyboard();
     how_to_spell_words();
+    find_best_two_key_keyboard();
 }

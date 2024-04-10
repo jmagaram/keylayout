@@ -34,6 +34,23 @@ impl Keyboard {
         Keyboard::new(keys)
     }
 
+    pub fn format(&self, d: &Dictionary) -> String {
+        let keys: Vec<String> = self
+            .keys
+            .iter()
+            .map(|k| {
+                let s = k.fold(String::new(), |mut total, i| {
+                    let char = d.u5_to_letter(i);
+                    total.push(char);
+                    total
+                });
+                s
+            })
+            .collect();
+        let joined = keys.join(" ");
+        format!("| {} |", joined)
+    }
+
     fn find_key_for_letter(&self, char: U5) -> Option<U5> {
         self.keys
             .iter()

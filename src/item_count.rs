@@ -2,7 +2,24 @@ use std::{collections::HashMap, hash::Hash};
 
 use crate::permutable::Permutable;
 
-struct ItemCount<T>(HashMap<T, u32>);
+pub struct ItemCount<T>(HashMap<T, u32>);
+
+impl<T> ItemCount<T> {}
+
+pub fn with_u32_groups(items: &Vec<u32>) -> ItemCount<u32> {
+    let mut map: HashMap<u32, u32> = HashMap::new();
+    for size in items {
+        match map.get(size) {
+            None => {
+                map.insert(*size, 1);
+            }
+            Some(count) => {
+                map.insert(*size, count + 1);
+            }
+        }
+    }
+    ItemCount(map)
+}
 
 impl<T> Permutable<T> for ItemCount<T>
 where

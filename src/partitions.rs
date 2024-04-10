@@ -42,6 +42,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn partitions_case() {
+        let p = Partitions {
+            sum: 27,
+            parts: 2,
+            min: 3,
+            max: 20,
+        }
+        .permute();
+        assert!(p.len() > 4);
+    }
+
+    #[test]
     fn partitions_have_proper_count() {
         let data = [
             (1, 1, 1, 1, 1),
