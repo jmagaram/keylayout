@@ -12,6 +12,10 @@ impl Letter {
     pub fn to_char(&self) -> char {
         ALPHABET[self.0 as usize]
     }
+
+    pub fn to_u32(&self) -> u32 {
+        self.0 as u32
+    }
 }
 
 impl fmt::Display for Letter {
@@ -57,6 +61,7 @@ impl Into<char> for Letter {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -97,6 +102,23 @@ mod tests {
     fn to_char() {
         for expected in ALPHABET {
             let actual: char = Letter::try_from(expected).unwrap().to_char();
+            assert_eq!(expected, actual);
+        }
+    }
+
+    #[test]
+    fn to_u32_returns_index_into_alphabet() {
+        for c in ALPHABET {
+            let actual = Letter::try_from(c).unwrap().to_u32();
+            let expected = ALPHABET
+                .iter()
+                .enumerate()
+                .find_map(|(inx, char)| match *char == c {
+                    true => Some(inx),
+                    false => None,
+                })
+                .map(|inx| inx as u32)
+                .unwrap();
             assert_eq!(expected, actual);
         }
     }
