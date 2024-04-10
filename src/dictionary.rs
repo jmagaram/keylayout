@@ -44,13 +44,13 @@ impl Dictionary {
             let mut frequency_sum = Frequency::ZERO;
             words.iter().for_each(|(s, f)| {
                 let word_frequency = Frequency::new(*f);
-                let letter_set_in_word = s.chars().fold(Set32::EMPTY, |set, c| {
+                let _letter_set_in_word = s.chars().fold(Set32::EMPTY, |set, c| {
                     let char_as_u5 = letter_to_u5
                         .get(&c)
                         .expect("the letter could not be converted to a u5");
                     set.add(*char_as_u5)
                 });
-                let word = Word::with_details(s.to_owned(), word_frequency, letter_set_in_word);
+                let word = Word::with_details(s.to_owned(), word_frequency);
                 frequency_sum = frequency_sum + word_frequency;
                 words_highest_frequency_first.push(word)
             });
@@ -78,14 +78,13 @@ impl Dictionary {
         Dictionary::new(map)
     }
 
-    pub fn letter_for_u5(&self, inx: U5) -> char {
+    pub fn u5_to_letter(&self, inx: U5) -> char {
         let result = self.u5_to_letter[inx.to_usize()]; // fix
         result
     }
 
-    pub fn u5_for_letter(&self, char: char) -> U5 {
-        let result = self.letter_to_u5.get(&char).unwrap();
-        *result
+    pub fn letter_to_u5(&self, char: char) -> Option<&U5> {
+        self.letter_to_u5.get(&char)
     }
 
     pub fn words(&self) -> &Vec<Word> {
@@ -146,10 +145,15 @@ mod tests {
 
         // mapping back and forth is consistent
         for i in 0u32..11 {
-            let char1 = d.letter_for_u5(i.into());
-            let inx = d.u5_for_letter(char1);
-            let char2 = d.letter_for_u5(inx);
-            assert_eq!(char1, char2);
+            let char1 = d.u5_to_letter(i.into());
+            let inx = d.letter_to_u5(char1);
+            match inx {
+                None => panic!("could not find the u5 representation of a letter"),
+                Some(inx) => {
+                    let char2 = d.u5_to_letter(*inx);
+                    assert_eq!(char1, char2);
+                }
+            }
         }
     }
     #[test]

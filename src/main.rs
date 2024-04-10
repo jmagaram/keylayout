@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use dictionary::Dictionary;
 
+use keyboard::Keyboard;
 use partitions::Partitions;
 use permutable::Permutable;
 use set32::Set32;
@@ -46,24 +47,18 @@ fn use_dictionary() {
     dict.words().iter().for_each(|w| println!("{}", w));
 }
 
-fn get_keys(set: Set32, groups: Vec<u32>) {
-    match set.is_empty() {
-        true => match groups.split_first() {
-            None => panic!("no groups left, but keys remain to be distributed"),
-            Some((group_size, rest_of_groups)) => {
-                let y = set.subsets_of_size(*group_size);
-                // y.flat_map...
-                // get all
-                // let g = set.subsets_of_size()
-                ()
-            }
-        },
-        false => (),
-    }
+fn how_to_spell_words() {
+    let dict = Dictionary::load_large_dictionary().with_top_n_words(100);
+    let keyboard = Keyboard::with_layout(&dict, "abc,def,ghi,jkl,mnop,qrst,uv,wx,yz'"); // error!
+    dict.words().iter().for_each(|w| {
+        let spell = keyboard.spell(&dict, w);
+        println!("word:{} spelling:{}", w, spell);
+    })
 }
 
 fn try_keyboard() {
     let dictionary = Dictionary::load_large_dictionary();
+    let k = Keyboard::with_layout(&dictionary, "abc,def,ghi,jkl");
     let keys = dictionary.letters().count_items();
     let partitions = Partitions {
         sum: keys.into(),
@@ -83,4 +78,5 @@ fn main() {
     calc_subsets(false, 12);
     use_dictionary();
     try_keyboard();
+    how_to_spell_words();
 }

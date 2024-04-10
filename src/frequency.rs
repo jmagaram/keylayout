@@ -19,6 +19,10 @@ impl Frequency {
         Frequency(value)
     }
 
+    pub fn random() -> Frequency {
+        Frequency::new(rand::random())
+    }
+
     pub fn to_f32(&self) -> f32 {
         self.0
     }

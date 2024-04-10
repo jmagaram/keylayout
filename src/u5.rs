@@ -44,6 +44,20 @@ impl std::convert::From<u32> for U5 {
     }
 }
 
+impl std::convert::From<i32> for U5 {
+    fn from(value: i32) -> Self {
+        assert!(value < 32 && value >= 0);
+        U5(value as u8)
+    }
+}
+
+impl std::convert::From<usize> for U5 {
+    fn from(value: usize) -> Self {
+        assert!(value < 32);
+        U5(value as u8)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,4 +1,4 @@
-use crate::{frequency::Frequency, set32::Set32};
+use crate::frequency::Frequency;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::str::Chars;
@@ -8,7 +8,6 @@ use std::{fmt, str::FromStr};
 pub struct Word {
     word: String,
     frequency: Frequency,
-    letter_set: Set32,
 }
 
 impl Ord for Word {
@@ -29,12 +28,19 @@ impl Word {
     const MIN_LENGTH: usize = 1;
     const MAX_LENGTH: usize = 40;
 
-    pub fn with_details(word: String, frequency: Frequency, letter_set: Set32) -> Word {
+    pub fn with_details(word: String, frequency: Frequency) -> Word {
+        Word { word, frequency }
+    }
+
+    pub fn with_random_frequency(word: String) -> Word {
         Word {
             word,
-            frequency,
-            letter_set,
+            frequency: Frequency::random(),
         }
+    }
+
+    pub fn with_str(word: &str) -> Word {
+        Word::with_details(word.to_string(), Frequency::random())
     }
 
     pub fn frequency(&self) -> Frequency {
@@ -55,8 +61,7 @@ impl Word {
         assert!(word.len() <= Word::MAX_LENGTH, "{}", word);
         Word {
             word,
-            frequency: Frequency::ZERO,
-            letter_set: Set32::EMPTY,
+            frequency: Frequency::random(),
         }
     }
 
