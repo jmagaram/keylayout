@@ -9,7 +9,7 @@ use set32::Set32;
 mod dictionary;
 mod experiment;
 mod frequency;
-mod frequency_distribution;
+mod item_count;
 mod keyboard;
 mod partitions;
 mod penalty;

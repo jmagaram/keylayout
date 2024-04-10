@@ -2,9 +2,9 @@ use std::{collections::HashMap, hash::Hash};
 
 use crate::permutable::Permutable;
 
-struct FrequencyDistribution<T>(HashMap<T, u32>);
+struct ItemCount<T>(HashMap<T, u32>);
 
-impl<T> Permutable<T> for FrequencyDistribution<T>
+impl<T> Permutable<T> for ItemCount<T>
 where
     T: Clone + PartialEq + Eq + Hash,
 {
@@ -21,14 +21,14 @@ where
                 1 => {
                     let mut copy = self.0.clone();
                     copy.remove(k);
-                    let distribution = FrequencyDistribution(copy);
+                    let distribution = ItemCount(copy);
                     let state = (k.to_owned(), distribution);
                     result.push(state)
                 }
                 count => {
                     let mut copy = self.0.clone();
                     copy.insert(k.to_owned(), count - 1);
-                    let distribution = FrequencyDistribution(copy);
+                    let distribution = ItemCount(copy);
                     let state = (k.to_owned(), distribution);
                     result.push(state)
                 }
@@ -65,7 +65,7 @@ mod tests {
     #[ignore]
     fn print_permutation_sample() {
         let map = make_map(3, 1, 1);
-        let f = FrequencyDistribution(map);
+        let f = ItemCount(map);
         let results = f.permute();
         println!("=== Permuations by frequency count ===");
         results.iter().for_each(|v| {
@@ -76,21 +76,21 @@ mod tests {
     #[test]
     fn when_many_items_permutation_count_is_correct() {
         let map = make_map(2, 1, 1);
-        let f = FrequencyDistribution(map);
+        let f = ItemCount(map);
         assert_eq!(12, f.permute().len());
     }
 
     #[test]
     fn when_1_item() {
         let map = make_map(3, 0, 0);
-        let f = FrequencyDistribution(map);
+        let f = ItemCount(map);
         assert_eq!(1, f.permute().len());
     }
 
     #[test]
     fn when_2_item() {
         let map = make_map(1, 1, 0);
-        let f = FrequencyDistribution(map);
+        let f = ItemCount(map);
         assert_eq!(2, f.permute().len());
     }
 }
