@@ -22,15 +22,15 @@ impl Set32 {
     }
 
     pub fn add(&self, bit: U5) -> Set32 {
-        Set32(self.0 | 1 << bit.to_u32())
+        Set32(self.0 | 1 << bit.to_u8())
     }
 
     pub fn singleton(bit: U5) -> Set32 {
-        Set32(1 << bit.to_u32())
+        Set32(1 << bit.to_u8())
     }
 
     pub fn contains(&self, bit: U5) -> bool {
-        self.0 & (1 << bit.to_u32()) != 0
+        self.0 & (1 << bit.to_u8()) != 0
     }
 
     pub fn count_items(&self) -> u32 {
@@ -46,7 +46,7 @@ impl Set32 {
     }
 
     pub fn remove(&self, bit: U5) -> Set32 {
-        Set32(self.0 & !(1 << bit.to_u32()))
+        Set32(self.0 & !(1 << bit.to_u8()))
     }
 
     pub fn union(&self, other: Set32) -> Set32 {

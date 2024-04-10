@@ -9,20 +9,23 @@ impl U5 {
         U5(value as u8)
     }
 
-    pub fn to_u32(&self) -> u32 {
-        self.0.into()
-    }
-
     pub fn to_u8(&self) -> u8 {
         self.0
     }
 
-    pub fn to_usize(&self) -> usize {
+    pub fn to_u32(&self) -> u32 {
         self.0.into()
     }
 
     pub fn serialize(&self) -> char {
-        char::from_u32(self.to_u32()).expect("should be able to convert a u8 to a char")
+        let unicode_base = 0x0041;
+        let char_as_digit = self.to_u32();
+        let result = char::from_u32(unicode_base + char_as_digit);
+        result.expect("should be able to convert a u8 to a char to display")
+    }
+
+    pub fn to_usize(&self) -> usize {
+        self.0.into()
     }
 }
 
@@ -62,13 +65,14 @@ mod tests {
     }
 
     #[test]
-    fn serialize_can_convert_all_values_to_char() {
+    fn serialize_creates_non_whitespace_characters() {
         let mut s = String::new();
         (0..=31).for_each(|i| {
             let num = U5::new(i);
             let char = num.serialize();
+            assert!(!char.is_whitespace(), "expected not whitespace");
             s.push(char);
         });
-        assert_eq!(s.len(), 32);
+        assert_eq!(s.chars().count(), 32);
     }
 }
