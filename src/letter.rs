@@ -8,34 +8,10 @@ const ALPHABET: [char; 27] = [
     't', 'u', 'v', 'w', 'x', 'y', 'z', '\'',
 ];
 
-// fn index_of(c: char) -> Option<u8> {
-//     0
-// }
-
 impl Letter {
-    // pub fn new(value: u32) -> Letter {
-    //     assert!(value < ALPHABET.len() as u32);
-    //     Letter(value as u8)
-    // }
-
-    // pub fn to_u8(&self) -> u8 {
-    //     self.0
-    // }
-
-    // pub fn to_u32(&self) -> u32 {
-    //     self.0.into()
-    // }
-
-    // pub fn serialize(&self) -> char {
-    //     let unicode_base = 0x0041;
-    //     let char_as_digit = self.to_u32();
-    //     let result = char::from_u32(unicode_base + char_as_digit);
-    //     result.expect("should be able to convert a u8 to a char to display")
-    // }
-
-    // pub fn to_usize(&self) -> usize {
-    //     self.0.into()
-    // }
+    pub fn to_char(&self) -> char {
+        ALPHABET[self.0 as usize]
+    }
 }
 
 impl fmt::Display for Letter {
@@ -66,10 +42,16 @@ impl TryFrom<u32> for Letter {
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value > 31 {
-            Err("Letter only accepts u32 values in the range 0..=31")
+            Err("Letter only accepts u32 values in the range 0..=31.")
         } else {
             Ok(Letter(value as u8))
         }
+    }
+}
+
+impl Into<char> for Letter {
+    fn into(self) -> char {
+        'a'
     }
 }
 
@@ -91,7 +73,7 @@ mod tests {
         for c in ALPHABET {
             let letter = Letter::try_from(c);
             match letter {
-                Err(_) => panic!("Could not convert the character '{}' to a Letter", c),
+                Err(_) => panic!("Could not convert the character '{}' to a Letter.", c),
                 Ok(letter) => assert_eq!(letter.to_string(), c.to_string()),
             }
         }
@@ -111,31 +93,11 @@ mod tests {
         }
     }
 
-    // #[test]
-    // #[should_panic]
-    // fn new_panic_when_value_too_big() {
-    //     Letter::new(32);
-    // }
-
-    // #[test]
-    // #[ignore]
-    // fn display_is_just_a_simple_int() {
-    //     let tests = [0, 1, 2, 13, 31];
-    //     tests.into_iter().for_each(|p| {
-    //         let p = Letter(p);
-    //         println!("The number is {}", p);
-    //     })
-    // }
-
-    // #[test]
-    // fn serialize_creates_non_whitespace_characters() {
-    //     let mut s = String::new();
-    //     (0..=31).for_each(|i| {
-    //         let num = Letter::new(i);
-    //         let char = num.serialize();
-    //         assert!(!char.is_whitespace(), "expected not whitespace");
-    //         s.push(char);
-    //     });
-    //     assert_eq!(s.chars().count(), 32);
-    // }
+    #[test]
+    fn to_char() {
+        for expected in ALPHABET {
+            let actual: char = Letter::try_from(expected).unwrap().to_char();
+            assert_eq!(expected, actual);
+        }
+    }
 }
