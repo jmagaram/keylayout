@@ -2,10 +2,7 @@ use std::time::Instant;
 
 use dictionary::Dictionary;
 
-use partitions::Partitions;
-use penalty::Penalty;
-
-use set32::Set32;
+use key::Key;
 
 mod dictionary;
 mod experiment;
@@ -17,7 +14,6 @@ mod letter;
 mod partitions;
 mod penalty;
 mod permutable;
-mod set32;
 mod u5;
 mod util;
 mod utility;
@@ -28,7 +24,7 @@ fn calc_subsets(print_each: bool, max_items: u32) {
     (1..=max_items).for_each(|item_count| {
         println!("");
         println!("== Items: {} ==", item_count);
-        let set = Set32::fill(item_count);
+        let set = Key::with_every_letter();
         let mut subsets_found = 0;
         (1..=item_count).for_each(|subset_size| {
             println!("  items:{} choose:{}", item_count, subset_size,);
