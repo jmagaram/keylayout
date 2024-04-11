@@ -47,6 +47,7 @@ fn use_dictionary() {
 }
 
 fn main() {
-    calc_subsets(false, 12);
+    // this has gotten slow!
+    calc_subsets(false, 27);
     use_dictionary();
 }
