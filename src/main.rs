@@ -4,8 +4,6 @@ use dictionary::Dictionary;
 
 use key::Key;
 
-use crate::letter::Letter;
-
 mod dictionary;
 mod experiment;
 mod frequency;

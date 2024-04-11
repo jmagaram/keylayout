@@ -3,7 +3,7 @@ use std::{
     iter,
 };
 
-use crate::letter::Letter;
+use crate::{letter::Letter, util};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Key(u32);
@@ -77,41 +77,27 @@ impl Key {
         }
     }
 
-    // https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
-    fn same_ones_count(count: u32) -> impl Iterator<Item = u64> {
-        assert!(count >= 1 && count <= Key::MAX_SIZE);
-        let mut n: u64 = (1 << count) - 1;
-        let max_bits = Key::MAX_SIZE;
-        let expected_max = ((1 << count) - 1) << (max_bits - count);
-        let next = move || {
-            let result = n;
-            let right_one = 1 << n.trailing_zeros();
-            let next_higher_one_bit = n + right_one;
-            let right_ones_pattern = n ^ next_higher_one_bit;
-            let right_ones_pattern = right_ones_pattern / right_one;
-            let right_ones_pattern = right_ones_pattern >> 2;
-            n = next_higher_one_bit | right_ones_pattern;
-            match result <= expected_max {
-                true => Some(result),
-                false => None,
-            }
-        };
-        let iterator = iter::from_fn(next);
-        iterator
-    }
-
     pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Key> {
-        assert!(size <= Key::MAX_SIZE, "subset size is too big");
-        let items = self.into_iter().collect::<Vec<Letter>>();
-        let items_count = items.len();
-        let max_exclusive = 1 << items_count;
-        assert!(items_count >= size.try_into().unwrap());
-        Key::same_ones_count(size)
+        assert!(
+            size > 0 && size <= Key::MAX_SIZE,
+            "Expected the subset size to be 1..={} (the maximum letters in the alphabet.",
+            Key::MAX_SIZE
+        );
+        let letters = self.into_iter().collect::<Vec<Letter>>();
+        let letters_count = letters.len();
+        let max_exclusive = 1 << letters_count;
+        assert!(
+            letters_count >= size.try_into().unwrap(),
+            "Expected the subset size ({}) to be <= the number of letters on the key ({}).",
+            size,
+            letters_count
+        );
+        util::same_set_bits(size)
             .take_while(move |i| *i < max_exclusive)
             .map(move |i| {
                 Key(i as u32)
                     .into_iter()
-                    .fold(Key::EMPTY, |total, i| total.add(items[i.to_usize()]))
+                    .fold(Key::EMPTY, |total, i| total.add(letters[i.to_usize()]))
             })
     }
 }
@@ -392,31 +378,6 @@ mod tests {
     }
 
     #[test]
-    fn same_ones_count_ends_at_max() {
-        for expected_ones in [1, 5, 9, 12, 24] {
-            assert!(expected_ones <= Key::MAX_SIZE);
-            let max_bits = Key::MAX_SIZE;
-            let expected_max = ((1 << expected_ones) - 1) << (max_bits - expected_ones);
-            let actual_max = Key::same_ones_count(expected_ones)
-                .last()
-                .unwrap_or(u64::MAX);
-            assert_eq!(actual_max, expected_max);
-        }
-    }
-
-    #[test]
-    fn same_ones_count_has_correct_values() {
-        for expected_ones in [1, 5, 9, 12, 23, 26] {
-            assert!(expected_ones <= Key::MAX_SIZE);
-            let all_correct_ones = Key::same_ones_count(expected_ones).take(1000).all(|n| {
-                let actual_ones = Key(n as u32).into_iter().count();
-                actual_ones == (expected_ones as usize)
-            });
-            assert!(all_correct_ones)
-        }
-    }
-
-    #[test]
     #[should_panic]
     fn subsets_of_size_panic_if_bigger_than_alphabet_size() {
         let key = Key::with_every_letter();
@@ -467,16 +428,6 @@ mod tests {
         for s in data {
             test(&s);
         }
-    }
-
-    #[test]
-    #[ignore]
-    fn subsets_of_size_print_out() {
-        Key::with_every_letter()
-            .remove(dd())
-            .remove(aa())
-            .subsets_of_size(3)
-            .for_each(|i| println!("{:?}", i.to_string()));
     }
 
     #[test]
