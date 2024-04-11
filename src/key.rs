@@ -147,6 +147,19 @@ mod tests {
     use crate::letter::Letter;
 
     use super::*;
+    fn aa() -> Letter {
+        Letter::try_from('a').unwrap()
+    }
+    fn bb() -> Letter {
+        Letter::try_from('b').unwrap()
+    }
+    fn cc() -> Letter {
+        Letter::try_from('c').unwrap()
+    }
+    fn dd() -> Letter {
+        Letter::try_from('d').unwrap()
+    }
+
     trait Int32Wrapper {
         fn add_(&self, n: u32) -> Key;
         fn remove_(&self, n: u32) -> Key;
@@ -185,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    fn try_from_str_when_valid() {
+    fn try_from_str_when_valid_test() {
         for s in ["abc", "a", "abcdez\'", "xyz", ""] {
             let key: Key = s.try_into().unwrap();
             assert_eq!(key.to_string(), s.to_string());
@@ -193,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn try_from_str_when_invalid() {
+    fn try_from_str_when_invalid_test() {
         for s in ["098", "a#4", "   "] {
             let key: Result<Key, _> = s.try_into();
             assert!(key.is_err());
@@ -201,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn display() {
+    fn to_string_test() {
         let data = ["abc", "", "mnop'"];
         for s in data {
             let actual = Key::try_from(s).unwrap().to_string();
@@ -210,7 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn with_every_letter() {
+    fn with_every_letter_test() {
         let target = Key::with_every_letter();
         assert_eq!(
             target.to_string(),
@@ -224,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn into_iterator() {
+    fn into_iterator_test() {
         let data = ["", "abc", "a", "xyz", "az'"];
         for d in data {
             let k: Vec<String> = Key::try_from(d)
@@ -238,174 +251,144 @@ mod tests {
     }
 
     #[test]
-    fn add() {
-        let zero = Key::EMPTY;
-        assert_eq!(zero.to_string(), "{}");
-        assert_eq!(zero.add_(3).add_(8).to_string(), "{3,8}");
-        assert_eq!(zero.add_(31).to_string(), "{31}");
+    fn add_test() {
+        assert_eq!(
+            Key::EMPTY
+                .add(aa())
+                .add(bb())
+                .add(cc())
+                .add(dd())
+                .to_string(),
+            "abcd"
+        );
     }
 
     #[test]
-    #[should_panic]
-    fn add_panic_if_invalid_index() {
-        Key::EMPTY.add_(32);
-    }
-
-    #[test]
-    fn except() {
+    fn except_test() {
         let data = [
             ("", "", ""),
-            ("1", "1", ""),
-            ("1,2,3", "2,3", "1"),
-            ("5,6,7", "1", "5,6,7"),
-            ("23,1,8,3,4", "8,1", "3,4,23"),
+            ("a", "a", ""),
+            ("abc", "bc", "a"),
+            ("abc", "x", "abc"),
+            ("abcdefg", "afg", "bcde"),
+            ("", "abc", ""),
+            ("a", "abc", ""),
         ];
-        fn test(start: &str, except: &str, expected: &str) -> () {
-            let start = string_to_bits(start);
-            let other = string_to_bits(except);
-            let actual = start.except(other);
-            let expected = string_to_bits(expected);
-            assert_eq!(actual, expected);
+        for (start, other, expected) in data {
+            let start = Key::try_from(start).unwrap();
+            let except = Key::try_from(other).unwrap();
+            let expected = Key::try_from(expected).unwrap();
+            assert_eq!(start.except(except), expected);
         }
-        data.into_iter().for_each(|(a, b, c)| test(a, b, c));
     }
 
     #[test]
     fn remove_test() {
-        fn test(bits: &str, item: u32, expected: &str) {
-            assert_eq!(string_to_bits(bits).remove_(item).to_string(), expected);
-        }
-        test("", 0, "{}");
-        test("", 1, "{}");
-        test("", 31, "{}");
-        test("0", 0, "{}");
-        test("0", 1, "{0}");
-        test("0,1,2", 1, "{0,2}");
-        test("0,1,2,3,4,5", 5, "{0,1,2,3,4}");
-        test("0,1,2,3,4,5,31", 31, "{0,1,2,3,4,5}");
-        test("0,1,2,3,4,5,31", 0, "{1,2,3,4,5,31}");
-    }
-
-    #[test]
-    fn to_string_test() {
         let data = [
-            ("", "{}"),
-            ("1", "{1}"),
-            ("1,2,3", "{1,2,3}"),
-            ("5,4,3", "{3,4,5}"),
-            ("15,4,0", "{0,4,15}"),
+            ("", 'a', ""),
+            ("a", 'a', ""),
+            ("abc", 'b', "ac"),
+            ("abc", 'x', "abc"),
+            ("abcdefg", 'e', "abcdfg"),
+            ("", 'a', ""),
         ];
-        fn test(start: &str, expected: &str) -> () {
-            let start = string_to_bits(start);
-            let actual = start.to_string();
-            assert_eq!(actual, expected);
+        for (start, to_remove, expected) in data {
+            let start = Key::try_from(start).unwrap();
+            let except = Letter::try_from(to_remove).unwrap();
+            let expected = Key::try_from(expected).unwrap();
+            assert_eq!(start.remove(except), expected);
         }
-        data.into_iter()
-            .for_each(|(start, expected)| test(start, expected));
     }
 
     #[test]
-    fn contains() {
-        assert_eq!(Key::EMPTY.contains_(3), false);
-        assert_eq!(Key::EMPTY.add_(1).contains_(2), false);
-        assert_eq!(Key::EMPTY.add_(1).add_(2).contains_(1), true);
+    fn contains_test() {
+        let data = [
+            ("", 'a', false),
+            ("a", 'a', true),
+            ("a", 'b', false),
+            ("abcd", 'b', true),
+            ("abcd", 'x', false),
+        ];
+        for (start, find, expected) in data {
+            let start = Key::try_from(start).unwrap();
+            let other = Letter::try_from(find).unwrap();
+            assert_eq!(start.contains(other), expected);
+        }
     }
 
     #[test]
     fn count_items_test() {
-        assert_eq!(Key::EMPTY.count_items(), 0);
-        assert_eq!(Key::EMPTY.add_(1).count_items(), 1);
-        assert_eq!(Key::EMPTY.add_(1).add_(2).count_items(), 2);
-        todo!("add case for every letter")
+        let data = [(""), ("a"), ("abcde"), ("abcdefghijklmnopqrstuvwxyz'")];
+        for start in data {
+            let start = Key::try_from(start).unwrap();
+            assert_eq!(start.count_items() as usize, start.to_string().len());
+        }
     }
 
     #[test]
     fn with_one_letter_test() {
-        assert_eq!(
-            Key::with_one_letter(Letter::try_from(0).unwrap()).to_string(),
-            "{0}"
-        );
-        assert_eq!(
-            Key::with_one_letter(Letter::try_from(31).unwrap()).to_string(),
-            "{31}"
-        );
-        assert_eq!(
-            Key::with_one_letter(Letter::try_from(5).unwrap()).to_string(),
-            "{5}"
-        );
+        assert_eq!("a", Key::with_one_letter(aa()).to_string());
+        assert_eq!("b", Key::with_one_letter(bb()).to_string());
+        assert_eq!("c", Key::with_one_letter(cc()).to_string());
     }
 
     #[test]
-    fn union() {
+    fn union_test() {
         let data = [
             ("", "", ""),
-            ("1", "1", "1"),
-            ("1,2,3", "2,3", "1,2,3"),
-            ("5,6,7", "1,2,3", "1,2,3,5,6,7"),
-            ("2", "1", "1,2"),
-            ("", "5", "5"),
+            ("a", "a", "a"),
+            ("a", "", "a"),
+            ("abc", "x", "abcx"),
+            ("abcdefg", "afg", "abcdefg"),
+            ("abc", "xyz", "abcxyz"),
         ];
-        fn test(start: &str, except: &str, expected: &str) -> () {
-            let start = string_to_bits(start);
-            let other = string_to_bits(except);
-            let actual = start.union(other);
-            let expected = string_to_bits(expected);
-            assert_eq!(actual, expected);
+        for (start, other, expected) in data {
+            let start = Key::try_from(start).unwrap();
+            let other = Key::try_from(other).unwrap();
+            let expected = Key::try_from(expected).unwrap();
+            assert_eq!(start.union(other), expected);
         }
-        data.into_iter().for_each(|(a, b, c)| test(a, b, c));
     }
 
     #[test]
-    fn intersect() {
+    fn intersect_test() {
         let data = [
             ("", "", ""),
-            ("1", "1", "1"),
-            ("1,2,3", "2,3", "2,3"),
-            ("5,6,7", "1,2,3", ""),
-            ("1,2,3,4,5", "1,2,3,4,5", "1,2,3,4,5"),
-            ("0,31", "5,31", "31"),
-            ("2", "1,2", "2"),
-            ("", "5", ""),
+            ("a", "a", "a"),
+            ("a", "", ""),
+            ("abc", "x", ""),
+            ("abcdefg", "afg", "afg"),
+            ("abc", "xyz", ""),
+            ("abcd", "cdef", "cd"),
         ];
-        fn test(start: &str, except: &str, expected: &str) -> () {
-            let start = string_to_bits(start);
-            let other = string_to_bits(except);
-            let actual = start.intersect(other);
-            let expected = string_to_bits(expected);
-            assert_eq!(actual, expected);
+        for (start, other, expected) in data {
+            let start = Key::try_from(start).unwrap();
+            let other = Key::try_from(other).unwrap();
+            let expected = Key::try_from(expected).unwrap();
+            assert_eq!(start.intersect(other), expected);
         }
-        data.into_iter().for_each(|(a, b, c)| test(a, b, c));
     }
 
     #[test]
-    fn max_letter() {
-        fn k(n: u32) -> Letter {
-            Letter::try_from(n).unwrap()
+    fn max_letter_test() {
+        let data = [("a", 'a'), ("abc", 'c'), ("cba", 'c')];
+        for (start, expected) in data {
+            let start = Key::try_from(start).unwrap();
+            let expected = Letter::try_from(expected).unwrap();
+            assert_eq!(start.max_letter(), Some(expected));
         }
-        assert_eq!(Key::EMPTY.max_letter(), None);
-        assert_eq!(Key::EMPTY.add_(0).max_letter(), Some(k(0)));
-        assert_eq!(Key::EMPTY.add_(0).add_(1).max_letter(), Some(k(1)));
-        assert_eq!(Key::EMPTY.add_(5).max_letter(), Some(k(5)));
-        assert_eq!(
-            Key::EMPTY.add_(5).add_(17).add_(3).max_letter(),
-            Some(k(17))
-        );
-        assert_eq!(Key::EMPTY.add_(31).max_letter(), Some(k(31)));
-        assert_eq!(Key::EMPTY.add_(31).add_(5).max_letter(), Some(k(31)));
-        todo!("with every letter")
+        assert!(Key::EMPTY.max_letter().is_none());
     }
 
     #[test]
-    fn min_letter() {
-        fn k(n: u32) -> Letter {
-            Letter::try_from(n).unwrap()
+    fn min_letter_test() {
+        let data = [("a", 'a'), ("abc", 'a'), ("cba", 'a'), ("xyfwfg", 'f')];
+        for (start, expected) in data {
+            let start = Key::try_from(start).unwrap();
+            let expected = Letter::try_from(expected).unwrap();
+            assert_eq!(start.min_letter(), Some(expected));
         }
-        assert_eq!(Key::EMPTY.min_letter(), None);
-        assert_eq!(Key::EMPTY.add_(0).min_letter(), Some(k(0)));
-        assert_eq!(Key::EMPTY.add_(0).add_(1).min_letter(), Some(k(0)));
-        assert_eq!(Key::EMPTY.add_(5).min_letter(), Some(k(5)));
-        assert_eq!(Key::EMPTY.add_(5).add_(17).add_(3).min_letter(), Some(k(3)));
-        assert_eq!(Key::EMPTY.add_(31).min_letter(), Some(k(31)));
+        assert!(Key::EMPTY.min_letter().is_none());
     }
 
     #[test]
