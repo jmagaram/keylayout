@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::frequency::{self, Frequency};
+use crate::frequency::Frequency;
 use crate::letter::Letter;
 
 #[derive(PartialEq, PartialOrd, Eq, Ord)]
@@ -11,6 +11,9 @@ pub struct Word2 {
 
 impl Word2 {
     pub fn new(letters: Vec<Letter>, frequency: Frequency) -> Word2 {
+        if letters.len() == 0 {
+            panic!("A Word must have 1 or more letters in it.")
+        }
         Word2 { letters, frequency }
     }
 
@@ -27,14 +30,17 @@ impl TryFrom<&str> for Word2 {
     type Error = &'static str;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        value
-            .chars()
-            .map(|c| Letter::try_from(c))
-            .collect::<Result<Vec<Letter>, _>>()
-            .map(|letters| Word2 {
-                letters: letters,
-                frequency: Frequency::ZERO,
-            })
+        match value.len() {
+            0 => Err("A Word must have 1 or more letters in it."),
+            _ => value
+                .chars()
+                .map(|c| Letter::try_from(c))
+                .collect::<Result<Vec<Letter>, _>>()
+                .map(|letters| Word2 {
+                    letters: letters,
+                    frequency: Frequency::ZERO,
+                }),
+        }
     }
 }
 
@@ -46,18 +52,6 @@ impl std::fmt::Display for Word2 {
             .collect::<Result<(), _>>()
     }
 }
-
-// fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//     let Letter(inx) = self;
-//     write!(f, "{}", Letter::ALPHABET[*inx as usize])
-// }
-// impl Ord for Word2 {
-//     fn cmp(&self, other: &Self) -> Ordering {
-//         Ordering::Greater
-//     }
-// }
-
-// impl Eq for Word2 {}
 
 // impl Hash for Word2 {
 //     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -133,7 +127,7 @@ impl std::fmt::Display for Word2 {
 #[cfg(test)]
 mod tests {
 
-    use std::cmp::Ordering;
+    use std::{cmp::Ordering, collections::HashMap};
 
     use crate::word::Word;
 
@@ -153,7 +147,7 @@ mod tests {
 
     #[test]
     fn try_from_str_when_valid_characters() {
-        for s in ["banana", "apple", "pear", ""] {
+        for s in ["banana", "apple", "pear"] {
             assert_eq!(s.to_string(), Word2::try_from(s).unwrap().to_string());
         }
     }
@@ -163,6 +157,11 @@ mod tests {
         for s in ["45jal", "a%pple", "pe   ar", "   "] {
             assert!(Word2::try_from(s).is_err());
         }
+    }
+
+    #[test]
+    fn try_from_str_when_no_characters_fails() {
+        assert!(Word2::try_from("").is_err());
     }
 
     #[test]
@@ -188,6 +187,12 @@ mod tests {
         assert_eq!('b', letters[1].to_char());
         assert_eq!('c', letters[2].to_char());
         assert_eq!(Frequency::new(0.5), word.frequency);
+    }
+
+    #[test]
+    #[should_panic]
+    fn new_panics_if_letters_are_empty() {
+        let _word = Word2::new(vec![], Frequency::new(0.5));
     }
 
     #[test]
@@ -227,6 +232,12 @@ mod tests {
         assert_eq!(a.cmp(&b), Ordering::Less);
         assert_eq!(b.cmp(&a), Ordering::Greater);
     }
+
+    #[test]
+    fn hashable() {
+        unimplemented!("Ensure hashing is based on word only, not the frequency.")
+    }
+
     // #[test]
     // fn from_string_test() {
     //     let source = String::from("abc");
