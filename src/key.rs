@@ -144,7 +144,7 @@ impl Iterator for Key {
 
 #[cfg(test)]
 mod tests {
-    use crate::letter::Letter;
+    use crate::{letter::Letter, util};
 
     use super::*;
     fn aa() -> Letter {
@@ -404,7 +404,7 @@ mod tests {
     }
 
     #[test]
-    fn with_ones_count_test() {
+    fn same_ones_count_has_correct_values() {
         for expected_ones in [1, 5, 9, 12, 23, 31, 32] {
             let all_correct_ones = Key::same_ones_count(expected_ones).take(1000).all(|n| {
                 let actual_ones = Key(n as u32).into_iter().count();
@@ -414,18 +414,9 @@ mod tests {
         }
     }
 
-    fn choose_count(n: u32, k: u32) -> u128 {
-        let n = n as u128;
-        let k = k as u128;
-        fn factorial(n: u128) -> u128 {
-            (1..=n).product()
-        }
-        factorial(n) / factorial(n - k) / factorial(k)
-    }
-
     #[test]
     #[should_panic]
-    fn subsets_of_size_bigger_than_alphabet_should_panic() {
+    fn subsets_of_size_panic_if_bigger_than_alphabet_size() {
         let key = Key::with_every_letter();
         key.subsets_of_size(Key::MAX_SIZE).take(1).count();
     }
@@ -439,7 +430,7 @@ mod tests {
             // subsets have correct number of items (no duplicates)
             (1..ones_count).for_each(|subset_size| {
                 let actual_size = bits.subsets_of_size(subset_size).count();
-                let expected_count = choose_count(ones_count as u32, subset_size as u32);
+                let expected_count = util::choose(ones_count as u32, subset_size as u32);
                 assert_eq!(actual_size, expected_count as usize);
             });
 
@@ -449,7 +440,7 @@ mod tests {
                     .subsets_of_size(subset_size.into())
                     .map(|b| b.to_string())
                     .collect::<std::collections::HashSet<String>>();
-                let expected_count = choose_count(ones_count as u32, subset_size as u32);
+                let expected_count = util::choose(ones_count as u32, subset_size as u32);
                 assert_eq!(set.len(), expected_count as usize);
             });
 
