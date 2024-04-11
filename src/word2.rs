@@ -1,9 +1,10 @@
-use std::fmt;
-
 use crate::frequency::Frequency;
 use crate::letter::Letter;
+use std::cmp::Ordering;
+use std::fmt;
+use std::hash::{Hash, Hasher};
 
-#[derive(PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Eq)]
 pub struct Word2 {
     letters: Vec<Letter>,
     frequency: Frequency,
@@ -23,6 +24,12 @@ impl Word2 {
 
     pub fn frequency(&self) -> &Frequency {
         &self.frequency
+    }
+}
+
+impl Hash for Word2 {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.letters.hash(state);
     }
 }
 
@@ -53,83 +60,28 @@ impl std::fmt::Display for Word2 {
     }
 }
 
-// impl Hash for Word2 {
-//     fn hash<H: Hasher>(&self, state: &mut H) {
-//         self.word.hash(state);
-//     }
-// }
+impl PartialOrd for Word2 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.letters.cmp(&other.letters))
+    }
+}
 
-// impl Word2 {
-//     const MIN_LENGTH: usize = 1;
-//     const MAX_LENGTH: usize = 40;
+impl Ord for Word2 {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.letters.cmp(&other.letters)
+    }
+}
 
-//     pub fn with_details(word: String, frequency: Frequency) -> Word2 {
-//         Word2 { word, frequency }
-//     }
-
-//     pub fn with_random_frequency(word: String) -> Word2 {
-//         Word2 {
-//             word,
-//             frequency: Frequency::random(),
-//         }
-//     }
-
-//     pub fn with_str(word: &str) -> Word2 {
-//         Word2::with_details(word.to_string(), Frequency::random())
-//     }
-
-//     pub fn frequency(&self) -> Frequency {
-//         self.frequency
-//     }
-
-//     pub fn to_tuple(&self) -> (String, f32) {
-//         (self.word.to_owned(), self.frequency.to_f32())
-//     }
-
-//     pub fn cmp_by_frequency(a: &Word2, b: &Word2) -> Ordering {
-//         a.frequency.cmp(&b.frequency)
-//     }
-
-//     pub fn new(word: String) -> Word2 {
-//         let word = word.trim().to_string();
-//         assert!(word.len() >= Word2::MIN_LENGTH, "{}", word);
-//         assert!(word.len() <= Word2::MAX_LENGTH, "{}", word);
-//         Word2 {
-//             word,
-//             frequency: Frequency::random(),
-//         }
-//     }
-
-//     pub fn chars(&self) -> Chars<'_> {
-//         self.word.chars()
-//     }
-// }
-
-// impl fmt::Display for Word2 {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "{}", self.word)
-//     }
-// }
-
-// impl std::convert::From<String> for Word2 {
-//     fn from(value: String) -> Self {
-//         Word2::new(value)
-//     }
-// }
-
-// impl std::convert::From<&str> for Word2 {
-//     fn from(value: &str) -> Self {
-//         let w = String::from_str(value).expect("Could not convert the characters to a String");
-//         Word2::new(w)
-//     }
-// }
+impl PartialEq for Word2 {
+    fn eq(&self, other: &Self) -> bool {
+        self.letters == other.letters
+    }
+}
 
 #[cfg(test)]
 mod tests {
 
-    use std::{cmp::Ordering, collections::HashMap};
-
-    use crate::word::Word;
+    use std::{cmp::Ordering, collections::HashSet};
 
     use super::*;
 
@@ -196,7 +148,13 @@ mod tests {
     }
 
     #[test]
-    fn cmp_sorts_by_word() {
+    fn cmp_sorts_only_by_word() {
+        let freq_small = Frequency::new(0.1);
+        let freq_big = Frequency::new(0.8);
+        fn with_freq(letters: &str, freq: Frequency) -> Word2 {
+            let word = Word2::try_from(letters).unwrap();
+            Word2::new(word.letters().to_owned(), freq)
+        }
         let data = [
             ("a", "b", Ordering::Less),
             ("a", "bcd", Ordering::Less),
@@ -206,56 +164,30 @@ mod tests {
             ("aaaaa", "z", Ordering::Less),
         ];
         for (a, b, ordering) in data {
-            let a_word = Word2::try_from(a).unwrap();
-            let b_word = Word2::try_from(b).unwrap();
-            assert_eq!(a_word.cmp(&b_word), ordering);
-            assert_eq!(b_word.cmp(&a_word), ordering.reverse());
-            assert_eq!(
-                Word2::cmp(&a_word, &b_word),
-                String::cmp(&a_word.to_string(), &b_word.to_string())
-            );
+            for freq_same in [false, true] {
+                let a_word = with_freq(a, freq_small);
+                let b_word = with_freq(b, if freq_same { freq_small } else { freq_big });
+                assert_eq!(a_word.cmp(&b_word), ordering);
+                assert_eq!(b_word.cmp(&a_word), ordering.reverse());
+                assert_eq!(
+                    Word2::cmp(&a_word, &b_word),
+                    String::cmp(&a_word.to_string(), &b_word.to_string())
+                );
+            }
         }
     }
 
     #[test]
-    fn cmp_sorts_by_frequency_if_words_are_same() {
-        let a = Word2::new(vec![aa(), bb(), cc()], Frequency::new(0.2));
-        let b = Word2::new(vec![aa(), bb(), cc()], Frequency::new(0.5));
-        assert_eq!(a.cmp(&b), Ordering::Less);
-        assert_eq!(b.cmp(&a), Ordering::Greater);
+    fn hash_ignores_frequency() {
+        let a = Word2::new(vec![aa(), bb(), cc()], Frequency::new(0.3));
+        let b = Word2::new(vec![aa(), bb(), cc()], Frequency::new(0.8));
+        let c = Word2::new(vec![cc()], Frequency::new(0.3));
+        let mut set = HashSet::new();
+        set.insert(a);
+        set.insert(b);
+        set.insert(c);
+        assert_eq!(2, set.len());
     }
-
-    #[test]
-    fn cmp_ignores_frequency_if_words_are_different() {
-        let a = Word2::new(vec![aa(), bb()], Frequency::new(0.9));
-        let b = Word2::new(vec![cc()], Frequency::new(0.1));
-        assert_eq!(a.cmp(&b), Ordering::Less);
-        assert_eq!(b.cmp(&a), Ordering::Greater);
-    }
-
-    #[test]
-    fn hashable() {
-        unimplemented!("Ensure hashing is based on word only, not the frequency.")
-    }
-
-    // #[test]
-    // fn from_string_test() {
-    //     let source = String::from("abc");
-    //     let word = Word2::from(source);
-    //     assert_eq!(word.to_string(), "abc");
-    // }
-
-    // #[test]
-    // fn from_str() {
-    //     let source: Word2 = "abc".into();
-    //     let word = Word2::from(source);
-    //     assert_eq!(word.to_string(), "abc");
-    // }
-
-    // #[test]
-    // fn display() {
-    //     assert_eq!(Word2::from("abc").to_string(), "abc");
-    // }
 
     // #[test]
     // fn ord() {
