@@ -38,6 +38,7 @@ impl fmt::Display for Frequency {
     }
 }
 
+// todo should be positive!
 impl std::convert::From<f32> for Frequency {
     fn from(value: f32) -> Self {
         Frequency::new(value)

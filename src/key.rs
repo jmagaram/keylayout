@@ -105,6 +105,16 @@ impl Key {
     }
 }
 
+impl FromIterator<Letter> for Key {
+    fn from_iter<I: IntoIterator<Item = Letter>>(iter: I) -> Self {
+        let mut c = Key::EMPTY;
+        for i in iter {
+            c = c.add(i);
+        }
+        c
+    }
+}
+
 impl TryFrom<&str> for Key {
     type Error = &'static str;
 
@@ -441,5 +451,15 @@ mod tests {
             .remove(aa())
             .subsets_of_size(3)
             .for_each(|i| println!("{:?}", i.to_string()));
+    }
+
+    #[test]
+    fn from_iterator_of_letter() {
+        let result = Key::from_iter(
+            ['a', 'b', 'c', 'd', 'e', 'f']
+                .iter()
+                .map(|c| Letter::try_from(*c).unwrap()),
+        );
+        assert_eq!("abcdef", result.to_string());
     }
 }

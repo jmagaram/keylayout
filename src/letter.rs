@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(PartialEq, PartialOrd, Ord, Eq, Debug, Clone, Copy, Default)]
+#[derive(PartialEq, PartialOrd, Ord, Eq, Debug, Clone, Copy, Default, Hash)]
 pub struct Letter(u8);
 
 impl Letter {

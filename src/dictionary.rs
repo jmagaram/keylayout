@@ -1,90 +1,85 @@
 use std::collections::HashSet;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
-use crate::set32::Set32;
-use crate::u5::U5;
+use crate::key::Key;
+use crate::letter::Letter;
 use crate::{frequency::Frequency, word::Word};
 
 pub struct Dictionary {
     words_highest_frequency_first: Vec<Word>,
     frequency_sum: Frequency,
-    letter_to_u5: HashMap<char, U5>,
-    u5_to_letter: Vec<char>,
-    letter_index_set: Set32,
+    letter_index_set: Key,
 }
 
 impl Dictionary {
     const FILE_NAME: &'static str = "./src/words.json";
 
-    pub fn new(words: HashMap<String, f32>) -> Dictionary {
-        let (_letter_set, letter_index_set, letter_to_u5, u5_to_letter) = {
-            // create set of unique letters
-            let mut letter_set = HashSet::new();
-            words.iter().flat_map(|(s, _f)| s.chars()).for_each(|c| {
-                letter_set.insert(c);
-            });
+    // take a str or String or &str?
+    pub fn create(words: Vec<(String, f32)>) -> Dictionary {
+        let mut unique_words = words
+            .into_iter()
+            .map(|(w, f)| {
+                let letters = w
+                    .chars()
+                    .map(|c| Letter::try_from(c))
+                    .collect::<Result<_, _>>()?;
+                let frequency = Frequency::try_from(f).map_err(|_| {
+                    "This needs to be removed; infallible is not a valid result error."
+                })?;
+                let word = Word::new(letters, frequency);
+                Ok::<Word, &str>(word)
+            })
+            .collect::<Result<Vec<Word>, _>>()
+            .unwrap()
+            .into_iter()
+            .collect::<HashSet<Word>>()
+            .into_iter()
+            .collect::<Vec<Word>>();
 
-            // map each letter to an index and vice versa
-            let mut letter_to_u5 = HashMap::new();
-            let mut u5_to_letter = Vec::new();
-            letter_set.iter().enumerate().for_each(|(i, c)| {
-                let index = u32::try_from(i).unwrap(); // switch to u5
-                letter_to_u5.insert(*c, U5::new(index));
-                u5_to_letter.push(*c);
-            });
+        unique_words.sort_by(|a, b| b.frequency().cmp(&a.frequency()));
 
-            // make a Set32 of the letters in all words
-            let letter_index_set = Set32::fill(letter_set.len().try_into().unwrap());
+        let unique_letters = unique_words
+            .iter()
+            .flat_map(|w| w.letters())
+            .map(|r| r.clone())
+            .collect::<Key>();
 
-            // return calculated values
-            (letter_set, letter_index_set, letter_to_u5, u5_to_letter)
-        };
-        let (words_highest_frequency_first, frequency_sum) = {
-            let mut words_highest_frequency_first = Vec::new();
-            let mut frequency_sum = Frequency::ZERO;
-            words.iter().for_each(|(s, f)| {
-                let word_frequency = Frequency::new(*f);
-                let _letter_set_in_word = s.chars().fold(Set32::EMPTY, |set, c| {
-                    let char_as_u5 = letter_to_u5
-                        .get(&c)
-                        .expect("the letter could not be converted to a u5");
-                    set.add(*char_as_u5)
-                });
-                let word = Word::with_details(s.to_owned(), word_frequency);
-                frequency_sum = frequency_sum + word_frequency;
-                words_highest_frequency_first.push(word)
-            });
-            words_highest_frequency_first.sort_by(|a, b| Word::cmp_by_frequency(b, a));
-            (words_highest_frequency_first, frequency_sum)
-        };
+        let frequency_sum = unique_words
+            .iter()
+            .map(|w| w.frequency())
+            .fold(Frequency::ZERO, |total, i| total + *i);
         Dictionary {
-            words_highest_frequency_first,
+            words_highest_frequency_first: unique_words,
             frequency_sum,
-            letter_to_u5,
-            u5_to_letter,
-            letter_index_set,
+            letter_index_set: unique_letters,
         }
     }
 
+    // do not understand iter vs into_iter
+    // String or str?
+    // pass &HashMap anyways
+    pub fn new(words: HashMap<String, f32>) -> Dictionary {
+        Dictionary::create(words.into_iter().collect())
+    }
+
+    // easier to convert a vec<letters> to a &str
     pub fn with_top_n_words(&self, count: usize) -> Dictionary {
-        let mut map = HashMap::new();
-        self.words_highest_frequency_first
-            .iter()
+        let r: Vec<(_, _)> = self
+            .words()
+            .into_iter()
             .take(count)
-            .map(|w| w.to_tuple())
-            .for_each(|(s, f)| {
-                map.insert(s, f);
-            });
-        Dictionary::new(map)
-    }
-
-    pub fn u5_to_letter(&self, inx: U5) -> char {
-        let result = self.u5_to_letter[inx.to_usize()]; // fix
-        result
-    }
-
-    pub fn letter_to_u5(&self, char: char) -> Option<&U5> {
-        self.letter_to_u5.get(&char)
+            .map(|w| {
+                let c = w
+                    .letters()
+                    .iter()
+                    .map(|r| r.to_char())
+                    .collect::<Vec<char>>()
+                    .iter()
+                    .collect::<String>();
+                (c, w.frequency().to_f32())
+            })
+            .collect();
+        Dictionary::create(r)
     }
 
     pub fn words(&self) -> &Vec<Word> {
@@ -92,7 +87,7 @@ impl Dictionary {
         result
     }
 
-    pub fn letters(&self) -> Set32 {
+    pub fn letters(&self) -> Key {
         self.letter_index_set
     }
 
@@ -121,41 +116,23 @@ mod tests {
     #[test]
     fn standard_dictionary_has_proper_count_of_words() {
         let d = Dictionary::load_large_dictionary();
-        println!("{}", d.frequency_sum);
         let expected = 307629;
-        assert_eq!(d.words_highest_frequency_first.len(), expected);
-        assert_eq!(d.letter_to_u5.len(), 27);
-        assert_eq!(d.u5_to_letter.len(), 27);
-        assert_eq!(d.letter_index_set.count(), 27);
+        assert_eq!(d.words_highest_frequency_first.len(), expected,);
+    }
+
+    #[test]
+    fn standard_dictionary_has_proper_letter_set() {
+        let d = Dictionary::load_large_dictionary();
+        assert_eq!(d.letter_index_set.count(), 27,);
         assert!(d.frequency_sum >= Frequency::new(0.95) && d.frequency_sum <= Frequency::new(0.97));
     }
 
     #[test]
-    fn letter_map_works_properly() {
-        let words = vec!["apple", "banana", "charlie", "bob"];
-        let source: HashMap<_, _> = words.iter().map(|s| (s.to_string(), 0.0)).collect();
-        let d = Dictionary::new(source);
-
-        // correct size of the letter set: aplebnchrio
-        assert_eq!(d.letter_index_set.count(), 11);
-
-        // internal sizes correct
-        assert_eq!(d.u5_to_letter.len(), 11);
-        assert_eq!(d.letter_to_u5.len(), 11);
-
-        // mapping back and forth is consistent
-        for i in 0u32..11 {
-            let char1 = d.u5_to_letter(i.into());
-            let inx = d.letter_to_u5(char1);
-            match inx {
-                None => panic!("could not find the u5 representation of a letter"),
-                Some(inx) => {
-                    let char2 = d.u5_to_letter(*inx);
-                    assert_eq!(char1, char2);
-                }
-            }
-        }
+    fn standard_dictionary_has_proper_frequency_sum() {
+        let d = Dictionary::load_large_dictionary();
+        assert!(d.frequency_sum >= Frequency::new(0.95) && d.frequency_sum <= Frequency::new(0.97));
     }
+
     #[test]
     #[ignore]
     fn display_top_words() {

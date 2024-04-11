@@ -1,97 +1,67 @@
 use std::collections::HashMap;
 
-use crate::{
-    dictionary::Dictionary,
-    penalty::{self, Penalty},
-    set32::Set32,
-    u5::U5,
-    word::{self, Word},
-};
+use crate::{dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, word::Word};
 
 pub struct Keyboard {
-    keys: Vec<Set32>,
+    keys: Vec<Key>,
 }
 
 impl Keyboard {
-    pub fn new(keys: Vec<Set32>) -> Keyboard {
+    pub fn new(keys: Vec<Key>) -> Keyboard {
         Keyboard { keys }
     }
 
     // abc,def,ghh
-    pub fn with_layout(d: &Dictionary, s: &str) -> Keyboard {
+    // fromstr?
+    pub fn with_layout(s: &str) -> Keyboard {
         let keys = s
             .split(",")
             .map(|letters| {
-                letters.chars().fold(Set32::EMPTY, |set, c| {
-                    let k = d.letter_to_u5(c);
-                    match k {
-                        None => set,
-                        Some(k) => set.add(*k),
-                    }
-                })
+                let m = Key::try_from(letters).unwrap(); // fix this!
+                m
             })
-            .collect::<Vec<Set32>>();
+            .collect::<Vec<Key>>();
         Keyboard::new(keys)
     }
 
     pub fn format(&self, d: &Dictionary) -> String {
-        let keys: Vec<String> = self
-            .keys
-            .iter()
-            .map(|k| {
-                let s = k.fold(String::new(), |mut total, i| {
-                    let char = d.u5_to_letter(i);
-                    total.push(char);
-                    total
-                });
-                s
-            })
-            .collect();
+        let keys: Vec<String> = self.keys.iter().map(|k| k.to_string()).collect();
         let joined = keys.join(" ");
         format!("| {} |", joined)
     }
 
-    fn find_key_for_letter(&self, char: U5) -> Option<U5> {
-        self.keys
-            .iter()
-            .enumerate()
-            .find_map(|(inx, val)| match val.contains(char) {
-                true => Some(U5::from(inx)),
-                false => None,
-            })
+    fn find_key_for_letter(&self, letter: Letter) -> Option<Key> {
+        let keys = &self.keys;
+        let m = keys.iter().find(|k| {
+            let q = k.contains(letter);
+            q
+        });
+        let qqq = m.map(|k| k.clone());
+        qqq
     }
 
-    // fix cascading errors with if let etc.
-    pub fn spell(&self, dictionary: &Dictionary, word: &Word) -> String {
-        let mut result = String::new();
-        word.chars().for_each(|c| {
-            let u5 = dictionary.letter_to_u5(c);
-            match u5 {
-                None => {
-                    panic!("Can't type the word because a letter is absent from the dictionary.")
-                }
-                Some(u5) => {
-                    let key = self.find_key_for_letter(*u5);
-                    match key {
-                        None => {
-                        panic!("Can not type the word \"{}\" because the keyboard is missing the letter '{}'",word,c);
-                        }
-                        Some(key_inx) => {
-                            let serialize_as = key_inx.serialize();
-                            result.push(serialize_as);
-                        }
-                    }
-                }
-            }
-        });
-        result
+    pub fn spell(&self, word: &Word) -> String {
+        let result = word
+            .letters()
+            .into_iter()
+            .map(|letter| self.find_key_for_letter(*letter))
+            .collect::<Option<Vec<Key>>>()
+            .map(|keys| keys.iter().map(|k| k.to_string()).collect::<Vec<String>>())
+            .map(|kk| kk.join(","));
+        match result {
+            None => panic!(
+                "Could not spell the word {} because the keyboard is missing a necessary key.",
+                word
+            ),
+            Some(spelling) => spelling,
+        }
     }
 
     pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
         let mut found = HashMap::new();
         let mut penalty = Penalty::ZERO;
         for word in dictionary.words() {
-            let how_to_spell = self.spell(dictionary, word);
+            let how_to_spell = self.spell(word);
             let word_penalty = match found.get(&how_to_spell) {
                 None => {
                     found.insert(how_to_spell.to_string(), 1);
@@ -115,7 +85,7 @@ impl Keyboard {
 #[cfg(test)]
 mod tests {
 
-    use crate::{frequency::Frequency, u5::U5};
+    use crate::frequency::Frequency;
 
     use super::*;
 
@@ -129,71 +99,37 @@ mod tests {
     }
 
     #[test]
-    fn spell_uses_u5_index_of_key() {
-        let d = make_dictionary(vec!["apple", "word", "banana"]);
-        let k = Keyboard::with_layout(&d, "abc,def,ghi,jkl,mno,pqr,stu,vwx,yz'");
-
-        let w = Word::with_str("word");
-        let letter1_key = U5::new(7).serialize();
-        let letter2_key = U5::new(4).serialize();
-        let letter3_key = U5::new(5).serialize();
-        let letter4_key = U5::new(1).serialize();
-
-        let mut expected = String::new();
-        expected.push(letter1_key);
-        expected.push(letter2_key);
-        expected.push(letter3_key);
-        expected.push(letter4_key);
-
-        let actual = k.spell(&d, &w);
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    #[should_panic]
-    fn spell_panic_if_letter_not_in_dictionary() {
-        let d = make_dictionary(vec!["the", "book"]);
-        let k = Keyboard::with_layout(&d, "abc,def,ghi,jkl,mno,pqr,stu,vwx,yz'");
-        let w = Word::with_details("theocrat".to_string(), Frequency::ZERO);
-        k.spell(&d, &w);
+    fn spell_test() {
+        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,stu,vwx,yz'");
+        let w = Word::try_from("word").unwrap();
+        let actual = k.spell(&w);
+        assert_eq!(actual, "vwx,mno,pqr,def");
     }
 
     #[test]
     #[should_panic]
     fn spell_panic_if_required_letter_not_on_keyboard() {
-        let d = make_dictionary(vec!["the", "book"]);
-        let k = Keyboard::with_layout(&d, "the,boo");
-        let w = Word::with_details("book".to_string(), Frequency::ZERO);
-        k.spell(&d, &w);
-    }
-
-    #[test]
-    fn spell_is_same_length_as_original_word() {
-        let d = Dictionary::load_large_dictionary();
-        let k = Keyboard::with_layout(&d, "abc,def,ghi,jkl,mnop,qrs,tuv,wxyz'");
-        d.words().iter().for_each(|w| {
-            let spelling = k.spell(&d, w);
-            assert_eq!(spelling.len(), w.to_string().len());
-        })
+        let k = Keyboard::with_layout("abc,def,ghi");
+        let w = Word::try_from("abcx").unwrap();
+        k.spell(&w);
     }
 
     #[test]
     #[ignore]
     fn spell_print_each_dictionary_word_out() {
         let d = Dictionary::load_large_dictionary();
-        let k = Keyboard::with_layout(&d, "abc,def,ghi,jkl,mnop,qrs,tuv,wxyz'");
-        d.words().iter().for_each(|w| {
-            let spelling = k.spell(&d, w);
-            println!("{} as {}", w, spelling);
+        let k = Keyboard::with_layout("abc,def,ghi,jkl,mnop,qrs,tuv,wxyz'");
+        d.words().iter().take(20).for_each(|w| {
+            let spelling = k.spell(&w);
+            println!("{} : {}", w, spelling);
         })
     }
 
     #[test]
     fn penalty_score_is_correct() {
         let d = Dictionary::load_large_dictionary();
-        let k = Keyboard::with_layout(&d, "abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
-        let actual: f32 = k.penalty(&d).to_f32(); // why into does not work
+        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
+        let actual: f32 = k.penalty(&d, Penalty::MAX).to_f32(); // why into does not work
         assert!(actual >= 0.0802 && actual <= 0.0804); // 0.0803
     }
 }
