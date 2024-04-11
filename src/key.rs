@@ -16,6 +16,17 @@ impl Key {
         Key((1 << Letter::ALPHABET_SIZE) - 1)
     }
 
+    pub fn with_first_n_letters(count: u32) -> Key {
+        if (count as usize) > Letter::ALPHABET_SIZE {
+            panic!(
+                "A Key can have at most {} letters, but you asked for {}.",
+                Letter::ALPHABET_SIZE,
+                count,
+            );
+        }
+        Key((1 << count) - 1)
+    }
+
     pub fn with_one_letter(r: Letter) -> Key {
         Key(1 << r.to_u8())
     }
@@ -203,6 +214,21 @@ mod tests {
             target.to_string(),
             "abcdefghijklmnopqrstuvwxyz'".to_string()
         );
+    }
+
+    #[test]
+    fn with_first_n_letters_test() {
+        let data = [(0, ""), (1, "a"), (27, "abcdefghijklmnopqrstuvwxyz'")];
+        for (count, expected) in data {
+            let target = Key::with_first_n_letters(count);
+            assert_eq!(expected, target.to_string())
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn with_first_n_letters_panic_if_more_than_alphabet() {
+        Key::with_first_n_letters(28);
     }
 
     #[test]
