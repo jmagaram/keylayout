@@ -8,7 +8,7 @@ use crate::{frequency::Frequency, word::Word};
 pub struct Dictionary {
     words_highest_frequency_first: Vec<Word>,
     frequency_sum: Frequency,
-    letter_index_set: Key,
+    alphabet: Key,
 }
 
 impl Dictionary {
@@ -38,7 +38,7 @@ impl Dictionary {
 
         unique_words.sort_by(|a, b| b.frequency().cmp(&a.frequency()));
 
-        let unique_letters = unique_words
+        let alphabet = unique_words
             .iter()
             .flat_map(|w| w.letters())
             .map(|r| r.clone())
@@ -51,7 +51,7 @@ impl Dictionary {
         Dictionary {
             words_highest_frequency_first: unique_words,
             frequency_sum,
-            letter_index_set: unique_letters,
+            alphabet,
         }
     }
 
@@ -87,8 +87,8 @@ impl Dictionary {
         result
     }
 
-    pub fn letters(&self) -> Key {
-        self.letter_index_set
+    pub fn alphabet(&self) -> Key {
+        self.alphabet
     }
 
     fn load_json() -> HashMap<String, f32> {
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn standard_dictionary_has_proper_letter_set() {
         let d = Dictionary::load_large_dictionary();
-        assert_eq!(d.letter_index_set.count(), 27,);
+        assert_eq!(d.alphabet.count(), 27,);
         assert!(d.frequency_sum >= Frequency::new(0.95) && d.frequency_sum <= Frequency::new(0.97));
     }
 
