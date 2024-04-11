@@ -14,7 +14,6 @@ mod letter;
 mod partitions;
 mod penalty;
 mod permutable;
-mod u5;
 mod util;
 mod utility;
 mod word;
