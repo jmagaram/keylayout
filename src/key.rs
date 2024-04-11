@@ -70,7 +70,7 @@ impl Key {
     fn same_ones_count(count: u32) -> impl Iterator<Item = u64> {
         assert!(count >= 1 && count <= Key::MAX_SIZE);
         let mut n: u64 = (1 << count) - 1;
-        let max_bits = u32::BITS;
+        let max_bits = Key::MAX_SIZE;
         let expected_max = ((1 << count) - 1) << (max_bits - count);
         let next = move || {
             let result = n;
@@ -147,6 +147,7 @@ mod tests {
     use crate::{letter::Letter, util};
 
     use super::*;
+
     fn aa() -> Letter {
         Letter::try_from('a').unwrap()
     }
@@ -158,43 +159,6 @@ mod tests {
     }
     fn dd() -> Letter {
         Letter::try_from('d').unwrap()
-    }
-
-    trait Int32Wrapper {
-        fn add_(&self, n: u32) -> Key;
-        fn remove_(&self, n: u32) -> Key;
-        fn contains_(&self, n: u32) -> bool;
-    }
-
-    impl Int32Wrapper for Key {
-        fn add_(&self, n: u32) -> Key {
-            Letter::try_from(n).map(|r| self.add(r)).unwrap()
-        }
-
-        fn remove_(&self, n: u32) -> Key {
-            Letter::try_from(n).map(|r| self.remove(r)).unwrap()
-        }
-
-        fn contains_(&self, n: u32) -> bool {
-            Letter::try_from(n).map(|r| self.contains(r)).unwrap()
-        }
-    }
-
-    fn string_to_bits(s: &str) -> Key {
-        let s = s.trim();
-        if s == "" {
-            Key::EMPTY
-        } else {
-            s.split(",")
-                .map(|i| {
-                    i.trim()
-                        .parse::<u32>()
-                        .expect("could not convert the string to a u32")
-                })
-                .collect::<Vec<u32>>()
-                .into_iter()
-                .fold(Key::EMPTY, |total, i| total.add_(i))
-        }
     }
 
     #[test]
@@ -393,7 +357,8 @@ mod tests {
 
     #[test]
     fn same_ones_count_ends_at_max() {
-        for expected_ones in [1, 5, 9, 12, 32] {
+        for expected_ones in [1, 5, 9, 12, 24] {
+            assert!(expected_ones <= Key::MAX_SIZE);
             let max_bits = Key::MAX_SIZE;
             let expected_max = ((1 << expected_ones) - 1) << (max_bits - expected_ones);
             let actual_max = Key::same_ones_count(expected_ones)
@@ -405,7 +370,8 @@ mod tests {
 
     #[test]
     fn same_ones_count_has_correct_values() {
-        for expected_ones in [1, 5, 9, 12, 23, 31, 32] {
+        for expected_ones in [1, 5, 9, 12, 23, 26] {
+            assert!(expected_ones <= Key::MAX_SIZE);
             let all_correct_ones = Key::same_ones_count(expected_ones).take(1000).all(|n| {
                 let actual_ones = Key(n as u32).into_iter().count();
                 actual_ones == (expected_ones as usize)
@@ -418,25 +384,32 @@ mod tests {
     #[should_panic]
     fn subsets_of_size_panic_if_bigger_than_alphabet_size() {
         let key = Key::with_every_letter();
-        key.subsets_of_size(Key::MAX_SIZE).take(1).count();
+        key.subsets_of_size(Key::MAX_SIZE + 1).take(1).count();
     }
 
     #[test]
-    fn subsets_of_size() {
+    #[should_panic]
+    fn subsets_of_size_panic_if_zero() {
+        let key = Key::with_every_letter();
+        key.subsets_of_size(0).take(1).count();
+    }
+
+    #[test]
+    fn subsets_of_size_test() {
         fn test(items: &str) {
-            let bits = string_to_bits(items);
-            let ones_count = bits.into_iter().count() as u32; // fix
+            let key = Key::try_from(items).unwrap();
+            let ones_count = key.into_iter().count() as u32; // fix
 
             // subsets have correct number of items (no duplicates)
             (1..ones_count).for_each(|subset_size| {
-                let actual_size = bits.subsets_of_size(subset_size).count();
+                let actual_size = key.subsets_of_size(subset_size).count();
                 let expected_count = util::choose(ones_count as u32, subset_size as u32);
                 assert_eq!(actual_size, expected_count as usize);
             });
 
             // subsets items are unique
             (1..ones_count).for_each(|subset_size| {
-                let set = bits
+                let set = key
                     .subsets_of_size(subset_size.into())
                     .map(|b| b.to_string())
                     .collect::<std::collections::HashSet<String>>();
@@ -446,34 +419,27 @@ mod tests {
 
             // subsets items are all in the source bits
             (1..ones_count).for_each(|subset_size| {
-                let all_valid_items = bits.subsets_of_size(subset_size.into()).all(move |subset| {
-                    let m = subset.except(bits) == Key::EMPTY;
+                let all_valid_items = key.subsets_of_size(subset_size.into()).all(move |subset| {
+                    let m = subset.except(key) == Key::EMPTY;
                     m
                 });
                 assert!(all_valid_items)
             });
         }
-        let data = [
-            "0,1,5,7",
-            "2,4,10,30",
-            "1,2,3,4,5,6,7,30",
-            "1,2,3,4,5,6,7,8,9,10,12,13,14",
-            "6,1,8,7,2,9",
-            "1",
-            "1,2",
-        ];
-        data.iter().for_each(|s| {
+
+        let data = ["abdfj", "abcdefghmpq", "apqrx", "cdexyz", "", "f"];
+        for s in data {
             test(&s);
-        })
+        }
     }
 
     #[test]
     #[ignore]
-    fn subsets_print_out() {
-        todo!("do for all letters in set")
-        // Key::fill(6)
-        //     .remove_(3)
-        //     .subsets_of_size(3)
-        //     .for_each(|i| println!("{:?}", i.to_string()));
+    fn subsets_of_size_print_out() {
+        Key::with_every_letter()
+            .remove(dd())
+            .remove(aa())
+            .subsets_of_size(3)
+            .for_each(|i| println!("{:?}", i.to_string()));
     }
 }
