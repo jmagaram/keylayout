@@ -12,15 +12,24 @@ impl Ord for Frequency {
 impl Eq for Frequency {}
 
 impl Frequency {
+    fn validate(value: f32) -> Result<Frequency, &'static str> {
+        if value.is_nan() {
+            Err("Frequency values can not be NAN.")
+        } else if value.is_infinite() {
+            Err("Frequency values must be finite.")
+        } else if value.is_sign_negative() {
+            Err("Frequency values must be zero or positive.")
+        } else {
+            Ok(Frequency(value))
+        }
+    }
+
     pub fn new(value: f32) -> Frequency {
-        assert!(value >= 0.0);
-        assert!(!value.is_infinite());
-        assert!(!value.is_nan());
-        Frequency(value)
+        Frequency::validate(value).unwrap()
     }
 
     pub fn random() -> Frequency {
-        Frequency::new(rand::random())
+        Frequency::validate(rand::random()).unwrap()
     }
 
     pub fn to_f32(&self) -> f32 {
@@ -38,10 +47,10 @@ impl fmt::Display for Frequency {
     }
 }
 
-// todo should be positive!
-impl std::convert::From<f32> for Frequency {
-    fn from(value: f32) -> Self {
-        Frequency::new(value)
+impl TryFrom<f32> for Frequency {
+    type Error = &'static str;
+    fn try_from(value: f32) -> Result<Self, Self::Error> {
+        Frequency::validate(value)
     }
 }
 
@@ -56,6 +65,24 @@ impl Add for Frequency {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn try_from_when_valid() {
+        let data = [0.0, 0.1, 99.9];
+        for d in data {
+            let actual = Frequency::try_from(d).unwrap();
+            assert_eq!(actual.to_f32(), d);
+        }
+    }
+
+    #[test]
+    fn try_from_when_out_of_range() {
+        let data = [-1.0, f32::INFINITY, f32::NAN, f32::NEG_INFINITY];
+        for d in data {
+            let actual = Frequency::try_from(d);
+            assert!(actual.is_err())
+        }
+    }
 
     #[test]
     #[ignore]

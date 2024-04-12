@@ -124,13 +124,14 @@ mod tests {
     fn standard_dictionary_has_proper_letter_set() {
         let d = Dictionary::load_large_dictionary();
         assert_eq!(d.alphabet.count(), 27,);
-        assert!(d.frequency_sum >= Frequency::new(0.95) && d.frequency_sum <= Frequency::new(0.97));
     }
 
     #[test]
     fn standard_dictionary_has_proper_frequency_sum() {
         let d = Dictionary::load_large_dictionary();
-        assert!(d.frequency_sum >= Frequency::new(0.95) && d.frequency_sum <= Frequency::new(0.97));
+        let expected = 0.96;
+        let is_close = (d.frequency_sum.to_f32() - expected).abs() < 0.01;
+        assert!(is_close)
     }
 
     #[test]
