@@ -73,41 +73,15 @@ pub fn genetic(print_best: bool) -> (Keyboard, Penalty) {
 }
 
 pub fn genetic_threaded(threads: u32) -> () {
-    let mut handles = vec![];
-    let (sender, receiver) = mpsc::sync_channel::<(Keyboard, Penalty)>(10);
-    for _i in 1..threads {
-        handles.push(std::thread::spawn(move || {
+    let (tx, rx) = mpsc::sync_channel::<(Keyboard, Penalty)>(10);
+    for _ in 0..threads {
+        let tx = tx.clone();
+        std::thread::spawn(move || loop {
             let (best_keyboard, best_penalty) = genetic(false);
-            let m = sender.clone();
-            m.send((best_keyboard, best_penalty));
-        }));
+            tx.send((best_keyboard, best_penalty)).unwrap();
+        });
     }
-    let sender_1 = sender.clone();
-    let sender_2 = sender.clone();
-    let sender_3 = sender.clone();
-    let sender_4 = sender.clone();
-    let sender_5 = sender.clone();
-    handles.push(std::thread::spawn(move || {
-        let (best_keyboard, best_penalty) = genetic(false);
-        sender_1.send((best_keyboard, best_penalty));
-    }));
-    handles.push(std::thread::spawn(move || {
-        let (best_keyboard, best_penalty) = genetic(false);
-        sender_2.send((best_keyboard, best_penalty));
-    }));
-    handles.push(std::thread::spawn(move || {
-        let (best_keyboard, best_penalty) = genetic(false);
-        sender_3.send((best_keyboard, best_penalty));
-    }));
-    handles.push(std::thread::spawn(move || {
-        let (best_keyboard, best_penalty) = genetic(false);
-        sender_4.send((best_keyboard, best_penalty));
-    }));
-    handles.push(std::thread::spawn(move || {
-        let (best_keyboard, best_penalty) = genetic(false);
-        sender_5.send((best_keyboard, best_penalty));
-    }));
-    for (keyboard, penalty) in receiver {
+    for (keyboard, penalty) in rx {
         println!("{} {}", penalty, keyboard);
     }
 }

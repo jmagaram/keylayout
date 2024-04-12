@@ -3,7 +3,7 @@ use std::time::Instant;
 use dictionary::Dictionary;
 
 use key::Key;
-use solvers::genetic;
+use solvers::genetic_threaded;
 
 use crate::permutable::Permutable;
 
@@ -75,6 +75,6 @@ fn find_best_keyboard() -> () {
 
 fn main() {
     loop {
-        genetic();
+        genetic_threaded(5);
     }
 }
