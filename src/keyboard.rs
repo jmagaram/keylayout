@@ -110,6 +110,43 @@ impl Keyboard {
         }
     }
 
+    pub fn every_swap(&self) -> Vec<Keyboard> {
+        if self.keys.len() < 2 {
+            panic!("Can not swap keys on a keyboard with less than 2 keys on it.")
+        }
+        let mut result = vec![];
+        for a_key_index in 0..=self.keys.len() - 2 {
+            for b_key_index in a_key_index + 1..=(self.keys.len() - 1) {
+                let a_key = self.keys[a_key_index];
+                let b_key = self.keys[b_key_index];
+                for a_letter in a_key {
+                    for b_letter in b_key {
+                        if a_letter < b_letter {
+                            let a_key_after = a_key.remove(a_letter).add(b_letter);
+                            let b_key_after = b_key.remove(b_letter).add(a_letter);
+                            let letters = self
+                                .keys
+                                .iter()
+                                .map(|k| {
+                                    if *k == a_key {
+                                        a_key_after
+                                    } else if *k == b_key {
+                                        b_key_after
+                                    } else {
+                                        *k
+                                    }
+                                })
+                                .collect();
+                            let keyboard = Keyboard::new(letters);
+                            result.push(keyboard);
+                        }
+                    }
+                }
+            }
+        }
+        result
+    }
+
     pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
         let mut found = HashMap::new();
         let mut penalty = Penalty::ZERO;
@@ -212,5 +249,13 @@ mod tests {
             k = k.swap_random_letters().unwrap();
             println!("{}", k)
         }
+    }
+
+    #[test]
+    #[ignore]
+    fn every_swap() {
+        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,stu,vw,xy,z'");
+        k.every_swap().iter().for_each(|k| println!("{}", k));
+        println!("Total swaps: {}", k.every_swap().iter().count());
     }
 }
