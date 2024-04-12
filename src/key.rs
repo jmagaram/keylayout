@@ -213,6 +213,26 @@ impl Iterator for Key {
     }
 }
 
+struct RandomSubsets {
+    groups: Vec<u32>,
+    remaining_letters: Key,
+}
+
+impl Iterator for RandomSubsets {
+    type Item = Key;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (group_size, remaining_groups) = self.groups.split_first()?;
+        let key = self
+            .remaining_letters
+            .random_subset(*group_size..=*group_size);
+        let remaining_letters = self.remaining_letters.except(key);
+        self.groups = remaining_groups.to_vec();
+        self.remaining_letters = remaining_letters;
+        Some(key)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{letter::Letter, util};
