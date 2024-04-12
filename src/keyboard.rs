@@ -1,4 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt, iter};
+
+use rand::Rng;
 
 use crate::{dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, word::Word};
 
@@ -73,6 +75,41 @@ impl Keyboard {
         }
     }
 
+    pub fn swap_random_letters(&self) -> Result<Keyboard, &'static str> {
+        let total_keys = self.keys.len();
+        if total_keys == 1 {
+            Err("It is not possible to swap letters on a keyboard with only 1 key.")
+        } else if total_keys == 0 {
+            Err("It is not possible to swap letters on a keyboard with 0 keys.")
+        } else {
+            let mut rng = rand::thread_rng();
+            let from_index = rng.gen_range(0..total_keys);
+            let to_index = iter::repeat_with(move || rng.gen_range(0..total_keys))
+                .find(|n| *n != from_index)
+                .unwrap();
+            let a_key = self.keys[from_index];
+            let b_key = self.keys[to_index];
+            let a_letter_to_swap = a_key.random_letter().unwrap();
+            let b_letter_to_swap = b_key.random_letter().unwrap();
+            let new_a_key = a_key.remove(a_letter_to_swap).add(b_letter_to_swap);
+            let new_b_key = b_key.remove(b_letter_to_swap).add(a_letter_to_swap);
+            let new_keys = self
+                .keys
+                .iter()
+                .map(|k| {
+                    if *k == a_key {
+                        new_a_key
+                    } else if *k == b_key {
+                        new_b_key
+                    } else {
+                        *k
+                    }
+                })
+                .collect();
+            Ok(Keyboard { keys: new_keys })
+        }
+    }
+
     pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
         let mut found = HashMap::new();
         let mut penalty = Penalty::ZERO;
@@ -95,6 +132,18 @@ impl Keyboard {
             }
         }
         penalty
+    }
+}
+
+impl fmt::Display for Keyboard {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let result = self
+            .keys
+            .iter()
+            .map(|k| Key::to_string(k))
+            .collect::<Vec<String>>()
+            .join(" ");
+        write!(f, "{}", result)
     }
 }
 
@@ -153,5 +202,15 @@ mod tests {
         let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
         let actual: f32 = k.penalty(&d, Penalty::MAX).to_f32(); // why into does not work
         assert!(actual >= 0.0802 && actual <= 0.0804); // 0.0803
+    }
+
+    #[test]
+    #[ignore]
+    fn swap_random_letters() {
+        let mut k = Keyboard::with_layout("abc,def,ghi");
+        for i in 1..10 {
+            k = k.swap_random_letters().unwrap();
+            println!("{}", k)
+        }
     }
 }
