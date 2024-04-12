@@ -8,7 +8,23 @@ pub struct Keyboard {
 
 impl Keyboard {
     pub fn new(keys: Vec<Key>) -> Keyboard {
+        debug_assert!(
+            Keyboard::has_unique_letters(&keys),
+            "Some keys on the keyboard have duplicate letters."
+        );
         Keyboard { keys }
+    }
+
+    fn has_unique_letters(keys: &Vec<Key>) -> bool {
+        let count_letters_on_each_key = keys
+            .iter()
+            .map(|k| k.count_items())
+            .fold(0, |total, i| total + i);
+        let count_letters_when_union_each_key = keys
+            .iter()
+            .fold(Key::EMPTY, |total, i| total.union(*i))
+            .count_items();
+        count_letters_on_each_key == count_letters_when_union_each_key
     }
 
     // abc,def,ghh
@@ -96,6 +112,12 @@ mod tests {
             .collect();
         let map = HashMap::from_iter(words);
         Dictionary::new(map)
+    }
+
+    #[test]
+    #[should_panic]
+    fn new_panic_if_keys_with_duplicate_letters() {
+        Keyboard::with_layout("abc,def,ghi,axy");
     }
 
     #[test]
