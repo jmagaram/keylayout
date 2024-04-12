@@ -4,6 +4,7 @@ use rand::Rng;
 
 use crate::{dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, word::Word};
 
+#[derive(Clone)]
 pub struct Keyboard {
     keys: Vec<Key>,
 }
@@ -30,7 +31,6 @@ impl Keyboard {
     }
 
     // abc,def,ghh
-    // fromstr?
     pub fn with_layout(s: &str) -> Keyboard {
         let keys = s
             .split(",")

@@ -3,6 +3,9 @@ use std::time::Instant;
 use dictionary::Dictionary;
 
 use key::Key;
+use solvers::genetic;
+
+use crate::permutable::Permutable;
 
 mod dictionary;
 mod experiment;
@@ -14,6 +17,7 @@ mod letter;
 mod partitions;
 mod penalty;
 mod permutable;
+mod solvers;
 mod util;
 mod utility;
 mod word;
@@ -45,8 +49,30 @@ fn use_dictionary() {
     dict.words().iter().for_each(|w| println!("{}", w));
 }
 
+fn find_best_keyboard() -> () {
+    let dict = Dictionary::load_large_dictionary();
+    let alphabet = dict.alphabet();
+    let layouts = partitions::Partitions {
+        sum: alphabet.count_items(),
+        parts: 10,
+        min: 2,
+        max: 5,
+    };
+    for lay in layouts.permute() {
+        let distribution = item_count::with_u32_groups(&lay);
+        for dist in distribution.permute() {
+            // looking for a 5,5,4,4,2,2 set of keys
+            // alphabet.subsets_of_size(5)
+            // then subsets of 5
+            // then subsets of 4
+            // then subsets of 4
+            // alphabet.subsets_of_size(5);
+            println!("dist!")
+        }
+    }
+    println!("done");
+}
+
 fn main() {
-    // this has gotten slow!
-    calc_subsets(false, 27);
-    use_dictionary();
+    genetic();
 }
