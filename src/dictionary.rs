@@ -18,17 +18,7 @@ impl Dictionary {
     pub fn create(words: Vec<(String, f32)>) -> Dictionary {
         let mut unique_words = words
             .into_iter()
-            .map(|(w, f)| {
-                let letters = w
-                    .chars()
-                    .map(|c| Letter::try_from(c))
-                    .collect::<Result<_, _>>()?;
-                let frequency = Frequency::try_from(f).map_err(|_| {
-                    "This needs to be removed; infallible is not a valid result error."
-                })?;
-                let word = Word::new(letters, frequency);
-                Ok::<Word, &str>(word)
-            })
+            .map(|(w, f)| Word::new(w.as_str(), f))
             .collect::<Result<Vec<Word>, _>>()
             .unwrap()
             .into_iter()

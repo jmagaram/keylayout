@@ -11,11 +11,20 @@ pub struct Word {
 }
 
 impl Word {
-    pub fn new(letters: Vec<Letter>, frequency: Frequency) -> Word {
-        if letters.len() == 0 {
-            panic!("A Word must have 1 or more letters in it.")
-        }
-        Word { letters, frequency }
+    pub fn new(word: &str, frequency: f32) -> Result<Word, &'static str> {
+        let letters = {
+            let vec = word
+                .chars()
+                .map(Letter::try_from)
+                .collect::<Result<Vec<Letter>, _>>()?;
+            if vec.len() == 0 {
+                Err("A Word must have 1 or more letters in it.")
+            } else {
+                Ok(vec)
+            }
+        }?;
+        let frequency = Frequency::try_from(frequency)?;
+        Ok(Word { letters, frequency })
     }
 
     pub fn letters(&self) -> &Vec<Letter> {
@@ -37,17 +46,7 @@ impl TryFrom<&str> for Word {
     type Error = &'static str;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value.len() {
-            0 => Err("A Word must have 1 or more letters in it."),
-            _ => value
-                .chars()
-                .map(|c| Letter::try_from(c))
-                .collect::<Result<Vec<Letter>, _>>()
-                .map(|letters| Word {
-                    letters: letters,
-                    frequency: Frequency::ZERO,
-                }),
-        }
+        Word::new(value, 0.0)
     }
 }
 
@@ -85,18 +84,6 @@ mod tests {
 
     use super::*;
 
-    fn aa() -> Letter {
-        Letter::try_from('a').unwrap()
-    }
-
-    fn bb() -> Letter {
-        Letter::try_from('b').unwrap()
-    }
-
-    fn cc() -> Letter {
-        Letter::try_from('c').unwrap()
-    }
-
     #[test]
     fn try_from_str_when_valid_characters() {
         for s in ["banana", "apple", "pear"] {
@@ -117,44 +104,45 @@ mod tests {
     }
 
     #[test]
-    fn letters_test() {
-        let word = Word::try_from("abc").unwrap();
-        let letters = word.letters();
-        assert_eq!(aa(), letters[0]);
-        assert_eq!(bb(), letters[1]);
-        assert_eq!(cc(), letters[2]);
+    fn new_when_valid() {
+        let data = [
+            ("abc", 0.3),
+            ("happy", 0.1),
+            ("abcdefghijklmnopqrstuvwxyz'", 0.0),
+        ];
+        for (s, f) in data {
+            let word = Word::new(s, f).unwrap();
+            let letters_as_string = word
+                .letters()
+                .iter()
+                .map(|r| Letter::to_string(r))
+                .collect::<Vec<String>>()
+                .join("");
+            assert_eq!(s, letters_as_string);
+            assert_eq!(f, word.frequency().to_f32());
+        }
     }
 
     #[test]
-    fn frequency_test() {
-        let word = Word::new(vec![aa()], Frequency::new(0.123));
-        assert_eq!(word.frequency(), &Frequency::new(0.123));
-    }
-
-    #[test]
-    fn new_test() {
-        let word = Word::new(vec![aa(), bb(), cc()], Frequency::new(0.5));
-        let letters = word.letters();
-        assert_eq!('a', letters[0].to_char());
-        assert_eq!('b', letters[1].to_char());
-        assert_eq!('c', letters[2].to_char());
-        assert_eq!(Frequency::new(0.5), word.frequency);
-    }
-
-    #[test]
-    #[should_panic]
-    fn new_panics_if_letters_are_empty() {
-        let _word = Word::new(vec![], Frequency::new(0.5));
+    fn new_when_invalid() {
+        let data = [
+            ("", 0.3),
+            ("h4jf", 0.1),
+            ("fdkw**fj'", 0.2),
+            ("abc", -0.3),
+            ("abc", f32::INFINITY),
+            ("abc", f32::NAN),
+            ("abc", f32::NEG_INFINITY),
+            ("5436", f32::NEG_INFINITY),
+        ];
+        for (s, f) in data {
+            let word = Word::new(s, f);
+            assert!(word.is_err());
+        }
     }
 
     #[test]
     fn cmp_sorts_only_by_word() {
-        let freq_small = Frequency::new(0.1);
-        let freq_big = Frequency::new(0.8);
-        fn with_freq(letters: &str, freq: Frequency) -> Word {
-            let word = Word::try_from(letters).unwrap();
-            Word::new(word.letters().to_owned(), freq)
-        }
         let data = [
             ("a", "b", Ordering::Less),
             ("a", "bcd", Ordering::Less),
@@ -165,8 +153,8 @@ mod tests {
         ];
         for (a, b, ordering) in data {
             for freq_same in [false, true] {
-                let a_word = with_freq(a, freq_small);
-                let b_word = with_freq(b, if freq_same { freq_small } else { freq_big });
+                let a_word = Word::new(a, 0.2).unwrap();
+                let b_word = Word::new(b, if freq_same { 0.2 } else { 0.8 }).unwrap();
                 assert_eq!(a_word.cmp(&b_word), ordering);
                 assert_eq!(b_word.cmp(&a_word), ordering.reverse());
                 assert_eq!(
@@ -179,9 +167,9 @@ mod tests {
 
     #[test]
     fn hash_ignores_frequency() {
-        let a = Word::new(vec![aa(), bb(), cc()], Frequency::new(0.3));
-        let b = Word::new(vec![aa(), bb(), cc()], Frequency::new(0.8));
-        let c = Word::new(vec![cc()], Frequency::new(0.3));
+        let a = Word::new("abc", 0.3).unwrap();
+        let b = Word::new("abc", 0.8).unwrap();
+        let c = Word::new("c", 0.3).unwrap();
         let mut set = HashSet::new();
         set.insert(a);
         set.insert(b);
