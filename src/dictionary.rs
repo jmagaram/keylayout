@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
 use crate::key::Key;
-use crate::letter::Letter;
+
 use crate::{frequency::Frequency, word::Word};
 
 pub struct Dictionary {
@@ -12,8 +12,6 @@ pub struct Dictionary {
 }
 
 impl Dictionary {
-    const FILE_NAME: &'static str = "./src/words.json";
-
     // take a str or String or &str?
     pub fn create(words: Vec<(String, f32)>) -> Dictionary {
         let mut unique_words = words
@@ -82,7 +80,8 @@ impl Dictionary {
     }
 
     fn load_json() -> HashMap<String, f32> {
-        let file = File::open(Dictionary::FILE_NAME).expect("file not found");
+        const FILE_NAME: &'static str = "./src/words.json";
+        let file = File::open(FILE_NAME).expect("file not found");
         let reader = BufReader::new(file);
         let word_frequencies: HashMap<String, f32> =
             serde_json::from_reader(reader).expect("read json properly");
