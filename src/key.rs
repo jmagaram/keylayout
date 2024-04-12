@@ -1,7 +1,9 @@
 use std::{
     fmt::{self, Debug},
-    iter,
+    ops::RangeInclusive,
 };
+
+use rand::Rng;
 
 use crate::{letter::Letter, util};
 
@@ -75,6 +77,47 @@ impl Key {
             32 => None,
             n => Letter::try_from(n).ok(),
         }
+    }
+
+    pub fn random_letter(&self) -> Option<Letter> {
+        let letters = self.collect::<Vec<Letter>>();
+        match letters.len() {
+            0 => None,
+            count => {
+                let index = rand::random::<usize>().rem_euclid(count);
+                Some(letters[index])
+            }
+        }
+    }
+
+    pub fn random_subset(&self, size: RangeInclusive<u32>) -> Key {
+        assert!(
+            *size.start() <= self.count_items(),
+            "Can not get a minimum of {} random letters from a Key with only {} letters in it.",
+            size.start(),
+            self.count_items()
+        );
+        assert!(
+            *size.end() <= self.count_items(),
+            "Can not get a maximum of {} random letters from a Key with only {} letters in it.",
+            size.end(),
+            self.count_items()
+        );
+        assert!(
+            *size.start() <= *size.end(),
+            "The range {:?} is not valid. Expected start <= end.",
+            size
+        );
+        let mut rng = rand::thread_rng();
+        let subset_size = rng.gen_range(size);
+        let mut result_key = Key::EMPTY;
+        let mut remain = self.clone();
+        for _i in 1..=subset_size {
+            let r = remain.random_letter().unwrap();
+            remain = remain.remove(r);
+            result_key = result_key.add(r);
+        }
+        result_key
     }
 
     pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Key> {
@@ -438,5 +481,48 @@ mod tests {
                 .map(|c| Letter::try_from(*c).unwrap()),
         );
         assert_eq!("abcdef", result.to_string());
+    }
+
+    #[test]
+    fn random_letter_when_empty_return_none() {
+        for _i in 1..=1000 {
+            assert_eq!(None, Key::EMPTY.random_letter());
+        }
+    }
+
+    #[test]
+    fn random_letter_gets_every_letter_eventually() {
+        let data = ["a", "abc", "abcdefghijklmnopqrtsuvwxyz'"];
+        for d in data {
+            let target = Key::try_from(d).unwrap();
+            let found = Key::from_iter((1..=1000).map(move |_| target.random_letter().unwrap()));
+            assert_eq!(target, found)
+        }
+    }
+
+    #[test]
+    fn random_subset_gets_every_letter_eventually() {
+        let data = ["", "a", "abc", "abcdefghijklmnopqrtsuvwxyz'"];
+        for key in data {
+            let source = Key::try_from(key).unwrap();
+            let letter_count: u32 = key.len().try_into().unwrap();
+            for min_size in 0..=letter_count {
+                for max_size in min_size..=letter_count {
+                    let mut result = Key::EMPTY;
+                    for i in 1..1000 {
+                        let subset = source.random_subset(min_size..=max_size);
+                        result = result.union(subset);
+                        if i > 100 && result == source {
+                            break;
+                        }
+                    }
+                    if max_size == 0 {
+                        assert_eq!(result, Key::EMPTY)
+                    } else {
+                        assert_eq!(result, source);
+                    }
+                }
+            }
+        }
     }
 }
