@@ -5,7 +5,6 @@ use crate::{
 
 struct EvolveKeyboardArgs<'a> {
     keyboard: Keyboard,
-    mutations: u32,
     stop_if_stuck: Penalty,
     dictionary: &'a Dictionary,
 }
@@ -16,8 +15,7 @@ fn evolve_keyboard(args: EvolveKeyboardArgs) -> (Keyboard, Penalty) {
     let mut best_keyboard = args.keyboard.clone();
     loop {
         let prior_best = best_penalty;
-        for _i in 1..args.mutations {
-            let child = parent.swap_random_letters().unwrap();
+        for child in parent.every_swap() {
             let child_penalty = child.penalty(args.dictionary, best_penalty);
             if child_penalty < best_penalty {
                 best_keyboard = child;
@@ -55,8 +53,10 @@ pub fn genetic() -> () {
     let args = EvolveKeyboardArgs {
         dictionary: &dict,
         keyboard: keyboard,
-        mutations: 1000,
         stop_if_stuck: Penalty::new(0.001),
     };
-    evolve_keyboard(args);
+    let (best_keyboard, best_penalty) = evolve_keyboard(args);
+    println!("===========================================");
+    println!("{} {}", best_penalty, best_keyboard);
+    println!("===========================================");
 }
