@@ -78,13 +78,9 @@ impl Keyboard {
     }
 
     fn find_key_for_letter(&self, letter: Letter) -> Option<Key> {
-        let keys = &self.keys;
-        let m = keys.iter().find(|k| {
-            let q = k.contains(letter);
-            q
-        });
-        let qqq = m.map(|k| k.clone());
-        qqq
+        let key_index = self.find_key_index_for_letter(letter)?;
+        let key = self.keys.get(key_index)?;
+        Some(*key)
     }
 
     pub fn spell(&self, word: &Word) -> String {
