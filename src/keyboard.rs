@@ -67,6 +67,32 @@ impl Keyboard {
         qqq
     }
 
+    fn find_key_index_for_letter(&self, letter: Letter) -> Option<usize> {
+        self.keys.iter().position(|k| k.contains(letter))
+    }
+
+    pub fn spell_using_key_indexes(&self, word: &Word) -> String {
+        let result = word
+            .letters()
+            .into_iter()
+            .map(|letter| self.find_key_index_for_letter(*letter))
+            .collect::<Option<Vec<usize>>>()
+            .map(|indexes| {
+                indexes
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<String>>()
+            })
+            .map(|indexes| indexes.join(","));
+        match result {
+            None => panic!(
+                "Could not spell the word {} because the keyboard is missing a necessary key.",
+                word
+            ),
+            Some(spelling) => spelling,
+        }
+    }
+
     pub fn spell(&self, word: &Word) -> String {
         let result = word
             .letters()
@@ -189,7 +215,7 @@ impl Keyboard {
         let mut found = HashMap::new();
         let mut penalty = Penalty::ZERO;
         for word in dictionary.words() {
-            let how_to_spell = self.spell(word);
+            let how_to_spell = self.spell_using_key_indexes(word);
             let word_penalty = match found.get(&how_to_spell) {
                 None => {
                     found.insert(how_to_spell.to_string(), 1);
