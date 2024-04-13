@@ -19,7 +19,7 @@ pub fn evolve_keyboard(args: EvolveKeyboardArgs) -> (Keyboard, Penalty) {
         let mut current_best_penalty = best_penalty;
         let mut current_best_keyboard = best_keyboard.clone();
         for child in best_keyboard.every_swap() {
-            let child_penalty = child.penalty(args.dictionary, best_penalty);
+            let child_penalty = child.penalty(args.dictionary, current_best_penalty);
             if child_penalty < current_best_penalty {
                 current_best_keyboard = child;
                 current_best_penalty = child_penalty;
