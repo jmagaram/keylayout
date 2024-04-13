@@ -86,7 +86,7 @@ impl Keyboard {
     pub fn spell(&self, word: &Word) -> String {
         let result = word
             .letters()
-            .into_iter()
+            .iter()
             .map(|letter| self.find_key_for_letter(*letter))
             .collect::<Option<Vec<Key>>>()
             .map(|keys| keys.iter().map(|k| k.to_string()).collect::<Vec<String>>())
