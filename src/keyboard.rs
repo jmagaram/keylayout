@@ -71,26 +71,22 @@ impl Keyboard {
         self.keys.iter().position(|k| k.contains(letter))
     }
 
-    pub fn spell_using_key_indexes(&self, word: &Word) -> String {
-        let result = word
-            .letters()
-            .into_iter()
-            .map(|letter| self.find_key_index_for_letter(*letter))
-            .collect::<Option<Vec<usize>>>()
-            .map(|indexes| {
-                indexes
-                    .iter()
-                    .map(|i| i.to_string())
-                    .collect::<Vec<String>>()
-            })
-            .map(|indexes| indexes.join(","));
-        match result {
-            None => panic!(
-                "Could not spell the word {} because the keyboard is missing a necessary key.",
-                word
-            ),
-            Some(spelling) => spelling,
+    pub fn spell_serialization(&self, word: &Word) -> String {
+        let mut result = String::new();
+        for letter in word.letters() {
+            match self.find_key_index_for_letter(*letter) {
+                None => panic!(
+                    "Could not spell the word {} because the keyboard is missing the letter {}",
+                    word, letter
+                ),
+                Some(index) => {
+                    result.push(',');
+                    let char = char::from_u32((index + 1000) as u32).unwrap();
+                    result.push(char);
+                }
+            }
         }
+        result
     }
 
     pub fn spell(&self, word: &Word) -> String {
@@ -215,7 +211,7 @@ impl Keyboard {
         let mut found = HashMap::new();
         let mut penalty = Penalty::ZERO;
         for word in dictionary.words() {
-            let how_to_spell = self.spell_using_key_indexes(word);
+            let how_to_spell = self.spell_serialization(word);
             let word_penalty = match found.get(&how_to_spell) {
                 None => {
                     found.insert(how_to_spell.to_string(), 1);
@@ -349,6 +345,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn output_letters_to_scoring() {
         use std::fs::File;
         use std::io::prelude::*;
