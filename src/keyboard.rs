@@ -18,6 +18,10 @@ impl Keyboard {
         Keyboard { keys }
     }
 
+    pub fn key_count(&self) -> usize {
+        self.keys.len()
+    }
+
     fn has_unique_letters(keys: &Vec<Key>) -> bool {
         let count_letters_on_each_key = keys
             .iter()
@@ -171,7 +175,6 @@ impl Keyboard {
                     .collect();
                 let new_keyboard = Keyboard::new(new_keys);
                 results.push(new_keyboard);
-                println!();
             }
         }
         results
