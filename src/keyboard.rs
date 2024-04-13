@@ -80,7 +80,6 @@ impl Keyboard {
                     word, letter
                 ),
                 Some(index) => {
-                    result.push(',');
                     const BASE_CHAR: u32 = 'A' as u32;
                     let char = char::from_u32((index as u32 + BASE_CHAR) as u32).unwrap();
                     result.push(char);
