@@ -22,6 +22,10 @@ impl Keyboard {
         self.keys.len()
     }
 
+    pub fn max_key_size(&self) -> Option<u32> {
+        self.keys.iter().map(|k| k.count_items()).max()
+    }
+
     fn has_unique_letters(keys: &Vec<Key>) -> bool {
         let count_letters_on_each_key = keys
             .iter()
