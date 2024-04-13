@@ -1,6 +1,6 @@
 use crate::{
-    dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
-    permutable::Permutable,
+    dictionary::Dictionary, key::Key, keyboard::Keyboard, letter::Letter, partitions::Partitions,
+    penalty::Penalty, permutable::Permutable,
 };
 use std::sync::mpsc;
 
@@ -96,6 +96,50 @@ pub fn genetic_threaded(threads: u32) -> () {
                     best = Some((keyboard, penalty));
                 }
             }
+        }
+    }
+}
+
+pub fn combine_two_dfs_worker(
+    dict: &Dictionary,
+    keyboard: Keyboard,
+    max_penalty: Penalty,
+) -> Option<Keyboard> {
+    let penalty = keyboard.penalty(dict, max_penalty);
+    println!("{}", keyboard);
+    if penalty < max_penalty {
+        if keyboard.key_count() == 10 {
+            Some(keyboard)
+        } else {
+            keyboard
+                .every_combine_two_keys()
+                .iter()
+                .filter(|k| match k.max_key_size() {
+                    None => true,
+                    Some(k) => k <= 4,
+                })
+                .map(|k| combine_two_dfs_worker(dict, k.clone(), max_penalty))
+                .find_map(|i| i)
+        }
+    } else {
+        None
+    }
+}
+
+pub fn combine_two_dfs(max_penalty: Penalty) {
+    let dict = Dictionary::load_large_dictionary();
+    let keyboard = Keyboard::new(
+        dict.alphabet()
+            .map(|r| Key::with_one_letter(r))
+            .collect::<Vec<Key>>(),
+    );
+    let result = combine_two_dfs_worker(&dict, keyboard.clone(), max_penalty);
+    println!("=====================================================");
+    match result {
+        None => println!("No keyboard with maximum penalty of {}", max_penalty),
+        Some(keyboard) => {
+            let penalty = keyboard.penalty(&dict, Penalty::MAX);
+            println!("{} {}", penalty, keyboard)
         }
     }
 }

@@ -4,6 +4,7 @@ use rand::Rng;
 
 use crate::{dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, word::Word};
 
+// fix this!
 #[derive(Clone)]
 pub struct Keyboard {
     keys: Vec<Key>,
@@ -224,7 +225,7 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
-    use crate::{frequency::Frequency, util};
+    use crate::{frequency::Frequency, penalty, util};
 
     use super::*;
 
@@ -318,6 +319,25 @@ mod tests {
             let actual_count = k.every_combine_two_keys().len();
             let expected = util::choose(k.keys.len() as u32, 2);
             assert_eq!(actual_count, expected as usize);
+        }
+    }
+
+    #[test]
+    fn output_letters_to_scoring() {
+        use std::fs::File;
+        use std::io::prelude::*;
+        let mut file = File::create("output.txt").unwrap();
+        writeln!(file, "This is a line of text written to a file.");
+
+        let letters = "pt,ly,bn,sz,em,gr,afj,ikwx,cdu',hoqv";
+        let keyboard = Keyboard::with_layout(letters);
+        let d = Dictionary::load_large_dictionary();
+        let total_words = d.words().len();
+        for i in 1..total_words {
+            let d = d.with_top_n_words(i);
+            let penalty = keyboard.penalty(&d, Penalty::MAX);
+            println!("{},{}", i, penalty.to_f32());
+            writeln!(file, "{},{}", i, penalty.to_f32());
         }
     }
 }
