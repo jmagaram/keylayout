@@ -8,6 +8,7 @@ use crate::{dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, 
 #[derive(Clone)]
 pub struct Keyboard {
     keys: Vec<Key>,
+    letter_to_key_index: [Option<usize>; Letter::ALPHABET_SIZE],
 }
 
 impl Keyboard {
@@ -16,7 +17,16 @@ impl Keyboard {
             Keyboard::has_unique_letters(&keys),
             "Some keys on the keyboard have duplicate letters."
         );
-        Keyboard { keys }
+        let mut letter_to_key_index: [Option<usize>; Letter::ALPHABET_SIZE] = Default::default();
+        for (key_index, key) in keys.iter().enumerate() {
+            for letter in *key {
+                letter_to_key_index[letter.to_usize()] = Some(key_index);
+            }
+        }
+        Keyboard {
+            keys,
+            letter_to_key_index,
+        }
     }
 
     pub fn key_count(&self) -> usize {
@@ -57,21 +67,11 @@ impl Keyboard {
         format!("| {} |", joined)
     }
 
-    fn find_key_for_letter(&self, letter: Letter) -> Option<Key> {
-        let keys = &self.keys;
-        let m = keys.iter().find(|k| {
-            let q = k.contains(letter);
-            q
-        });
-        let qqq = m.map(|k| k.clone());
-        qqq
-    }
-
     fn find_key_index_for_letter(&self, letter: Letter) -> Option<usize> {
-        self.keys.iter().position(|k| k.contains(letter))
+        self.letter_to_key_index[letter.to_usize()]
     }
 
-    pub fn spell_serialization(&self, word: &Word) -> String {
+    pub fn spell_serialized(&self, word: &Word) -> String {
         let mut result = String::new();
         for letter in word.letters() {
             match self.find_key_index_for_letter(*letter) {
@@ -87,6 +87,16 @@ impl Keyboard {
             }
         }
         result
+    }
+
+    fn find_key_for_letter(&self, letter: Letter) -> Option<Key> {
+        let keys = &self.keys;
+        let m = keys.iter().find(|k| {
+            let q = k.contains(letter);
+            q
+        });
+        let qqq = m.map(|k| k.clone());
+        qqq
     }
 
     pub fn spell(&self, word: &Word) -> String {
@@ -137,7 +147,7 @@ impl Keyboard {
                     }
                 })
                 .collect();
-            Ok(Keyboard { keys: new_keys })
+            Ok(Keyboard::new(new_keys))
         }
     }
 
@@ -211,7 +221,7 @@ impl Keyboard {
         let mut found = HashMap::new();
         let mut penalty = Penalty::ZERO;
         for word in dictionary.words() {
-            let how_to_spell = self.spell_serialization(word);
+            let how_to_spell = self.spell_serialized(word);
             let word_penalty = match found.get(&how_to_spell) {
                 None => {
                     found.insert(how_to_spell, 1);
@@ -280,6 +290,27 @@ mod tests {
         let k = Keyboard::with_layout("abc,def,ghi");
         let w = Word::try_from("abcx").unwrap();
         k.spell(&w);
+    }
+
+    #[test]
+    fn find_key_index_for_letter() {
+        let data = [
+            ("abc", 'a', Some(0)),
+            ("abc", 'b', Some(0)),
+            ("abc", 'c', Some(0)),
+            ("abc", 'x', None),
+            ("abc", 'b', Some(0)),
+            ("abc,def", 'd', Some(1)),
+            ("abc,def", 'e', Some(1)),
+            ("abc,def", 'f', Some(1)),
+            ("abc,def", 'x', None),
+        ];
+        for (layout, letter, expected_key_index) in data {
+            let keyboard = Keyboard::with_layout(layout);
+            let letter_to_find = Letter::try_from(letter).unwrap();
+            let actual = keyboard.find_key_index_for_letter(letter_to_find);
+            assert_eq!(actual, expected_key_index);
+        }
     }
 
     #[test]
