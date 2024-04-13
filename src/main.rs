@@ -3,7 +3,8 @@ use std::time::Instant;
 use dictionary::Dictionary;
 
 use key::Key;
-use solvers::genetic_threaded;
+use penalty::Penalty;
+use solvers::combine_two_dfs;
 
 use crate::permutable::Permutable;
 
@@ -74,5 +75,6 @@ fn find_best_keyboard() -> () {
 }
 
 fn main() {
-    genetic_threaded(8);
+    combine_two_dfs(Penalty::new(0.020));
+    // genetic_threaded(8);
 }
