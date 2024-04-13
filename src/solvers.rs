@@ -60,7 +60,7 @@ pub fn find_best(dict: &Dictionary, print_best: bool) -> (Keyboard, Penalty) {
         keyboard,
         keyboard_penalty,
         print_progress: false,
-        stop_if_stuck: Penalty::new(0.01),
+        stop_if_stuck: Penalty::new(0.001),
     };
     let (best_keyboard, best_penalty) = evolve_keyboard(args);
     if print_best {

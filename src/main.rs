@@ -74,5 +74,5 @@ fn find_best_keyboard() -> () {
 }
 
 fn main() {
-    genetic_threaded(5);
+    genetic_threaded(8);
 }
