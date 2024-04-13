@@ -215,7 +215,7 @@ impl Keyboard {
             let how_to_spell = self.spell_serialization(word);
             let word_penalty = match found.get(&how_to_spell) {
                 None => {
-                    found.insert(how_to_spell.to_string(), 1);
+                    found.insert(how_to_spell, 1);
                     Penalty::ZERO
                 }
                 Some(seen) => {
