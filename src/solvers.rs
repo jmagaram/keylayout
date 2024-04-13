@@ -4,34 +4,37 @@ use crate::{
 };
 use std::sync::mpsc;
 
-struct EvolveKeyboardArgs<'a> {
-    keyboard: Keyboard,
-    keyboard_penalty: Penalty,
-    stop_if_stuck: Penalty,
-    dictionary: &'a Dictionary,
-    print_progress: bool,
+pub struct EvolveKeyboardArgs<'a> {
+    pub keyboard: Keyboard,
+    pub keyboard_penalty: Penalty,
+    pub stop_if_stuck: Penalty,
+    pub dictionary: &'a Dictionary,
+    pub print_progress: bool,
 }
 
-fn evolve_keyboard(args: EvolveKeyboardArgs) -> (Keyboard, Penalty) {
-    let mut parent = args.keyboard.clone();
+pub fn evolve_keyboard(args: EvolveKeyboardArgs) -> (Keyboard, Penalty) {
     let mut best_penalty = args.keyboard_penalty;
     let mut best_keyboard = args.keyboard.clone();
     loop {
-        let prior_best = best_penalty;
-        for child in parent.every_swap() {
+        let mut current_best_penalty = best_penalty;
+        let mut current_best_keyboard = best_keyboard.clone();
+        for child in best_keyboard.every_swap() {
             let child_penalty = child.penalty(args.dictionary, best_penalty);
-            if child_penalty < best_penalty {
-                best_keyboard = child;
-                best_penalty = child_penalty;
+            if child_penalty < current_best_penalty {
+                current_best_keyboard = child;
+                current_best_penalty = child_penalty;
                 if args.print_progress {
-                    println!("{} {}", best_penalty, best_keyboard);
+                    println!("{} {}", current_best_penalty, current_best_keyboard);
                 }
             }
         }
-        let stop =
-            (best_penalty.to_f32() - prior_best.to_f32()).abs() <= args.stop_if_stuck.to_f32();
-        parent = best_keyboard.clone();
-        if stop {
+        let progress_made = (current_best_penalty.to_f32() - best_penalty.to_f32()).abs()
+            > args.stop_if_stuck.to_f32();
+        if current_best_penalty < best_penalty {
+            best_penalty = current_best_penalty;
+            best_keyboard = current_best_keyboard;
+        }
+        if !progress_made {
             break;
         }
     }
