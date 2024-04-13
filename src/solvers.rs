@@ -38,8 +38,7 @@ fn evolve_keyboard(args: EvolveKeyboardArgs) -> (Keyboard, Penalty) {
     (best_keyboard, best_penalty)
 }
 
-pub fn genetic(print_best: bool) -> (Keyboard, Penalty) {
-    let dict = Dictionary::load_large_dictionary();
+pub fn find_best(dict: &Dictionary, print_best: bool) -> (Keyboard, Penalty) {
     let alphabet = dict.alphabet();
     let layouts = Partitions {
         parts: 10,
@@ -60,8 +59,8 @@ pub fn genetic(print_best: bool) -> (Keyboard, Penalty) {
         dictionary: &dict,
         keyboard,
         keyboard_penalty,
-        print_progress: true,
-        stop_if_stuck: Penalty::new(0.001),
+        print_progress: false,
+        stop_if_stuck: Penalty::new(0.01),
     };
     let (best_keyboard, best_penalty) = evolve_keyboard(args);
     if print_best {
@@ -74,14 +73,29 @@ pub fn genetic(print_best: bool) -> (Keyboard, Penalty) {
 
 pub fn genetic_threaded(threads: u32) -> () {
     let (tx, rx) = mpsc::sync_channel::<(Keyboard, Penalty)>(10);
+    let mut best: Option<(Keyboard, Penalty)> = None;
     for _ in 0..threads {
         let tx = tx.clone();
-        std::thread::spawn(move || loop {
-            let (best_keyboard, best_penalty) = genetic(false);
-            tx.send((best_keyboard, best_penalty)).unwrap();
+        std::thread::spawn(move || {
+            let dictionary = Dictionary::load_large_dictionary();
+            loop {
+                let (best_keyboard, best_penalty) = find_best(&dictionary, false);
+                tx.send((best_keyboard, best_penalty)).unwrap();
+            }
         });
     }
     for (keyboard, penalty) in rx {
-        println!("{} {}", penalty, keyboard);
+        match best {
+            None => {
+                println!("{} {}", penalty, keyboard);
+                best = Some((keyboard, penalty));
+            }
+            Some((_, best_penalty)) => {
+                if penalty < best_penalty {
+                    println!("{} {}", penalty, keyboard);
+                    best = Some((keyboard, penalty));
+                }
+            }
+        }
     }
 }
