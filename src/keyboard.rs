@@ -13,13 +13,13 @@ pub struct Keyboard {
 
 impl Keyboard {
     pub fn new(keys: Vec<Key>) -> Keyboard {
-        debug_assert!(
-            Keyboard::has_unique_letters(&keys),
-            "Some keys on the keyboard have duplicate letters."
-        );
         let mut letter_to_key_index: [Option<usize>; Letter::ALPHABET_SIZE] = Default::default();
         for (key_index, key) in keys.iter().enumerate() {
             for letter in *key {
+                debug_assert!(
+                    letter_to_key_index[letter.to_usize()].is_none(),
+                    "Some keys on the keyboard have duplicate letters."
+                );
                 letter_to_key_index[letter.to_usize()] = Some(key_index);
             }
         }
@@ -35,18 +35,6 @@ impl Keyboard {
 
     pub fn max_key_size(&self) -> Option<u32> {
         self.keys.iter().map(|k| k.count_items()).max()
-    }
-
-    fn has_unique_letters(keys: &Vec<Key>) -> bool {
-        let count_letters_on_each_key = keys
-            .iter()
-            .map(|k| k.count_items())
-            .fold(0, |total, i| total + i);
-        let count_letters_when_union_each_key = keys
-            .iter()
-            .fold(Key::EMPTY, |total, i| total.union(*i))
-            .count_items();
-        count_letters_on_each_key == count_letters_when_union_each_key
     }
 
     // abc,def,ghh
@@ -271,6 +259,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(debug_assertions)]
     #[should_panic]
     fn new_panic_if_keys_with_duplicate_letters() {
         Keyboard::with_layout("abc,def,ghi,axy");
