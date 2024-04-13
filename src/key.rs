@@ -120,25 +120,20 @@ impl Key {
         result_key
     }
 
-    pub fn try_random_subsets(
-        &self,
-        groupings: &Vec<u32>,
-    ) -> Result<impl Iterator<Item = Key>, &'static str> {
-        if groupings.contains(&0) {
-            Err("Each group must be of size 1 or more.")
-        } else if groupings.iter().fold(0, |total, i| total + i) > self.count_items() {
-            Err("The total size of all the groups exceeds the number of letters in the Key.")
-        } else {
-            Ok(RandomSubsets {
-                groups: groupings.to_vec(),
-                remaining_letters: self.clone(),
-            }
-            .into_iter())
-        }
-    }
-
     pub fn random_subsets(&self, groupings: &Vec<u32>) -> impl Iterator<Item = Key> {
-        self.try_random_subsets(groupings).unwrap()
+        debug_assert!(
+            !groupings.contains(&0),
+            "Every subset size must be 1 or more."
+        );
+        debug_assert!(
+            groupings.iter().fold(0, |total, i| total + i) <= self.count_items(),
+            "The total size of all the groups exceeds the number of letters in the Key."
+        );
+        RandomSubsets {
+            groups: groupings.to_vec(),
+            remaining_letters: self.clone(), // needed?
+        }
+        .into_iter()
     }
 
     pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Key> {
@@ -627,20 +622,24 @@ mod tests {
     }
 
     #[test]
-    fn try_random_subsets_error_if_more_groups_than_letters() {
+    #[cfg(debug_assertions)]
+    #[should_panic]
+    fn random_subsets_panic_if_more_groups_than_letters() {
         #[allow(unused_must_use)]
         Key::with_first_n_letters(4).random_subsets(&vec![2, 2, 1]);
     }
 
     #[test]
-    fn try_random_subsets_error_if_any_group_has_size_zero() {
+    #[cfg(debug_assertions)]
+    #[should_panic]
+    fn random_subsets_panic_if_any_group_has_size_zero() {
         #[allow(unused_must_use)]
         Key::with_first_n_letters(4).random_subsets(&vec![1, 1, 0, 2]);
     }
 
     #[test]
     #[ignore]
-    fn random_subsets() {
+    fn random_subsets_print_out() {
         let key = Key::with_every_letter();
         for n in key.random_subsets(&vec![3, 3, 5, 4]) {
             println!("{}", n)
