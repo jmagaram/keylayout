@@ -147,6 +147,36 @@ impl Keyboard {
         result
     }
 
+    pub fn every_combine_two_keys(&self) -> Vec<Keyboard> {
+        if self.keys.len() <= 1 {
+            panic!("It is not possible to combine keys on the keyboard since it only has {} keys right now.", self.keys.len());
+        }
+        let mut results = vec![];
+        for a_index in 0..=self.keys.len() - 2 {
+            for b_index in a_index + 1..=self.keys.len() - 1 {
+                let combined_key = self.keys[a_index].union(self.keys[b_index]);
+                let new_keys: Vec<Key> = self
+                    .keys
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, k)| {
+                        if index == a_index {
+                            Some(combined_key)
+                        } else if index == b_index {
+                            None
+                        } else {
+                            Some(*k)
+                        }
+                    })
+                    .collect();
+                let new_keyboard = Keyboard::new(new_keys);
+                results.push(new_keyboard);
+                println!();
+            }
+        }
+        results
+    }
+
     pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
         let mut found = HashMap::new();
         let mut penalty = Penalty::ZERO;
@@ -187,7 +217,7 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
-    use crate::frequency::Frequency;
+    use crate::{frequency::Frequency, util};
 
     use super::*;
 
@@ -257,5 +287,30 @@ mod tests {
         let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,stu,vw,xy,z'");
         k.every_swap().iter().for_each(|k| println!("{}", k));
         println!("Total swaps: {}", k.every_swap().iter().count());
+    }
+
+    #[test]
+    #[ignore]
+    fn every_combine_two_keys() {
+        let k = Keyboard::with_layout("a,b,c,d,efg,hi");
+        k.every_combine_two_keys()
+            .iter()
+            .for_each(|k| println!("{}", k));
+    }
+
+    #[test]
+    fn every_combine_two_keys_generates_correct_number_of_answers() {
+        let data = [
+            "a,b",
+            "a,b,c,d",
+            "a,b,c,d,e,f,g,h,i,j,k,l,m",
+            "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,'",
+        ];
+        for d in data {
+            let k = Keyboard::with_layout(d);
+            let actual_count = k.every_combine_two_keys().len();
+            let expected = util::choose(k.keys.len() as u32, 2);
+            assert_eq!(actual_count, expected as usize);
+        }
     }
 }
