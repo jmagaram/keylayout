@@ -56,12 +56,6 @@ impl Keyboard {
         self.keys.iter().map(|k| k.count_items()).max()
     }
 
-    pub fn format(&self, d: &Dictionary) -> String {
-        let keys: Vec<String> = self.keys.iter().map(|k| k.to_string()).collect();
-        let joined = keys.join(" ");
-        format!("| {} |", joined)
-    }
-
     fn find_key_index_for_letter(&self, letter: Letter) -> Option<usize> {
         self.letter_to_key_index[letter.to_usize()]
     }

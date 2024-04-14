@@ -12,7 +12,7 @@ pub struct Key(u32);
 
 impl Key {
     pub const EMPTY: Key = Key(0);
-    pub const MAX_SIZE: u32 = Letter::ALPHABET_SIZE as u32;
+    const MAX_SIZE: u32 = Letter::ALPHABET_SIZE as u32;
 
     pub fn with_every_letter() -> Key {
         Key((1 << Letter::ALPHABET_SIZE) - 1)

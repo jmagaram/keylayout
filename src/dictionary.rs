@@ -6,7 +6,6 @@ use crate::{frequency::Frequency, word::Word};
 
 pub struct Dictionary {
     words_highest_frequency_first: Vec<Word>,
-    frequency_sum: Frequency,
     alphabet: Key,
 }
 
@@ -36,14 +35,9 @@ impl Dictionary {
             .map(|r| *r)
             .collect::<Key>();
 
-        let frequency_sum = words
-            .iter()
-            .fold(Frequency::ZERO, |total, i| total + *i.frequency());
-
         Dictionary {
             words_highest_frequency_first: words,
             alphabet,
-            frequency_sum,
         }
     }
 
@@ -98,7 +92,12 @@ mod tests {
     fn standard_dictionary_has_proper_frequency_sum() {
         let d = Dictionary::load();
         let expected = 0.96;
-        let is_close = (d.frequency_sum.to_f32() - expected).abs() < 0.01;
+        let frequency_sum: f32 = d
+            .words_highest_frequency_first
+            .iter()
+            .map(|w| w.frequency().to_f32())
+            .sum();
+        let is_close = (frequency_sum - expected).abs() < 0.01;
         assert!(is_close)
     }
 
