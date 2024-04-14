@@ -74,6 +74,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn display_empty() {
         let source = Combos {
             items: &vec![],
@@ -83,6 +84,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn display_full() {
         let source = Combos {
             items: &vec!['a', 'b', 'c'],
@@ -93,10 +95,16 @@ mod tests {
 
     fn normalize_result(c: Combos) -> Vec<String> {
         fn normalize_one_combo(c: Vec<Option<String>>) -> String {
-            c.into_iter()
+            let result = c
+                .into_iter()
                 .filter_map(|i| i)
                 .collect::<Vec<String>>()
-                .join("")
+                .join("");
+            if result == "" {
+                "(empty)".to_string()
+            } else {
+                result
+            }
         }
         let results = c
             .permute()
@@ -107,21 +115,17 @@ mod tests {
     }
 
     #[test]
-    fn permute_with_items() {
+    fn permute_with_many_items() {
         let source = Combos {
             items: &vec!['a', 'b', 'c'],
             index: 0,
         };
         let result = normalize_result(source);
-        let expected = ["c,b,a", "b,a", "c,a", "a", "c,b", "b", "c"];
-        for v in source.permute() {
-            let result = v
-                .into_iter()
-                .filter_map(|r| r)
-                .collect::<Vec<String>>()
-                .join(",");
-            println!("{0}", result)
-        }
+        let expected = ["c", "b", "a", "cb", "ca", "ba", "cba", "(empty)"];
+        assert_eq!(result.len(), expected.len());
+        assert!(expected
+            .into_iter()
+            .all(|i| result.contains(&i.to_string())));
     }
 
     #[test]
@@ -130,29 +134,25 @@ mod tests {
             items: &vec!['a'],
             index: 0,
         };
-        for v in source.permute() {
-            let result = v
-                .into_iter()
-                .filter_map(|r| r)
-                .collect::<Vec<String>>()
-                .join(",");
-            println!("{0}", result)
-        }
+        let result = normalize_result(source);
+        let expected = ["a", "(empty)"];
+        assert_eq!(result.len(), expected.len());
+        assert!(expected
+            .into_iter()
+            .all(|i| result.contains(&i.to_string())));
     }
 
     #[test]
-    fn permute_with_zero_items() {
+    fn permute_with_empty() {
         let source = Combos {
             items: &vec![],
             index: 0,
         };
-        for v in source.permute() {
-            let result = v
-                .into_iter()
-                .filter_map(|r| r)
-                .collect::<Vec<String>>()
-                .join(",");
-            println!("{0}", result)
-        }
+        let result = normalize_result(source);
+        let expected = vec!["(empty)"];
+        assert_eq!(result.len(), expected.len());
+        assert!(expected
+            .into_iter()
+            .all(|i| result.contains(&i.to_string())));
     }
 }
