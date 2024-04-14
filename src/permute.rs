@@ -73,26 +73,6 @@ mod tests {
         }
     }
 
-    #[test]
-    #[ignore]
-    fn display_empty() {
-        let source = Combos {
-            items: &vec![],
-            index: 0,
-        };
-        println!("{}", source);
-    }
-
-    #[test]
-    #[ignore]
-    fn display_full() {
-        let source = Combos {
-            items: &vec!['a', 'b', 'c'],
-            index: 0,
-        };
-        println!("{}", source);
-    }
-
     fn normalize_result(c: Combos) -> Vec<String> {
         fn normalize_one_combo(c: Vec<Option<String>>) -> String {
             let result = c
@@ -115,7 +95,7 @@ mod tests {
     }
 
     #[test]
-    fn permute_with_many_items() {
+    fn permute_many_items() {
         let source = Combos {
             items: &vec!['a', 'b', 'c'],
             index: 0,
@@ -129,7 +109,7 @@ mod tests {
     }
 
     #[test]
-    fn permute_with_one_item() {
+    fn permute_one_item() {
         let source = Combos {
             items: &vec!['a'],
             index: 0,
@@ -143,7 +123,7 @@ mod tests {
     }
 
     #[test]
-    fn permute_with_empty() {
+    fn permute_empty() {
         let source = Combos {
             items: &vec![],
             index: 0,
