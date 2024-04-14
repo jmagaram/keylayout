@@ -11,6 +11,10 @@ impl Letter {
 
     pub const ALPHABET_SIZE: usize = Letter::ALPHABET.len();
 
+    pub fn new(char: char) -> Letter {
+        Letter::try_from(char).unwrap()
+    }
+
     pub fn to_char(&self) -> char {
         Letter::ALPHABET[self.0 as usize]
     }
@@ -67,6 +71,21 @@ impl TryFrom<u32> for Letter {
 mod tests {
 
     use super::*;
+
+    #[test]
+    fn new_test() {
+        for c in Letter::ALPHABET {
+            let actual = Letter::new(c).to_string();
+            let expected = c.to_string();
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn new_panic_on_invalid() {
+        Letter::new('5');
+    }
 
     #[test]
     fn display_is_the_character_from_alphabet_indexed() {
