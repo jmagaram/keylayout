@@ -73,7 +73,7 @@ mod tests {
         }
     }
 
-    fn normalize_result(c: Combos) -> Vec<String> {
+    impl Combos<'_> {
         fn normalize_one_combo(c: Vec<Option<String>>) -> String {
             let result = c
                 .into_iter()
@@ -86,12 +86,15 @@ mod tests {
                 result
             }
         }
-        let results = c
-            .permute()
-            .into_iter()
-            .map(|combo| normalize_one_combo(combo))
-            .collect::<Vec<String>>();
-        results
+
+        pub fn permute_to_vec_string(&self) -> Vec<String> {
+            let results = self
+                .permute()
+                .into_iter()
+                .map(|combo| Combos::normalize_one_combo(combo))
+                .collect::<Vec<String>>();
+            results
+        }
     }
 
     #[test]
@@ -100,7 +103,7 @@ mod tests {
             items: &vec!['a', 'b', 'c'],
             index: 0,
         };
-        let result = normalize_result(source);
+        let result = source.permute_to_vec_string();
         let expected = ["c", "b", "a", "cb", "ca", "ba", "cba", "(empty)"];
         assert_eq!(result.len(), expected.len());
         assert!(expected
@@ -114,7 +117,7 @@ mod tests {
             items: &vec!['a'],
             index: 0,
         };
-        let result = normalize_result(source);
+        let result = source.permute_to_vec_string();
         let expected = ["a", "(empty)"];
         assert_eq!(result.len(), expected.len());
         assert!(expected
@@ -128,7 +131,7 @@ mod tests {
             items: &vec![],
             index: 0,
         };
-        let result = normalize_result(source);
+        let result = source.permute_to_vec_string();
         let expected = vec!["(empty)"];
         assert_eq!(result.len(), expected.len());
         assert!(expected
