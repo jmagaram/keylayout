@@ -3,14 +3,13 @@ use letter::Letter;
 use penalty::Penalty;
 
 mod dictionary;
-mod experiment;
 mod frequency;
 mod genetic;
 mod item_count;
 mod key;
 mod keyboard;
 mod letter;
-mod merge_keys_dfs;
+mod merge_keys;
 mod partitions;
 mod penalty;
 mod permutable;
@@ -20,13 +19,13 @@ mod word;
 
 enum Run {
     Genetic(genetic::Args),
-    MergeKeys(merge_keys_dfs::Args),
+    MergeKeys(merge_keys::Args),
 }
 
 fn main() {
     let genetic = Run::Genetic(genetic::Args { threads: 8 });
 
-    let merge_keys = Run::MergeKeys(merge_keys_dfs::Args {
+    let merge_keys = Run::MergeKeys(merge_keys::Args {
         max_penalty: Penalty::new(0.050),
         never_together: vec![
             Key::EMPTY
@@ -48,6 +47,6 @@ fn main() {
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),
-        Run::MergeKeys(penalty) => merge_keys_dfs::solve(penalty),
+        Run::MergeKeys(penalty) => merge_keys::solve(penalty),
     }
 }
