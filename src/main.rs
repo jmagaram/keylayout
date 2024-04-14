@@ -28,7 +28,7 @@ fn main() {
         max_penalty: Penalty::new(0.050),
     });
 
-    let run = merge_keys_args;
+    let run = genetic_args;
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),
