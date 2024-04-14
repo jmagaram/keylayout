@@ -5,7 +5,7 @@ where
 {
     fn next(&self) -> Vec<(T, Self)>;
 
-    fn permute(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
+    fn permute_include_empty(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
         let next = self.next();
         if next.is_empty() {
             let once_empty = std::iter::once(vec![]);
@@ -13,7 +13,7 @@ where
             once_empty_boxed
         } else {
             let result = self.next().into_iter().flat_map(|(item, rest)| {
-                let children = rest.permute();
+                let children = rest.permute_include_empty();
                 let with_item = children.map(move |mut child| {
                     child.push(item.clone());
                     child
@@ -23,6 +23,10 @@ where
             let result_boxed: Box<dyn Iterator<Item = Vec<T>> + 'a> = Box::new(result);
             result_boxed
         }
+    }
+
+    fn permute(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
+        Box::new(self.permute_include_empty().filter(|i| i.len() > 0))
     }
 }
 
@@ -74,15 +78,15 @@ mod tests {
     }
 
     impl Combos<'_> {
-        fn normalize_one_combo(c: Vec<Option<String>>) -> String {
-            let result = c
-                .into_iter()
-                .filter_map(|i| i)
-                .collect::<Vec<String>>()
-                .join("");
-            if result == "" {
+        fn format_combo(c: Vec<Option<String>>) -> String {
+            if c.len() == 0 {
                 "(empty)".to_string()
             } else {
+                let result = c
+                    .into_iter()
+                    .filter_map(|i| i)
+                    .collect::<Vec<String>>()
+                    .join(",");
                 result
             }
         }
@@ -91,7 +95,7 @@ mod tests {
             let results = self
                 .permute()
                 .into_iter()
-                .map(|combo| Combos::normalize_one_combo(combo))
+                .map(|combo| Combos::format_combo(combo))
                 .collect::<Vec<String>>();
             results
         }
@@ -104,7 +108,7 @@ mod tests {
             index: 0,
         };
         let result = source.permute_to_vec_string();
-        let expected = ["c", "b", "a", "cb", "ca", "ba", "cba", "(empty)"];
+        let expected = ["c", "b", "a", "c,b", "c,a", "b,a", "c,b,a", ""];
         assert_eq!(result.len(), expected.len());
         assert!(expected
             .into_iter()
@@ -118,7 +122,7 @@ mod tests {
             index: 0,
         };
         let result = source.permute_to_vec_string();
-        let expected = ["a", "(empty)"];
+        let expected = ["a", ""];
         assert_eq!(result.len(), expected.len());
         assert!(expected
             .into_iter()
@@ -132,7 +136,7 @@ mod tests {
             index: 0,
         };
         let result = source.permute_to_vec_string();
-        let expected = vec!["(empty)"];
+        let expected: Vec<String> = vec![];
         assert_eq!(result.len(), expected.len());
         assert!(expected
             .into_iter()
