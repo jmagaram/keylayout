@@ -32,6 +32,18 @@ impl Keyboard {
         }
     }
 
+    // abc,def,ghh
+    pub fn new_from_layout(s: &str) -> Keyboard {
+        let keys = s
+            .split(",")
+            .map(|letters| {
+                let m = Key::try_from(letters).unwrap();
+                m
+            })
+            .collect::<Vec<Key>>();
+        Keyboard::new(keys)
+    }
+
     pub fn with_penalty(self, penalty: Penalty) -> Solution {
         Solution::new(self, penalty)
     }
@@ -44,18 +56,6 @@ impl Keyboard {
         self.keys.iter().map(|k| k.count_items()).max()
     }
 
-    // abc,def,ghh
-    pub fn with_layout(s: &str) -> Keyboard {
-        let keys = s
-            .split(",")
-            .map(|letters| {
-                let m = Key::try_from(letters).unwrap(); // fix this!
-                m
-            })
-            .collect::<Vec<Key>>();
-        Keyboard::new(keys)
-    }
-
     pub fn format(&self, d: &Dictionary) -> String {
         let keys: Vec<String> = self.keys.iter().map(|k| k.to_string()).collect();
         let joined = keys.join(" ");
@@ -64,6 +64,12 @@ impl Keyboard {
 
     fn find_key_index_for_letter(&self, letter: Letter) -> Option<usize> {
         self.letter_to_key_index[letter.to_usize()]
+    }
+
+    fn find_key_for_letter(&self, letter: Letter) -> Option<Key> {
+        let key_index = self.find_key_index_for_letter(letter)?;
+        let key = self.keys.get(key_index)?;
+        Some(*key)
     }
 
     pub fn spell_serialized(&self, word: &Word) -> String {
@@ -82,12 +88,6 @@ impl Keyboard {
             }
         }
         result
-    }
-
-    fn find_key_for_letter(&self, letter: Letter) -> Option<Key> {
-        let key_index = self.find_key_index_for_letter(letter)?;
-        let key = self.keys.get(key_index)?;
-        Some(*key)
     }
 
     pub fn spell(&self, word: &Word) -> String {
@@ -179,7 +179,7 @@ impl Keyboard {
         result
     }
 
-    pub fn every_combine_two_keys_filter(&self, never_together: &Vec<Key>) -> Vec<Keyboard> {
+    pub fn every_combine_two_keys_filter(&self, prohibited_pairs: &Vec<Key>) -> Vec<Keyboard> {
         if self.keys.len() <= 1 {
             panic!("It is not possible to combine keys on the keyboard since it only has {} keys right now.", self.keys.len());
         }
@@ -187,7 +187,7 @@ impl Keyboard {
         for a_index in 0..=self.keys.len() - 2 {
             for b_index in a_index + 1..=self.keys.len() - 1 {
                 let combined_key = self.keys[a_index].union(self.keys[b_index]);
-                if never_together
+                if prohibited_pairs
                     .iter()
                     .all(move |k| k.intersect(combined_key).count_items() <= 1)
                 {
@@ -274,12 +274,12 @@ mod tests {
     #[cfg(debug_assertions)]
     #[should_panic]
     fn new_panic_if_keys_with_duplicate_letters() {
-        Keyboard::with_layout("abc,def,ghi,axy");
+        Keyboard::new_from_layout("abc,def,ghi,axy");
     }
 
     #[test]
     fn spell_test() {
-        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,stu,vwx,yz'");
+        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mno,pqr,stu,vwx,yz'");
         let w = Word::try_from("word").unwrap();
         let actual = k.spell(&w);
         assert_eq!(actual, "vwx,mno,pqr,def");
@@ -288,7 +288,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn spell_panic_if_required_letter_not_on_keyboard() {
-        let k = Keyboard::with_layout("abc,def,ghi");
+        let k = Keyboard::new_from_layout("abc,def,ghi");
         let w = Word::try_from("abcx").unwrap();
         k.spell(&w);
     }
@@ -307,7 +307,7 @@ mod tests {
             ("abc,def", 'x', None),
         ];
         for (layout, letter, expected_key_index) in data {
-            let keyboard = Keyboard::with_layout(layout);
+            let keyboard = Keyboard::new_from_layout(layout);
             let letter_to_find = Letter::try_from(letter).unwrap();
             let actual = keyboard.find_key_index_for_letter(letter_to_find);
             assert_eq!(actual, expected_key_index);
@@ -318,7 +318,7 @@ mod tests {
     #[ignore]
     fn spell_print_each_dictionary_word_out() {
         let d = Dictionary::load();
-        let k = Keyboard::with_layout("abc,def,ghi,jkl,mnop,qrs,tuv,wxyz'");
+        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mnop,qrs,tuv,wxyz'");
         d.words().iter().take(20).for_each(|w| {
             let spelling = k.spell(&w);
             println!("{} : {}", w, spelling);
@@ -328,7 +328,7 @@ mod tests {
     #[test]
     fn penalty_score_is_correct() {
         let d = Dictionary::load();
-        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
+        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
         let actual: f32 = k.penalty(&d, Penalty::MAX).to_f32(); // why into does not work
         assert!(actual >= 0.0802 && actual <= 0.0804); // 0.0803
     }
@@ -336,7 +336,7 @@ mod tests {
     #[test]
     #[ignore]
     fn swap_random_letters() {
-        let mut k = Keyboard::with_layout("abc,def,ghi");
+        let mut k = Keyboard::new_from_layout("abc,def,ghi");
         for i in 1..10 {
             k = k.swap_random_letters().unwrap();
             println!("{}", k)
@@ -346,7 +346,7 @@ mod tests {
     #[test]
     #[ignore]
     fn every_swap() {
-        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,stu,vw,xy,z'");
+        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mno,pqr,stu,vw,xy,z'");
         k.every_swap().iter().for_each(|k| println!("{}", k));
         println!("Total swaps: {}", k.every_swap().iter().count());
     }
@@ -354,7 +354,7 @@ mod tests {
     #[test]
     #[ignore]
     fn every_combine_two_keys() {
-        let k = Keyboard::with_layout("a,b,c,d,efg,hi");
+        let k = Keyboard::new_from_layout("a,b,c,d,efg,hi");
         k.every_combine_two_keys()
             .iter()
             .for_each(|k| println!("{}", k));
@@ -369,7 +369,7 @@ mod tests {
             "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,'",
         ];
         for d in data {
-            let k = Keyboard::with_layout(d);
+            let k = Keyboard::new_from_layout(d);
             let actual_count = k.every_combine_two_keys().len();
             let expected = util::choose(k.keys.len() as u32, 2);
             assert_eq!(actual_count, expected as usize);
@@ -389,7 +389,7 @@ mod tests {
         let total_words = d.words().len();
         for i in 1..total_words {
             let d = d.with_top_n_words(i);
-            let keyboard = Keyboard::with_layout(letters);
+            let keyboard = Keyboard::new_from_layout(letters);
             let penalty = keyboard.penalty(&d, Penalty::MAX);
             println!("{},{}", i, penalty.to_f32());
             writeln!(file, "{},{}", i, penalty.to_f32());
