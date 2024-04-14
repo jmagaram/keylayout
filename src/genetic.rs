@@ -51,7 +51,7 @@ pub fn find_best(dict: &Dictionary, print_best: bool) -> Solution {
     };
     let layout = random_layout();
     let keys = alphabet.random_subsets(layout).collect::<Vec<Key>>();
-    let keyboard = Keyboard::new(keys);
+    let keyboard = Keyboard::new_from_keys(keys);
     let penalty = keyboard.penalty(&dict, Penalty::MAX);
     let args = EvolveKeyboardArgs {
         dictionary: &dict,

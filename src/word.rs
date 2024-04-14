@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-#[derive(Eq, Debug)]
+#[derive(Eq, Debug, Clone)]
 pub struct Word {
     letters: Vec<Letter>,
     frequency: Frequency,

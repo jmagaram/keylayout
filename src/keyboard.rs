@@ -15,7 +15,7 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new(keys: Vec<Key>) -> Keyboard {
+    pub fn new_from_keys(keys: Vec<Key>) -> Keyboard {
         let mut letter_to_key_index: [Option<usize>; Letter::ALPHABET_SIZE] = Default::default();
         for (key_index, key) in keys.iter().enumerate() {
             for letter in *key {
@@ -41,7 +41,7 @@ impl Keyboard {
                 m
             })
             .collect::<Vec<Key>>();
-        Keyboard::new(keys)
+        Keyboard::new_from_keys(keys)
     }
 
     pub fn with_penalty(self, penalty: Penalty) -> Solution {
@@ -138,7 +138,7 @@ impl Keyboard {
                     }
                 })
                 .collect();
-            Ok(Keyboard::new(new_keys))
+            Ok(Keyboard::new_from_keys(new_keys))
         }
     }
 
@@ -169,7 +169,7 @@ impl Keyboard {
                                     }
                                 })
                                 .collect();
-                            let keyboard = Keyboard::new(letters);
+                            let keyboard = Keyboard::new_from_keys(letters);
                             result.push(keyboard);
                         }
                     }
@@ -205,7 +205,7 @@ impl Keyboard {
                             }
                         })
                         .collect();
-                    let new_keyboard = Keyboard::new(new_keys);
+                    let new_keyboard = Keyboard::new_from_keys(new_keys);
                     results.push(new_keyboard);
                 }
             }
@@ -257,18 +257,9 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
-    use crate::{frequency::Frequency, util};
+    use crate::util;
 
     use super::*;
-
-    fn make_dictionary(words: Vec<&str>) -> Dictionary {
-        let words: Vec<(String, f32)> = words
-            .iter()
-            .map(|w| (w.to_string(), Frequency::random().to_f32()))
-            .collect();
-        let map = HashMap::from_iter(words);
-        Dictionary::new(map)
-    }
 
     #[test]
     #[cfg(debug_assertions)]

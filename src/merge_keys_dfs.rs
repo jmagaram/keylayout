@@ -36,7 +36,7 @@ pub struct Args {
 
 pub fn solve(args: Args) {
     let d = Dictionary::load();
-    let k = Keyboard::new(d.alphabet().map(|r| Key::with_one_letter(r)).collect());
+    let k = Keyboard::new_from_keys(d.alphabet().map(|r| Key::with_one_letter(r)).collect());
     let result = go(&d, k, args.max_penalty, &args.never_together);
     println!("=====================================================");
     match result {

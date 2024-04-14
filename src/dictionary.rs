@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
 use crate::key::Key;
@@ -12,63 +11,50 @@ pub struct Dictionary {
 }
 
 impl Dictionary {
-    // take a str or String or &str?
-
-    pub fn create(words: Vec<(String, f32)>) -> Dictionary {
-        let mut unique_words = words
-            .into_iter()
-            .map(|(w, f)| Word::new(w.as_str(), f))
+    pub fn new(words: &HashMap<String, f32>) -> Dictionary {
+        let mut words = words
+            .iter()
+            .map(|(w, f)| Word::new(w.as_str(), *f))
             .collect::<Result<Vec<Word>, _>>()
-            .unwrap()
-            .into_iter()
-            .collect::<HashSet<Word>>()
-            .into_iter()
-            .collect::<Vec<Word>>();
+            .unwrap();
+        words.sort_by(|a, b| b.frequency().cmp(&a.frequency()));
+        Dictionary::from_unique_sorted_words(words)
+    }
 
-        unique_words.sort_by(|a, b| b.frequency().cmp(&a.frequency()));
+    pub fn load() -> Dictionary {
+        let items = Dictionary::load_json()
+            .iter()
+            .map(|(k, v)| (k.to_owned(), *v))
+            .collect();
+        Dictionary::new(&items)
+    }
 
-        let alphabet = unique_words
+    fn from_unique_sorted_words(words: Vec<Word>) -> Dictionary {
+        let alphabet = words
             .iter()
             .flat_map(|w| w.letters())
-            .map(|r| r.clone())
+            .map(|r| *r)
             .collect::<Key>();
 
-        let frequency_sum = unique_words
+        let frequency_sum = words
             .iter()
-            .map(|w| w.frequency())
-            .fold(Frequency::ZERO, |total, i| total + *i);
+            .fold(Frequency::ZERO, |total, i| total + *i.frequency());
+
         Dictionary {
-            words_highest_frequency_first: unique_words,
-            frequency_sum,
+            words_highest_frequency_first: words,
             alphabet,
+            frequency_sum,
         }
     }
 
-    // do not understand iter vs into_iter
-    // String or str?
-    // pass &HashMap anyways
-    pub fn new(words: HashMap<String, f32>) -> Dictionary {
-        Dictionary::create(words.into_iter().collect())
-    }
-
-    // easier to convert a vec<letters> to a &str
     pub fn with_top_n_words(&self, count: usize) -> Dictionary {
-        let r: Vec<(_, _)> = self
+        let words = self
             .words()
             .into_iter()
             .take(count)
-            .map(|w| {
-                let c = w
-                    .letters()
-                    .iter()
-                    .map(|r| r.to_char())
-                    .collect::<Vec<char>>()
-                    .iter()
-                    .collect::<String>();
-                (c, w.frequency().to_f32())
-            })
-            .collect();
-        Dictionary::create(r)
+            .map(|w| w.to_owned())
+            .collect::<Vec<Word>>();
+        Dictionary::from_unique_sorted_words(words)
     }
 
     pub fn words(&self) -> &Vec<Word> {
@@ -87,14 +73,6 @@ impl Dictionary {
         let word_frequencies: HashMap<String, f32> =
             serde_json::from_reader(reader).expect("read json properly");
         word_frequencies
-    }
-
-    pub fn load() -> Dictionary {
-        let items = Dictionary::load_json()
-            .iter()
-            .map(|(k, v)| (k.to_owned(), *v))
-            .collect();
-        Dictionary::new(items)
     }
 }
 

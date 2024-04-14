@@ -7,7 +7,7 @@ fn calculate_penalty_score(c: &mut Criterion) {
     c.bench_function("CALCULATE PENALTY", |b| {
         b.iter(|| {
             let keys = d.alphabet().random_subsets(&layout).collect::<Vec<Key>>();
-            let _keyboard = Keyboard::new(keys).penalty(&d, Penalty::MAX);
+            let _keyboard = Keyboard::new_from_keys(keys).penalty(&d, Penalty::MAX);
             ()
         })
     });
@@ -17,7 +17,7 @@ fn spell_every_word(c: &mut Criterion) {
     let d = Dictionary::load();
     let layout = vec![3, 3, 3, 3, 3, 3, 3, 2, 2, 2];
     let keys = d.alphabet().random_subsets(&layout).collect::<Vec<Key>>();
-    let keyboard = Keyboard::new(keys);
+    let keyboard = Keyboard::new_from_keys(keys);
     c.bench_function("SPELL EVERY WORD", |b| {
         b.iter(|| {
             d.words()
