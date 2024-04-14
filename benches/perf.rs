@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use keylayout::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty};
 
 fn calculate_penalty_score(c: &mut Criterion) {
-    let d = Dictionary::load_large_dictionary();
+    let d = Dictionary::load();
     let layout = vec![3, 3, 3, 3, 3, 3, 3, 2, 2, 2];
     c.bench_function("calculate penalty", |b| {
         b.iter(|| {
@@ -14,7 +14,7 @@ fn calculate_penalty_score(c: &mut Criterion) {
 }
 
 fn spell_every_word(c: &mut Criterion) {
-    let d = Dictionary::load_large_dictionary();
+    let d = Dictionary::load();
     let layout = vec![3, 3, 3, 3, 3, 3, 3, 2, 2, 2];
     let keys = d.alphabet().random_subsets(&layout).collect::<Vec<Key>>();
     let keyboard = Keyboard::new(keys);

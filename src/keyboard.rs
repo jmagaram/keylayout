@@ -308,7 +308,7 @@ mod tests {
     #[test]
     #[ignore]
     fn spell_print_each_dictionary_word_out() {
-        let d = Dictionary::load_large_dictionary();
+        let d = Dictionary::load();
         let k = Keyboard::with_layout("abc,def,ghi,jkl,mnop,qrs,tuv,wxyz'");
         d.words().iter().take(20).for_each(|w| {
             let spelling = k.spell(&w);
@@ -318,7 +318,7 @@ mod tests {
 
     #[test]
     fn penalty_score_is_correct() {
-        let d = Dictionary::load_large_dictionary();
+        let d = Dictionary::load();
         let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
         let actual: f32 = k.penalty(&d, Penalty::MAX).to_f32(); // why into does not work
         assert!(actual >= 0.0802 && actual <= 0.0804); // 0.0803
@@ -376,7 +376,7 @@ mod tests {
         writeln!(file, "This is a line of text written to a file.");
 
         let letters = "pt,ly,bn,sz,em,gr,afj,ikwx,cdu',hoqv";
-        let d = Dictionary::load_large_dictionary();
+        let d = Dictionary::load();
         let total_words = d.words().len();
         for i in 1..total_words {
             let d = d.with_top_n_words(i);

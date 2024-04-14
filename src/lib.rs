@@ -1,15 +1,16 @@
 pub mod dictionary;
 pub mod experiment;
 pub mod frequency;
+pub mod genetic;
 pub mod item_count;
 pub mod key;
 pub mod keyboard;
 pub mod letter;
+pub mod merge_keys_dfs;
 pub mod partitions;
 pub mod penalty;
 pub mod permutable;
 pub mod solution;
-pub mod solvers;
 pub mod util;
 pub mod utility;
 pub mod word;

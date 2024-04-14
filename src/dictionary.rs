@@ -88,7 +88,7 @@ impl Dictionary {
         word_frequencies
     }
 
-    pub fn load_large_dictionary() -> Dictionary {
+    pub fn load() -> Dictionary {
         let items = Dictionary::load_json()
             .iter()
             .map(|(k, v)| (k.to_owned(), *v))
@@ -104,20 +104,20 @@ mod tests {
 
     #[test]
     fn standard_dictionary_has_proper_count_of_words() {
-        let d = Dictionary::load_large_dictionary();
+        let d = Dictionary::load();
         let expected = 307629;
         assert_eq!(d.words_highest_frequency_first.len(), expected,);
     }
 
     #[test]
     fn standard_dictionary_has_proper_letter_set() {
-        let d = Dictionary::load_large_dictionary();
+        let d = Dictionary::load();
         assert_eq!(d.alphabet.count(), 27,);
     }
 
     #[test]
     fn standard_dictionary_has_proper_frequency_sum() {
-        let d = Dictionary::load_large_dictionary();
+        let d = Dictionary::load();
         let expected = 0.96;
         let is_close = (d.frequency_sum.to_f32() - expected).abs() < 0.01;
         assert!(is_close)
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     #[ignore]
     fn display_top_words() {
-        let d = Dictionary::load_large_dictionary();
+        let d = Dictionary::load();
         d.words_highest_frequency_first
             .iter()
             .take(200)

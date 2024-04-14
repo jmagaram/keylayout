@@ -68,13 +68,18 @@ pub fn find_best(dict: &Dictionary, print_best: bool) -> Solution {
     best
 }
 
-pub fn genetic_threaded(threads: u32) -> () {
+pub struct Args {
+    pub threads: u32,
+}
+
+pub fn solve(args: Args) -> () {
+    println!("Starting genetic solver with {} threads...", args.threads);
     let (tx, rx) = mpsc::sync_channel::<Solution>(10);
     let mut best: Option<Solution> = None;
-    for _ in 0..threads {
+    for _ in 0..args.threads {
         let tx = tx.clone();
         std::thread::spawn(move || {
-            let dictionary = Dictionary::load_large_dictionary();
+            let dictionary = Dictionary::load();
             loop {
                 let best = find_best(&dictionary, false);
                 tx.send(best).unwrap();
@@ -93,49 +98,6 @@ pub fn genetic_threaded(threads: u32) -> () {
                     best = Some(solution);
                 }
             }
-        }
-    }
-}
-
-pub fn combine_two_dfs_worker(
-    dict: &Dictionary,
-    keyboard: Keyboard,
-    max_penalty: Penalty,
-) -> Option<Solution> {
-    println!("{}", keyboard);
-    let penalty = keyboard.penalty(dict, max_penalty);
-    if penalty < max_penalty {
-        if keyboard.key_count() == 10 {
-            Some(keyboard.with_penalty(penalty))
-        } else {
-            keyboard
-                .every_combine_two_keys()
-                .iter()
-                .filter(|k| match k.max_key_size() {
-                    None => true,
-                    Some(k) => k <= 4,
-                })
-                .map(|k| combine_two_dfs_worker(dict, k.clone(), max_penalty))
-                .find_map(|i| i)
-        }
-    } else {
-        None
-    }
-}
-
-pub fn combine_two_dfs(max_penalty: Penalty) {
-    let dict = Dictionary::load_large_dictionary();
-    let keyboard = Keyboard::new(
-        dict.alphabet()
-            .map(|r| Key::with_one_letter(r))
-            .collect::<Vec<Key>>(),
-    );
-    let result = combine_two_dfs_worker(&dict, keyboard.clone(), max_penalty);
-    println!("=====================================================");
-    match result {
-        None => println!("No keyboard with maximum penalty of {}", max_penalty),
-        Some(keyboard) => {
-            println!("{}", keyboard)
         }
     }
 }
