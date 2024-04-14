@@ -8,6 +8,7 @@ pub mod letter;
 pub mod partitions;
 pub mod penalty;
 pub mod permutable;
+pub mod solution;
 pub mod solvers;
 pub mod util;
 pub mod utility;

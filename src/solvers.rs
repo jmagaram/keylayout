@@ -1,47 +1,42 @@
 use crate::{
-    dictionary::Dictionary, key::Key, keyboard::Keyboard, letter::Letter, partitions::Partitions,
-    penalty::Penalty, permutable::Permutable,
+    dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
+    permutable::Permutable, solution::Solution,
 };
 use std::sync::mpsc;
 
 pub struct EvolveKeyboardArgs<'a> {
-    pub keyboard: Keyboard,
-    pub keyboard_penalty: Penalty,
+    pub solution: Solution,
     pub stop_if_stuck: Penalty,
     pub dictionary: &'a Dictionary,
     pub print_progress: bool,
 }
 
-pub fn evolve_keyboard(args: EvolveKeyboardArgs) -> (Keyboard, Penalty) {
-    let mut best_penalty = args.keyboard_penalty;
-    let mut best_keyboard = args.keyboard.clone();
+pub fn evolve_keyboard(args: EvolveKeyboardArgs) -> Solution {
+    let mut best = args.solution;
     loop {
-        let mut current_best_penalty = best_penalty;
-        let mut current_best_keyboard = best_keyboard.clone();
-        for child in best_keyboard.every_swap() {
-            let child_penalty = child.penalty(args.dictionary, current_best_penalty);
-            if child_penalty < current_best_penalty {
-                current_best_keyboard = child;
-                current_best_penalty = child_penalty;
+        let mut current_best = best.clone();
+        for child in best.keyboard().every_swap() {
+            let child_penalty = child.penalty(args.dictionary, current_best.penalty());
+            if child_penalty < current_best.penalty() {
+                current_best = Solution::new(child.clone(), child_penalty);
                 if args.print_progress {
-                    println!("{} {}", current_best_penalty, current_best_keyboard);
+                    println!("{}", current_best);
                 }
             }
         }
-        let progress_made = (current_best_penalty.to_f32() - best_penalty.to_f32()).abs()
+        let progress_made = (current_best.penalty().to_f32() - best.penalty().to_f32()).abs()
             > args.stop_if_stuck.to_f32();
-        if current_best_penalty < best_penalty {
-            best_penalty = current_best_penalty;
-            best_keyboard = current_best_keyboard;
+        if current_best.penalty() < best.penalty() {
+            best = current_best;
         }
         if !progress_made {
             break;
         }
     }
-    (best_keyboard, best_penalty)
+    best
 }
 
-pub fn find_best(dict: &Dictionary, print_best: bool) -> (Keyboard, Penalty) {
+pub fn find_best(dict: &Dictionary, print_best: bool) -> Solution {
     let alphabet = dict.alphabet();
     let layouts = Partitions {
         parts: 10,
@@ -57,46 +52,45 @@ pub fn find_best(dict: &Dictionary, print_best: bool) -> (Keyboard, Penalty) {
     let layout = random_layout();
     let keys = alphabet.random_subsets(layout).collect::<Vec<Key>>();
     let keyboard = Keyboard::new(keys);
-    let keyboard_penalty = keyboard.penalty(&dict, Penalty::MAX);
+    let penalty = keyboard.penalty(&dict, Penalty::MAX);
     let args = EvolveKeyboardArgs {
         dictionary: &dict,
-        keyboard,
-        keyboard_penalty,
+        solution: keyboard.with_penalty(penalty),
         print_progress: false,
         stop_if_stuck: Penalty::new(0.001),
     };
-    let (best_keyboard, best_penalty) = evolve_keyboard(args);
+    let best = evolve_keyboard(args);
     if print_best {
         println!("===========================================");
-        println!("{} {}", best_penalty, best_keyboard);
+        println!("{}", best);
         println!("===========================================");
     }
-    (best_keyboard, best_penalty)
+    best
 }
 
 pub fn genetic_threaded(threads: u32) -> () {
-    let (tx, rx) = mpsc::sync_channel::<(Keyboard, Penalty)>(10);
-    let mut best: Option<(Keyboard, Penalty)> = None;
+    let (tx, rx) = mpsc::sync_channel::<Solution>(10);
+    let mut best: Option<Solution> = None;
     for _ in 0..threads {
         let tx = tx.clone();
         std::thread::spawn(move || {
             let dictionary = Dictionary::load_large_dictionary();
             loop {
-                let (best_keyboard, best_penalty) = find_best(&dictionary, false);
-                tx.send((best_keyboard, best_penalty)).unwrap();
+                let best = find_best(&dictionary, false);
+                tx.send(best).unwrap();
             }
         });
     }
-    for (keyboard, penalty) in rx {
+    for solution in rx {
         match best {
             None => {
-                println!("{} {}", penalty, keyboard);
-                best = Some((keyboard, penalty));
+                println!("{}", solution);
+                best = Some(solution);
             }
-            Some((_, best_penalty)) => {
-                if penalty < best_penalty {
-                    println!("{} {}", penalty, keyboard);
-                    best = Some((keyboard, penalty));
+            Some(ref b) => {
+                if solution.penalty() < b.penalty() {
+                    println!("{}", solution);
+                    best = Some(solution);
                 }
             }
         }
@@ -107,12 +101,12 @@ pub fn combine_two_dfs_worker(
     dict: &Dictionary,
     keyboard: Keyboard,
     max_penalty: Penalty,
-) -> Option<Keyboard> {
-    let penalty = keyboard.penalty(dict, max_penalty);
+) -> Option<Solution> {
     println!("{}", keyboard);
+    let penalty = keyboard.penalty(dict, max_penalty);
     if penalty < max_penalty {
         if keyboard.key_count() == 10 {
-            Some(keyboard)
+            Some(keyboard.with_penalty(penalty))
         } else {
             keyboard
                 .every_combine_two_keys()
@@ -141,8 +135,7 @@ pub fn combine_two_dfs(max_penalty: Penalty) {
     match result {
         None => println!("No keyboard with maximum penalty of {}", max_penalty),
         Some(keyboard) => {
-            let penalty = keyboard.penalty(&dict, Penalty::MAX);
-            println!("{} {}", penalty, keyboard)
+            println!("{}", keyboard)
         }
     }
 }

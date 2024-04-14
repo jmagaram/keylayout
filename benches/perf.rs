@@ -1,14 +1,13 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use keylayout::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty};
 
 fn calculate_penalty_score(c: &mut Criterion) {
     let d = Dictionary::load_large_dictionary();
     let layout = vec![3, 3, 3, 3, 3, 3, 3, 2, 2, 2];
-    let keys = d.alphabet().random_subsets(&layout).collect::<Vec<Key>>();
-    let keyboard = Keyboard::new(keys);
     c.bench_function("calculate penalty", |b| {
         b.iter(|| {
-            let _p = keyboard.penalty(&d, Penalty::MAX);
+            let keys = d.alphabet().random_subsets(&layout).collect::<Vec<Key>>();
+            let _keyboard = Keyboard::new(keys).penalty(&d, Penalty::MAX);
             ()
         })
     });

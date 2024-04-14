@@ -2,7 +2,10 @@ use std::{collections::HashMap, fmt, iter};
 
 use rand::Rng;
 
-use crate::{dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, word::Word};
+use crate::{
+    dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, solution::Solution,
+    word::Word,
+};
 
 // fix this!
 #[derive(Clone)]
@@ -27,6 +30,10 @@ impl Keyboard {
             keys,
             letter_to_key_index,
         }
+    }
+
+    pub fn with_penalty(self, penalty: Penalty) -> Solution {
+        Solution::new(self, penalty)
     }
 
     pub fn key_count(&self) -> usize {
@@ -241,7 +248,7 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
-    use crate::{frequency::Frequency, penalty, util};
+    use crate::{frequency::Frequency, util};
 
     use super::*;
 
@@ -369,11 +376,11 @@ mod tests {
         writeln!(file, "This is a line of text written to a file.");
 
         let letters = "pt,ly,bn,sz,em,gr,afj,ikwx,cdu',hoqv";
-        let keyboard = Keyboard::with_layout(letters);
         let d = Dictionary::load_large_dictionary();
         let total_words = d.words().len();
         for i in 1..total_words {
             let d = d.with_top_n_words(i);
+            let keyboard = Keyboard::with_layout(letters);
             let penalty = keyboard.penalty(&d, Penalty::MAX);
             println!("{},{}", i, penalty.to_f32());
             writeln!(file, "{},{}", i, penalty.to_f32());

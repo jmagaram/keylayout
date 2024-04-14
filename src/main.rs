@@ -1,12 +1,8 @@
 use std::time::Instant;
 
-use dictionary::Dictionary;
-
 use key::Key;
-use penalty::Penalty;
-use solvers::combine_two_dfs;
 
-use crate::permutable::Permutable;
+use solvers::{combine_two_dfs, genetic_threaded};
 
 mod dictionary;
 mod experiment;
@@ -18,6 +14,7 @@ mod letter;
 mod partitions;
 mod penalty;
 mod permutable;
+mod solution;
 mod solvers;
 mod util;
 mod utility;
@@ -45,36 +42,7 @@ fn calc_subsets(print_each: bool, max_items: u32) {
     });
 }
 
-fn use_dictionary() {
-    let dict = Dictionary::load_large_dictionary().with_top_n_words(100);
-    dict.words().iter().for_each(|w| println!("{}", w));
-}
-
-fn find_best_keyboard() -> () {
-    let dict = Dictionary::load_large_dictionary();
-    let alphabet = dict.alphabet();
-    let layouts = partitions::Partitions {
-        sum: alphabet.count_items(),
-        parts: 10,
-        min: 2,
-        max: 5,
-    };
-    for lay in layouts.permute() {
-        let distribution = item_count::with_u32_groups(&lay);
-        for dist in distribution.permute() {
-            // looking for a 5,5,4,4,2,2 set of keys
-            // alphabet.subsets_of_size(5)
-            // then subsets of 5
-            // then subsets of 4
-            // then subsets of 4
-            // alphabet.subsets_of_size(5);
-            println!("dist!")
-        }
-    }
-    println!("done");
-}
-
 fn main() {
-    combine_two_dfs(Penalty::new(0.020));
-    // genetic_threaded(8);
+    // combine_two_dfs(Penalty::new(0.020));
+    genetic_threaded(8);
 }
