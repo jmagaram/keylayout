@@ -148,7 +148,7 @@ mod tests {
             let letter = Letter::try_from(expected).unwrap();
             let actual = letter.to_u8();
             let expected = letter.0;
-            let expected = assert_eq!(expected, actual);
+            assert_eq!(expected, actual);
         }
     }
 

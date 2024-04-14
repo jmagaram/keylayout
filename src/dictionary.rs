@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs::File, io::BufReader};
 
 use crate::key::Key;
 
-use crate::{frequency::Frequency, word::Word};
+use crate::word::Word;
 
 pub struct Dictionary {
     words_highest_frequency_first: Vec<Word>,

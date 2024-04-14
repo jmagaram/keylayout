@@ -322,7 +322,7 @@ mod tests {
     #[ignore]
     fn swap_random_letters() {
         let mut k = Keyboard::new_from_layout("abc,def,ghi");
-        for i in 1..10 {
+        for _i in 1..10 {
             k = k.swap_random_letters().unwrap();
             println!("{}", k)
         }
@@ -367,7 +367,7 @@ mod tests {
         use std::fs::File;
         use std::io::prelude::*;
         let mut file = File::create("output.txt").unwrap();
-        writeln!(file, "This is a line of text written to a file.");
+        writeln!(file, "This is a line of text written to a file.").unwrap();
 
         let letters = "pt,ly,bn,sz,em,gr,afj,ikwx,cdu',hoqv";
         let d = Dictionary::load();
@@ -377,7 +377,7 @@ mod tests {
             let keyboard = Keyboard::new_from_layout(letters);
             let penalty = keyboard.penalty(&d, Penalty::MAX);
             println!("{},{}", i, penalty.to_f32());
-            writeln!(file, "{},{}", i, penalty.to_f32());
+            writeln!(file, "{},{}", i, penalty.to_f32()).unwrap();
         }
     }
 }

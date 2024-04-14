@@ -28,15 +28,9 @@ impl Frequency {
         Frequency::validate(value).unwrap()
     }
 
-    pub fn random() -> Frequency {
-        Frequency::validate(rand::random()).unwrap()
-    }
-
     pub fn to_f32(&self) -> f32 {
         self.0
     }
-
-    pub const ZERO: Frequency = Frequency(0.0);
 }
 
 impl fmt::Display for Frequency {
