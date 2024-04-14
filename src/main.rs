@@ -1,3 +1,5 @@
+use key::Key;
+use letter::Letter;
 use penalty::Penalty;
 
 mod dictionary;
@@ -22,13 +24,27 @@ enum Run {
 }
 
 fn main() {
-    let genetic_args = Run::Genetic(genetic::Args { threads: 8 });
+    let genetic = Run::Genetic(genetic::Args { threads: 8 });
 
-    let merge_keys_args = Run::MergeKeys(merge_keys_dfs::Args {
+    let merge_keys = Run::MergeKeys(merge_keys_dfs::Args {
         max_penalty: Penalty::new(0.050),
+        never_together: vec![
+            Key::EMPTY
+                .add(Letter::new('a'))
+                .add(Letter::new('e'))
+                .add(Letter::new('i'))
+                .add(Letter::new('o'))
+                .add(Letter::new('u')),
+            Key::EMPTY
+                .add(Letter::new('e'))
+                .add(Letter::new('a'))
+                .add(Letter::new('r'))
+                .add(Letter::new('i'))
+                .add(Letter::new('s')),
+        ],
     });
 
-    let run = genetic_args;
+    let run = merge_keys;
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),

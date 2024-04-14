@@ -179,7 +179,7 @@ impl Keyboard {
         result
     }
 
-    pub fn every_combine_two_keys(&self) -> Vec<Keyboard> {
+    pub fn every_combine_two_keys_filter(&self, never_together: &Vec<Key>) -> Vec<Keyboard> {
         if self.keys.len() <= 1 {
             panic!("It is not possible to combine keys on the keyboard since it only has {} keys right now.", self.keys.len());
         }
@@ -187,25 +187,34 @@ impl Keyboard {
         for a_index in 0..=self.keys.len() - 2 {
             for b_index in a_index + 1..=self.keys.len() - 1 {
                 let combined_key = self.keys[a_index].union(self.keys[b_index]);
-                let new_keys: Vec<Key> = self
-                    .keys
+                if never_together
                     .iter()
-                    .enumerate()
-                    .filter_map(|(index, k)| {
-                        if index == a_index {
-                            Some(combined_key)
-                        } else if index == b_index {
-                            None
-                        } else {
-                            Some(*k)
-                        }
-                    })
-                    .collect();
-                let new_keyboard = Keyboard::new(new_keys);
-                results.push(new_keyboard);
+                    .all(move |k| k.intersect(combined_key).count_items() <= 1)
+                {
+                    let new_keys: Vec<Key> = self
+                        .keys
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(index, k)| {
+                            if index == a_index {
+                                Some(combined_key)
+                            } else if index == b_index {
+                                None
+                            } else {
+                                Some(*k)
+                            }
+                        })
+                        .collect();
+                    let new_keyboard = Keyboard::new(new_keys);
+                    results.push(new_keyboard);
+                }
             }
         }
         results
+    }
+
+    pub fn every_combine_two_keys(&self) -> Vec<Keyboard> {
+        self.every_combine_two_keys_filter(&vec![])
     }
 
     pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
