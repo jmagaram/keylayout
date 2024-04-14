@@ -25,7 +25,7 @@ enum Run {
 fn main() {
     let genetic = Run::Genetic(genetic::Args {
         threads: 8,
-        die_threshold: Penalty::new(0.01),
+        die_threshold: Penalty::new(0.001),
         verbose_print: false,
     });
 
