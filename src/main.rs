@@ -23,7 +23,11 @@ enum Run {
 }
 
 fn main() {
-    let genetic = Run::Genetic(genetic::Args { threads: 8 });
+    let genetic = Run::Genetic(genetic::Args {
+        threads: 8,
+        die_threshold: Penalty::new(0.01),
+        verbose_print: false,
+    });
 
     let merge_keys = Run::MergeKeys(merge_keys::Args {
         max_penalty: Penalty::new(0.050),
@@ -43,7 +47,7 @@ fn main() {
         ],
     });
 
-    let run = merge_keys;
+    let run = genetic;
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),
