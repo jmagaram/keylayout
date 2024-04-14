@@ -13,6 +13,7 @@ pub struct Dictionary {
 
 impl Dictionary {
     // take a str or String or &str?
+
     pub fn create(words: Vec<(String, f32)>) -> Dictionary {
         let mut unique_words = words
             .into_iter()

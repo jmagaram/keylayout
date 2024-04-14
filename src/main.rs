@@ -14,7 +14,6 @@ mod penalty;
 mod permutable;
 mod solution;
 mod util;
-mod utility;
 mod word;
 
 enum Run {

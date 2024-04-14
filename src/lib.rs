@@ -12,5 +12,4 @@ pub mod penalty;
 pub mod permutable;
 pub mod solution;
 pub mod util;
-pub mod utility;
 pub mod word;
