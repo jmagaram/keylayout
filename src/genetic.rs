@@ -1,3 +1,5 @@
+use rand::Rng;
+
 use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     permutable::Permutable, solution::Solution,
@@ -50,12 +52,12 @@ pub fn find_best(
         max: 4,
     }
     .permute();
-    let random_layout = || {
-        let random_index: usize = rand::random::<usize>().rem_euclid(layouts.len());
-        layouts.get(random_index).unwrap()
+    let layout = {
+        let mut rng = rand::thread_rng();
+        let layout_index = rng.gen_range(0..layouts.len());
+        layouts.get(layout_index).unwrap()
     };
-    let layout = random_layout();
-    let keys = alphabet.random_subsets(layout).collect::<Vec<Key>>();
+    let keys = alphabet.random_subsets(&layout).collect::<Vec<Key>>();
     let keyboard = Keyboard::new_from_keys(keys);
     let penalty = keyboard.penalty(&dict, Penalty::MAX);
     let args = EvolveKeyboardArgs {
