@@ -74,7 +74,9 @@ mod tests {
                 },
             );
             let result = match self.is_empty() {
-                true => panic!("Attempting to generate children for an empty seed."),
+                true => panic!(
+                    "Attempting to generate children for an empty seed. This should never happen."
+                ),
                 false => std::iter::repeat(child).take(self.child_count),
             };
             let boxed_result: Box<dyn Iterator<Item = (u32, Self)> + 'a> = Box::new(result);
@@ -142,7 +144,7 @@ mod tests {
 
         pub fn combinations(&self) -> Vec<String> {
             let results = self
-                .dfs()
+                .dfs_internal()
                 .into_iter()
                 .map(Combinations::combination_as_string)
                 .collect::<Vec<String>>();
