@@ -5,7 +5,11 @@ where
 {
     fn children(&self) -> Vec<(T, Self)>;
 
-    fn dfs_include_empty(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
+    // This returns a vec![[]] if called with a seed that generates no children.
+    // Ideally this would not be needed as part of the trait implementation, but
+    // removing it is difficult because private trait members are not supported.
+    // The core dfs functionality could be moved to an external function.
+    fn dfs_internal(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
         let next = self.children();
         if next.is_empty() {
             let once_empty = std::iter::once(vec![]);
@@ -13,7 +17,7 @@ where
             once_empty_boxed
         } else {
             let result = self.children().into_iter().flat_map(|(item, rest)| {
-                let children = rest.dfs_include_empty();
+                let children = rest.dfs_internal();
                 let with_item = children.map(move |mut child| {
                     child.push(item.clone());
                     child
@@ -26,7 +30,7 @@ where
     }
 
     fn dfs(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
-        Box::new(self.dfs_include_empty().filter(|i| i.len() > 0))
+        Box::new(self.dfs_internal().filter(|i| i.len() > 0))
     }
 }
 
