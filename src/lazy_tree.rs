@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn combinations_zillions_of_items() {
+    fn exponential_dfs_is_completely_lazy() {
         let source = Exponential {
             child_count: 1000,
             current_depth_index: 0,
