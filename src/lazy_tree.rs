@@ -3,15 +3,19 @@ where
     Self: 'a + Sized,
     T: 'a + Clone,
 {
+    /// Return true when no more children can be created.
     fn is_empty(&self) -> bool;
 
-    // This will never be called as long as is_empty returns true.
+    /// This will never be called as long as is_empty is true.
     fn children(&self) -> impl Iterator<Item = (T, Self)> + 'a;
 
-    // This returns a vec![[]] if called with a seed that generates no children.
-    // Ideally this would not be needed as part of the trait implementation, but
-    // removing it is difficult because private trait members are not supported.
-    // The core dfs functionality could be moved to an external function.
+    /// Do not use. For internal use only.
+    ///
+    /// This returns a vec![[]] if called with a seed that generates no
+    /// children. Ideally this would not be needed as part of the trait
+    /// implementation, but removing it is difficult because private trait
+    /// members are not supported. The core dfs functionality could be moved to
+    /// an external function.
     fn dfs_internal(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
         if self.is_empty() {
             let once_empty = std::iter::once(vec![]);
@@ -31,6 +35,8 @@ where
         }
     }
 
+    /// Does a depth first traversal by recursively calling `children` until
+    /// `is_empty`. Returns every path from root to leaf.
     fn dfs(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
         Box::new(self.dfs_internal().filter(|i| i.len() > 0))
     }
