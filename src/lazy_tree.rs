@@ -1,19 +1,19 @@
-pub trait PermuteSeed<'a, T>
+pub trait Seed<'a, T>
 where
     Self: 'a + Sized,
     T: 'a + Clone,
 {
-    fn next(&self) -> Vec<(T, Self)>;
+    fn children(&self) -> Vec<(T, Self)>;
 
-    fn permute_include_empty(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
-        let next = self.next();
+    fn dfs_include_empty(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
+        let next = self.children();
         if next.is_empty() {
             let once_empty = std::iter::once(vec![]);
             let once_empty_boxed: Box<dyn Iterator<Item = Vec<T>> + 'a> = Box::new(once_empty);
             once_empty_boxed
         } else {
-            let result = self.next().into_iter().flat_map(|(item, rest)| {
-                let children = rest.permute_include_empty();
+            let result = self.children().into_iter().flat_map(|(item, rest)| {
+                let children = rest.dfs_include_empty();
                 let with_item = children.map(move |mut child| {
                     child.push(item.clone());
                     child
@@ -25,8 +25,8 @@ where
         }
     }
 
-    fn permute(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
-        Box::new(self.permute_include_empty().filter(|i| i.len() > 0))
+    fn dfs(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
+        Box::new(self.dfs_include_empty().filter(|i| i.len() > 0))
     }
 }
 
@@ -52,8 +52,8 @@ mod tests {
         }
     }
 
-    impl<'a> PermuteSeed<'a, Option<String>> for Combos<'a> {
-        fn next(&self) -> Vec<(Option<String>, Self)> {
+    impl<'a> Seed<'a, Option<String>> for Combos<'a> {
+        fn children(&self) -> Vec<(Option<String>, Self)> {
             if self.index == self.items.len() {
                 vec![]
             } else {
@@ -93,7 +93,7 @@ mod tests {
 
         pub fn permute_to_vec_string(&self) -> Vec<String> {
             let results = self
-                .permute()
+                .dfs()
                 .into_iter()
                 .map(|combo| Combos::format_combo(combo))
                 .collect::<Vec<String>>();

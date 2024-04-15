@@ -228,9 +228,77 @@ impl Iterator for RandomSubsets {
     }
 }
 
+struct DistributeLetters<'a> {
+    groups: &'a Vec<u32>,
+    group_index: usize,
+    letters: Key,
+}
+
+impl<'a> crate::lazy_tree::Seed<'a, Key> for DistributeLetters<'a> {
+    fn children(&self) -> Vec<(Key, Self)> {
+        if self.group_index == self.groups.len() {
+            vec![]
+        } else {
+            let key_size = self.groups[self.group_index];
+            if self.letters.count_items() < key_size {
+                panic!(
+                    "Can't generate a key of size {} since there are no remaining letters.",
+                    key_size
+                )
+            }
+            let first_letter = self.letters.max_letter().unwrap();
+            let remaining_letters = self.letters.remove(first_letter);
+            let remaining_work = match remaining_letters.count_items() {
+                0 => {
+                    let key = self.letters;
+                    vec![(
+                        key,
+                        DistributeLetters {
+                            group_index: self.group_index + 1,
+                            letters: Key::EMPTY,
+                            ..*self
+                        },
+                    )]
+                }
+                _ => match key_size {
+                    1 => {
+                        let key = Key::with_one_letter(first_letter);
+                        let remaining_letters = self.letters.except(key);
+                        let seed = DistributeLetters {
+                            group_index: self.group_index + 1,
+                            letters: remaining_letters,
+                            ..*self
+                        };
+                        vec![(key, seed)]
+                    }
+                    _ => {
+                        let result = remaining_letters
+                            .subsets_of_size(key_size - 1)
+                            .map(|k| {
+                                let key = k.add(first_letter);
+                                let remaining_letters = self.letters.except(key);
+                                let seed = DistributeLetters {
+                                    group_index: self.group_index + 1,
+                                    letters: remaining_letters,
+                                    ..*self
+                                };
+                                (key, seed)
+                            })
+                            .collect::<Vec<(Key, DistributeLetters<'a>)>>();
+                        result
+                    }
+                },
+            };
+            remaining_work
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{letter::Letter, util};
+    use crate::{
+        keyboard::Keyboard, lazy_tree::Seed, letter::Letter, permutable::Permutable, util,
+    };
 
     use super::*;
 
@@ -584,6 +652,29 @@ mod tests {
         let key = Key::with_every_letter();
         for n in key.random_subsets(&vec![3, 3, 5, 4]) {
             println!("{}", n)
+        }
+    }
+
+    #[test]
+    fn distribute_letters() {
+        let letter_count = 5;
+        let letters = Key::with_first_n_letters(letter_count);
+        let layouts = crate::partitions::Partitions {
+            parts: 2,
+            sum: letter_count,
+            min: 1,
+            max: letter_count,
+        }
+        .permute();
+        for layout in layouts {
+            let source = DistributeLetters {
+                letters,
+                group_index: 0,
+                groups: &layout,
+            };
+            for k in source.dfs().map(|ks| Keyboard::new_from_keys(ks)) {
+                println!("{0}", k)
+            }
         }
     }
 }

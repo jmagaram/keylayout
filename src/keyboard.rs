@@ -3,8 +3,8 @@ use std::{collections::HashMap, fmt, iter};
 use rand::Rng;
 
 use crate::{
-    dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, permute::PermuteSeed,
-    solution::Solution, word::Word,
+    dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, solution::Solution,
+    word::Word,
 };
 
 // fix this!
@@ -248,76 +248,10 @@ impl fmt::Display for Keyboard {
     }
 }
 
-struct KeyboardGenerator<'a> {
-    groups: &'a Vec<u32>,
-    group_index: usize,
-    letters: Key,
-}
-
-impl<'a> PermuteSeed<'a, Key> for KeyboardGenerator<'a> {
-    fn next(&self) -> Vec<(Key, Self)> {
-        if self.group_index == self.groups.len() {
-            vec![]
-        } else {
-            let key_size = self.groups[self.group_index];
-            if self.letters.count_items() < key_size {
-                panic!(
-                    "Can't generate a key of size {} since there are no remaining letters.",
-                    key_size
-                )
-            }
-            let first_letter = self.letters.max_letter().unwrap();
-            let remaining_letters = self.letters.remove(first_letter);
-            let remaining_work = match remaining_letters.count_items() {
-                0 => {
-                    let key = self.letters;
-                    vec![(
-                        key,
-                        KeyboardGenerator {
-                            group_index: self.group_index + 1,
-                            letters: Key::EMPTY,
-                            ..*self
-                        },
-                    )]
-                }
-                _ => match key_size {
-                    1 => {
-                        let key = Key::with_one_letter(first_letter);
-                        let remaining_letters = self.letters.except(key);
-                        let seed = KeyboardGenerator {
-                            group_index: self.group_index + 1,
-                            letters: remaining_letters,
-                            ..*self
-                        };
-                        vec![(key, seed)]
-                    }
-                    _ => {
-                        let result = remaining_letters
-                            .subsets_of_size(key_size - 1)
-                            .map(|k| {
-                                let key = k.add(first_letter);
-                                let remaining_letters = self.letters.except(key);
-                                let seed = KeyboardGenerator {
-                                    group_index: self.group_index + 1,
-                                    letters: remaining_letters,
-                                    ..*self
-                                };
-                                (key, seed)
-                            })
-                            .collect::<Vec<(Key, KeyboardGenerator<'a>)>>();
-                        result
-                    }
-                },
-            };
-            remaining_work
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
-    use crate::{permutable::Permutable, util};
+    use crate::util;
 
     use super::*;
 
@@ -444,29 +378,6 @@ mod tests {
             let penalty = keyboard.penalty(&d, Penalty::MAX);
             println!("{},{}", i, penalty.to_f32());
             writeln!(file, "{},{}", i, penalty.to_f32()).unwrap();
-        }
-    }
-
-    #[test]
-    fn keyboard_generator() {
-        let letter_count = 5;
-        let letters = Key::with_first_n_letters(letter_count);
-        let layouts = crate::partitions::Partitions {
-            parts: 2,
-            sum: letter_count,
-            min: 1,
-            max: letter_count,
-        }
-        .permute();
-        for layout in layouts {
-            let source = KeyboardGenerator {
-                letters,
-                group_index: 0,
-                groups: &layout,
-            };
-            for k in source.permute().map(|ks| Keyboard::new_from_keys(ks)) {
-                println!("{0}", k)
-            }
         }
     }
 }
