@@ -159,65 +159,6 @@ impl Key {
                     .fold(Key::EMPTY, |total, i| total.add(letters[i.to_usize()]))
             })
     }
-
-    // pub fn subsets_in_groups(
-    //     &self,
-    //     key_sizes_index: usize,
-    //     key_sizes: &Vec<u32>,
-    // ) -> Box<dyn Iterator<Item = Vec<Key>>> {
-    //     match key_sizes.len() {
-    //         0 => {
-    //             let result = iter::once(vec![Key::EMPTY]);
-    //             let result_boxed: Box<dyn Iterator<Item = Vec<Key>>> = Box::new(result);
-    //             result_boxed
-    //         }
-    //         size => {
-    //             if size > self.count_items() as usize {
-    //                 panic!(
-    //                     "There are {} items in the Key, but you're trying to take a subset of {}.",
-    //                     self.count_items(),
-    //                     size
-    //                 );
-    //             }
-    //             let max_letter_for_new_key = self.max_letter().unwrap();
-    //             let remaining_letters_for_new_key = self.remove(max_letter_for_new_key);
-    //             let other_letters_for_new_key = if remaining_letters_for_new_key.count_items() == 0
-    //             {
-    //                 let result = iter::once(Key::EMPTY);
-    //                 let result_boxed: Box<dyn Iterator<Item = Key>> = Box::new(result);
-    //                 result_boxed
-    //             } else {
-    //                 let result = remaining_letters_for_new_key.subsets_of_size(size as u32 - 1);
-    //                 let result_boxed: Box<dyn Iterator<Item = Key>> = Box::new(result);
-    //                 result_boxed
-    //             };
-    //             let result = other_letters_for_new_key.flat_map(move |other| {
-    //                 let new_key = other.add(max_letter_for_new_key);
-    //                 let letters_for_remaining_groups = self.except(new_key);
-    //                 let child_subset = letters_for_remaining_groups
-    //                     .subsets_in_groups(key_sizes_index + 1, key_sizes)
-    //                     .map(move |keys| {
-    //                         let mut result = keys.clone();
-    //                         result.push(new_key);
-    //                         result
-    //                     });
-    //                 child_subset
-    //             });
-    //             let result_boxed: Box<dyn Iterator<Item = Vec<Key>>> = Box::new(result);
-    //             result_boxed
-    //         }
-    //     }
-    // }
-
-    // take 3       ab
-    // then take 2     xy  qr
-    //              cd
-    //                 xy  qr
-    // get subsets of 5 from n
-    // then subsets of 5 from m
-    // then subsets of 3 from x
-    // then subsets of 4 from y
-    //
 }
 
 impl FromIterator<Letter> for Key {

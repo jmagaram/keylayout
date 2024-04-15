@@ -317,7 +317,7 @@ impl<'a> PermuteSeed<'a, Key> for KeyboardGenerator<'a> {
 #[cfg(test)]
 mod tests {
 
-    use crate::{partitions::Partitions, permutable::Permutable, util};
+    use crate::{permutable::Permutable, util};
 
     use super::*;
 
