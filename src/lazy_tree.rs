@@ -35,12 +35,12 @@ mod tests {
     use super::*;
     use std::fmt::Display;
 
-    struct Combos<'a> {
+    struct Combinations<'a> {
         items: &'a Vec<char>,
         index: usize,
     }
 
-    impl Display for Combos<'_> {
+    impl Display for Combinations<'_> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             let chars_as_string = self
                 .items
@@ -52,7 +52,7 @@ mod tests {
         }
     }
 
-    impl<'a> Seed<'a, Option<String>> for Combos<'a> {
+    impl<'a> Seed<'a, Option<String>> for Combinations<'a> {
         fn children(&self) -> Vec<(Option<String>, Self)> {
             if self.index == self.items.len() {
                 vec![]
@@ -60,14 +60,14 @@ mod tests {
                 vec![
                     (
                         Some(self.items[self.index].to_string()),
-                        Combos {
+                        Combinations {
                             index: self.index + 1,
                             ..*self
                         },
                     ),
                     (
                         None,
-                        Combos {
+                        Combinations {
                             index: self.index + 1,
                             ..*self
                         },
@@ -77,8 +77,8 @@ mod tests {
         }
     }
 
-    impl Combos<'_> {
-        fn format_combo(c: Vec<Option<String>>) -> String {
+    impl Combinations<'_> {
+        fn combination_as_string(c: Vec<Option<String>>) -> String {
             if c.len() == 0 {
                 "(empty)".to_string()
             } else {
@@ -91,23 +91,23 @@ mod tests {
             }
         }
 
-        pub fn permute_to_vec_string(&self) -> Vec<String> {
+        pub fn combinations(&self) -> Vec<String> {
             let results = self
                 .dfs()
                 .into_iter()
-                .map(|combo| Combos::format_combo(combo))
+                .map(Combinations::combination_as_string)
                 .collect::<Vec<String>>();
             results
         }
     }
 
     #[test]
-    fn permute_many_items() {
-        let source = Combos {
+    fn combinations_with_many_items() {
+        let source = Combinations {
             items: &vec!['a', 'b', 'c'],
             index: 0,
         };
-        let result = source.permute_to_vec_string();
+        let result = source.combinations();
         let expected = ["c", "b", "a", "c,b", "c,a", "b,a", "c,b,a", ""];
         assert_eq!(result.len(), expected.len());
         assert!(expected
@@ -116,12 +116,12 @@ mod tests {
     }
 
     #[test]
-    fn permute_one_item() {
-        let source = Combos {
+    fn combinations_with_one_item() {
+        let source = Combinations {
             items: &vec!['a'],
             index: 0,
         };
-        let result = source.permute_to_vec_string();
+        let result = source.combinations();
         let expected = ["a", ""];
         assert_eq!(result.len(), expected.len());
         assert!(expected
@@ -130,16 +130,12 @@ mod tests {
     }
 
     #[test]
-    fn permute_empty() {
-        let source = Combos {
+    fn combinations_with_empty() {
+        let source = Combinations {
             items: &vec![],
             index: 0,
         };
-        let result = source.permute_to_vec_string();
-        let expected: Vec<String> = vec![];
-        assert_eq!(result.len(), expected.len());
-        assert!(expected
-            .into_iter()
-            .all(|i| result.contains(&i.to_string())));
+        let result = source.combinations();
+        assert!(result.is_empty());
     }
 }
