@@ -1,4 +1,4 @@
-pub trait Permutable<'a, T>
+pub trait PermuteSeed<'a, T>
 where
     Self: 'a + Sized,
     T: 'a + Clone,
@@ -52,7 +52,7 @@ mod tests {
         }
     }
 
-    impl<'a> Permutable<'a, Option<String>> for Combos<'a> {
+    impl<'a> PermuteSeed<'a, Option<String>> for Combos<'a> {
         fn next(&self) -> Vec<(Option<String>, Self)> {
             if self.index == self.items.len() {
                 vec![]

@@ -9,6 +9,7 @@ pub mod merge_keys;
 pub mod partitions;
 pub mod penalty;
 pub mod permutable;
+pub mod permute;
 pub mod solution;
 pub mod util;
 pub mod word;

@@ -280,19 +280,34 @@ impl<'a> PermuteSeed<'a, Key> for KeyboardGenerator<'a> {
                         },
                     )]
                 }
-                _ => remaining_letters
-                    .subsets_of_size(key_size - 1)
-                    .map(|k| {
-                        let key = k.add(first_letter);
+                _ => match key_size {
+                    1 => {
+                        let key = Key::with_one_letter(first_letter);
                         let remaining_letters = self.letters.except(key);
                         let seed = KeyboardGenerator {
                             group_index: self.group_index + 1,
                             letters: remaining_letters,
                             ..*self
                         };
-                        (key, seed)
-                    })
-                    .collect::<Vec<(Key, KeyboardGenerator<'a>)>>(),
+                        vec![(key, seed)]
+                    }
+                    _ => {
+                        let result = remaining_letters
+                            .subsets_of_size(key_size - 1)
+                            .map(|k| {
+                                let key = k.add(first_letter);
+                                let remaining_letters = self.letters.except(key);
+                                let seed = KeyboardGenerator {
+                                    group_index: self.group_index + 1,
+                                    letters: remaining_letters,
+                                    ..*self
+                                };
+                                (key, seed)
+                            })
+                            .collect::<Vec<(Key, KeyboardGenerator<'a>)>>();
+                        result
+                    }
+                },
             };
             remaining_work
         }

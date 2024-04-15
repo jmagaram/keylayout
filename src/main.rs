@@ -13,6 +13,7 @@ mod merge_keys;
 mod partitions;
 mod penalty;
 mod permutable;
+mod permute;
 mod solution;
 mod util;
 mod word;
