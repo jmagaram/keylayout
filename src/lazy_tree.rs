@@ -144,7 +144,7 @@ mod tests {
 
         pub fn combinations(&self) -> Vec<String> {
             let results = self
-                .dfs_internal()
+                .dfs()
                 .into_iter()
                 .map(Combinations::combination_as_string)
                 .collect::<Vec<String>>();
