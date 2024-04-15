@@ -3,20 +3,22 @@ where
     Self: 'a + Sized,
     T: 'a + Clone,
 {
-    fn children(&self) -> Vec<(T, Self)>;
+    fn is_empty(&self) -> bool;
+
+    // This will never be called as long as is_empty returns true.
+    fn children(&self) -> impl Iterator<Item = (T, Self)> + 'a;
 
     // This returns a vec![[]] if called with a seed that generates no children.
     // Ideally this would not be needed as part of the trait implementation, but
     // removing it is difficult because private trait members are not supported.
     // The core dfs functionality could be moved to an external function.
     fn dfs_internal(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
-        let next = self.children();
-        if next.is_empty() {
+        if self.is_empty() {
             let once_empty = std::iter::once(vec![]);
             let once_empty_boxed: Box<dyn Iterator<Item = Vec<T>> + 'a> = Box::new(once_empty);
             once_empty_boxed
         } else {
-            let result = self.children().into_iter().flat_map(|(item, rest)| {
+            let result = self.children().flat_map(|(item, rest)| {
                 let children = rest.dfs_internal();
                 let with_item = children.map(move |mut child| {
                     child.push(item.clone());
@@ -44,6 +46,36 @@ mod tests {
         index: usize,
     }
 
+    #[derive(Clone)]
+    struct Exponential {
+        value: u32,
+        current_depth_index: u32,
+        max_depth_index: u32,
+        child_count: usize,
+    }
+
+    impl<'a> Seed<'a, u32> for Exponential {
+        fn is_empty(&self) -> bool {
+            self.current_depth_index > self.max_depth_index
+        }
+
+        fn children(&self) -> impl Iterator<Item = (u32, Self)> + 'a {
+            let child = (
+                self.value,
+                Exponential {
+                    current_depth_index: self.current_depth_index + 1,
+                    ..*self
+                },
+            );
+            let result = match self.is_empty() {
+                true => panic!("Attempting to generate children for an empty seed."),
+                false => std::iter::repeat(child).take(self.child_count),
+            };
+            let boxed_result: Box<dyn Iterator<Item = (u32, Self)> + 'a> = Box::new(result);
+            boxed_result
+        }
+    }
+
     impl Display for Combinations<'_> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             let chars_as_string = self
@@ -57,11 +89,16 @@ mod tests {
     }
 
     impl<'a> Seed<'a, Option<String>> for Combinations<'a> {
-        fn children(&self) -> Vec<(Option<String>, Self)> {
+        fn is_empty(&self) -> bool {
+            self.index == self.items.len()
+        }
+
+        fn children(&self) -> impl Iterator<Item = (Option<String>, Self)> + 'a {
             if self.index == self.items.len() {
-                vec![]
+                let empty = std::iter::empty();
+                Box::new(empty) as Box<dyn Iterator<Item = (Option<String>, Self)> + 'a>
             } else {
-                vec![
+                let result = vec![
                     (
                         Some(self.items[self.index].to_string()),
                         Combinations {
@@ -77,6 +114,8 @@ mod tests {
                         },
                     ),
                 ]
+                .into_iter();
+                Box::new(result) as Box<dyn Iterator<Item = (Option<String>, Self)> + 'a>
             }
         }
     }
@@ -103,6 +142,19 @@ mod tests {
                 .collect::<Vec<String>>();
             results
         }
+    }
+
+    #[test]
+    fn combinations_zillions_of_items() {
+        let source = Exponential {
+            child_count: 1000,
+            current_depth_index: 0,
+            max_depth_index: 99,
+            value: 7,
+        };
+        let result: Vec<Vec<u32>> = source.dfs().take(1).collect();
+        assert!(result[0].iter().all(|n| *n == 7));
+        assert_eq!(100, result[0].len());
     }
 
     #[test]
