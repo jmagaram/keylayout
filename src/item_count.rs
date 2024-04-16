@@ -4,21 +4,29 @@ use crate::permutable::Permutable;
 
 pub struct ItemCount<T>(HashMap<T, u32>);
 
-impl<T> ItemCount<T> {}
+impl<T> ItemCount<T> {
+    pub fn new(map: HashMap<T, u32>) -> ItemCount<T> {
+        ItemCount(map)
+    }
 
-pub fn with_u32_groups(items: &Vec<u32>) -> ItemCount<u32> {
-    let mut map: HashMap<u32, u32> = HashMap::new();
-    for size in items {
-        match map.get(size) {
-            None => {
-                map.insert(*size, 1);
-            }
-            Some(count) => {
-                map.insert(*size, count + 1);
+    pub fn with_groups(items: &Vec<u32>) -> ItemCount<u32> {
+        let mut map: HashMap<u32, u32> = HashMap::new();
+        for size in items {
+            match map.get(size) {
+                None => {
+                    map.insert(*size, 1);
+                }
+                Some(count) => {
+                    map.insert(*size, count + 1);
+                }
             }
         }
+        ItemCount(map)
     }
-    ItemCount(map)
+
+    // pub fn permute(&self) -> i32 {
+    //     self.permute()
+    // }
 }
 
 impl<T> Permutable<T> for ItemCount<T>
@@ -82,7 +90,7 @@ mod tests {
     #[ignore]
     fn print_permutation_sample() {
         let map = make_map(3, 1, 1);
-        let f = ItemCount(map);
+        let f = ItemCount::new(map);
         let results = f.permute();
         println!("=== Permuations by frequency count ===");
         results.iter().for_each(|v| {
@@ -93,21 +101,21 @@ mod tests {
     #[test]
     fn when_many_items_permutation_count_is_correct() {
         let map = make_map(2, 1, 1);
-        let f = ItemCount(map);
+        let f = ItemCount::new(map);
         assert_eq!(12, f.permute().len());
     }
 
     #[test]
     fn when_1_item() {
         let map = make_map(3, 0, 0);
-        let f = ItemCount(map);
+        let f = ItemCount::new(map);
         assert_eq!(1, f.permute().len());
     }
 
     #[test]
     fn when_2_item() {
         let map = make_map(1, 1, 0);
-        let f = ItemCount(map);
+        let f = ItemCount::new(map);
         assert_eq!(2, f.permute().len());
     }
 }

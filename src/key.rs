@@ -5,7 +5,7 @@ use std::{
 
 use rand::Rng;
 
-use crate::{lazy_tree::Seed, letter::Letter, util};
+use crate::{item_count::ItemCount, lazy_tree::Seed, letter::Letter, permutable::Permutable, util};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Key(u32);
@@ -167,6 +167,22 @@ impl Key {
             result_boxed
         }
     }
+
+    pub fn distribute(&self, key_sizes: ItemCount<u32>) -> impl Iterator<Item = Vec<Key>> + '_ {
+        let results = key_sizes
+            .permute()
+            .into_iter()
+            .map(|arrangement| {
+                let distributor = DistributeLetters {
+                    letters: *self,
+                    key_sizes: arrangement,
+                }
+                .dfs();
+                distributor
+            })
+            .flatten();
+        results
+    }
 }
 
 impl FromIterator<Letter> for Key {
@@ -291,8 +307,14 @@ impl<'a> Seed<'a, Key> for DistributeLetters {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::{HashMap, HashSet};
+
     use crate::{
-        item_count, keyboard::Keyboard, lazy_tree::Seed, letter::Letter, permutable::Permutable,
+        item_count::{self, ItemCount},
+        keyboard::Keyboard,
+        lazy_tree::Seed,
+        letter::Letter,
+        permutable::Permutable,
         util,
     };
 
@@ -652,29 +674,69 @@ mod tests {
         }
     }
 
+    // fn format_distribute_results()
     #[test]
-    fn distribute_letters() {
-        let letter_count = 5;
-        let letters = Key::with_first_n_letters(letter_count);
-        let layouts = crate::partitions::Partitions {
-            parts: 2,
-            sum: letter_count,
-            min: 2,
-            max: letter_count,
+    #[ignore]
+    fn distribute_key_and_print() {
+        let key = Key::with_first_n_letters(6);
+        let key_sizes = ItemCount::<u32>::with_groups(&vec![2, 3, 1]); // ugly syntax
+        let results = key.distribute(key_sizes);
+        for r in results {
+            let k = Keyboard::new_from_keys(r);
+            println!("{}", k)
         }
-        .permute();
-        for layout in layouts {
-            println!();
-            let rearrange = item_count::with_u32_groups(&layout);
-            for arrangement in rearrange.permute() {
-                let source = DistributeLetters {
-                    key_sizes: arrangement,
-                    letters: letters,
-                };
-                for k in source.dfs().map(|ks| Keyboard::new_from_keys(ks)) {
-                    println!("{0}", k)
-                }
-            }
-        }
+    }
+
+    fn format_keys(keys: &Vec<Vec<Key>>) -> String {
+        let mut formatted = keys
+            .iter()
+            .map(|k| Keyboard::new_from_keys(k.clone()).to_string())
+            .collect::<Vec<String>>();
+        formatted.sort();
+        formatted.join(" : ")
+    }
+
+    #[test]
+    fn distribute_letters_with_equal_key_sizes() {
+        let key = Key::with_first_n_letters(4);
+        let key_sizes = ItemCount::<u32>::with_groups(&vec![2, 2]);
+        let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
+        let results_as_text = format_keys(&results);
+        assert_eq!("ab cd : ac bd : bc ad", results_as_text);
+    }
+
+    #[test]
+    fn distribute_letters_with_unequal_key_sizes() {
+        let key = Key::with_first_n_letters(3);
+        let key_sizes = ItemCount::<u32>::with_groups(&vec![1, 2]);
+        let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
+        let results_as_text = format_keys(&results);
+        assert_eq!("a bc : ab c : b ac", results_as_text);
+    }
+
+    #[test]
+    fn distribute_many_letters_with_one_key() {
+        let key = Key::with_first_n_letters(3);
+        let key_sizes = ItemCount::<u32>::with_groups(&vec![3]);
+        let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
+        let results_as_text = format_keys(&results);
+        assert_eq!("abc", results_as_text);
+    }
+
+    #[test]
+    fn distribute_one_letter_on_one_key() {
+        let key = Key::with_first_n_letters(1);
+        let key_sizes = ItemCount::<u32>::with_groups(&vec![1]);
+        let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
+        let results_as_text = format_keys(&results);
+        assert_eq!("a", results_as_text);
+    }
+
+    #[test]
+    fn distribute_letters_calculates_correct_number_of_results() {
+        let key = Key::with_first_n_letters(14);
+        let key_sizes = ItemCount::<u32>::with_groups(&vec![2, 2, 3, 3, 4]);
+        let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
+        assert_eq!(6306300, results.iter().count());
     }
 }
