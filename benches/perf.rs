@@ -65,8 +65,9 @@ fn generate_small_subsets(c: &mut Criterion) {
 criterion_group!(
     benches,
     generate_big_subsets,
-    generate_small_subsets // load_dictionary,
-                           // calculate_penalty_score,
-                           // spell_every_word
+    generate_small_subsets,
+    load_dictionary,
+    calculate_penalty_score,
+    spell_every_word
 );
 criterion_main!(benches);
