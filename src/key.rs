@@ -10,7 +10,7 @@ use crate::{
     permutable::Permutable, util,
 };
 
-#[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
+#[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy, Default)]
 pub struct Key(u32);
 
 impl Key {
