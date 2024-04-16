@@ -23,6 +23,10 @@ impl<T> ItemCount<T> {
         }
         ItemCount(map)
     }
+
+    pub fn as_map(&self) -> &HashMap<T, u32> {
+        &self.0
+    }
 }
 
 impl<T> Permutable<T> for ItemCount<T>

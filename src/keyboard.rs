@@ -238,12 +238,13 @@ impl Keyboard {
 
 impl fmt::Display for Keyboard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let result = self
+        let mut result = self
             .keys
             .iter()
             .map(|k| Key::to_string(k))
-            .collect::<Vec<String>>()
-            .join(" ");
+            .collect::<Vec<String>>();
+        result.sort();
+        let result = result.join(" ");
         write!(f, "{}", result)
     }
 }

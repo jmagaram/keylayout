@@ -307,16 +307,10 @@ impl<'a> Seed<'a, Key> for DistributeLetters {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, HashSet};
 
-    use crate::{
-        item_count::{self, ItemCount},
-        keyboard::Keyboard,
-        lazy_tree::Seed,
-        letter::Letter,
-        permutable::Permutable,
-        util,
-    };
+    use std::collections::HashSet;
+
+    use crate::{item_count::ItemCount, keyboard::Keyboard, letter::Letter, util};
 
     use super::*;
 
@@ -701,7 +695,7 @@ mod tests {
         let key_sizes = ItemCount::<u32>::with_groups(&vec![2, 2]);
         let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
         let results_as_text = format_keys(&results);
-        assert_eq!("ab cd : ac bd : bc ad", results_as_text);
+        assert_eq!("ab cd : ac bd : ad bc", results_as_text);
     }
 
     #[test]
@@ -710,7 +704,7 @@ mod tests {
         let key_sizes = ItemCount::<u32>::with_groups(&vec![1, 2]);
         let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
         let results_as_text = format_keys(&results);
-        assert_eq!("a bc : ab c : b ac", results_as_text);
+        assert_eq!("a bc : ab c : ac b", results_as_text);
     }
 
     #[test]
@@ -737,5 +731,53 @@ mod tests {
         let key_sizes = ItemCount::<u32>::with_groups(&vec![2, 2, 3, 3, 4]);
         let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
         assert_eq!(6306300, results.iter().count());
+    }
+
+    #[test]
+    fn distribute_letters_calculates_unique_results() {
+        let data = [
+            vec![1],
+            vec![1, 2],
+            vec![2, 2, 3, 3],
+            vec![1, 2, 3],
+            vec![4, 5],
+            vec![5, 5],
+        ];
+        for d in data {
+            let letter_count: u32 = d.iter().fold(0, |total, i| total + i);
+            let key = Key::with_first_n_letters(letter_count);
+            let key_sizes = ItemCount::<u32>::with_groups(&d);
+            key.distribute(key_sizes)
+                .map(|ks| Keyboard::new_from_keys(ks).to_string())
+                .fold(HashSet::new(), |mut total, i| {
+                    if total.contains(&i) {
+                        panic!("There are duplicate results.");
+                    }
+                    total.insert(i);
+                    total
+                });
+        }
+    }
+
+    #[test]
+    fn distribute_letters_calculates_results_with_only_correct_letters() {
+        let data = [
+            vec![1],
+            vec![1, 2],
+            vec![2, 2, 3, 3],
+            vec![1, 2, 3],
+            vec![4, 5],
+            vec![5, 5],
+        ];
+        for d in data {
+            let letter_count: u32 = d.iter().fold(0, |total, i| total + i);
+            let key = Key::with_first_n_letters(letter_count);
+            let key_sizes = ItemCount::<u32>::with_groups(&d);
+            let all_letters = key
+                .distribute(key_sizes)
+                .flat_map(|ks| ks)
+                .fold(Key::EMPTY, |total, i| total.union(i));
+            assert_eq!(all_letters.count(), letter_count as usize);
+        }
     }
 }
