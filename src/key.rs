@@ -544,7 +544,7 @@ mod tests {
     }
 
     #[test]
-    fn subsets_of_size_return_one_empty_set() {
+    fn subsets_of_size_zero_return_one_empty_set() {
         let key = Key::with_every_letter();
         let result = key.subsets_of_size(0).collect::<Vec<Key>>();
         assert_eq!(1, result.len());
