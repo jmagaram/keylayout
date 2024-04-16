@@ -6,12 +6,8 @@ use std::{
 use rand::Rng;
 
 use crate::{
-    item_count::ItemCount,
-    key::subset_implementation::SubsetSeed,
-    lazy_tree::{Seed, SeedPlus},
-    letter::Letter,
-    permutable::Permutable,
-    util,
+    item_count::ItemCount, key::subset_implementation::SubsetSeed, lazy_tree::Seed, letter::Letter,
+    permutable::Permutable, util,
 };
 
 #[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy, Default)]
@@ -187,7 +183,7 @@ impl Key {
             include_empty_set: size == 0,
         };
         // let z = seed.dfs();
-        let z = seed.dfs_internal();
+        let z = seed.dfs_include_empty();
         z.into_iter()
     }
 
@@ -210,7 +206,7 @@ impl Key {
 
 mod subset_implementation {
 
-    use crate::{lazy_tree::SeedPlus, letter::Letter};
+    use crate::{lazy_tree::Seed, letter::Letter};
 
     use super::Key;
 
@@ -220,7 +216,7 @@ mod subset_implementation {
         pub include_empty_set: bool, // i think this is actually ONLY empty set returned!
     }
 
-    impl<'a> SeedPlus<'a, Option<Letter>, Key> for SubsetSeed {
+    impl<'a> Seed<'a, Option<Letter>, Key> for SubsetSeed {
         fn is_empty(&self) -> bool {
             self.needed == 0 && !self.include_empty_set
         }
@@ -353,10 +349,15 @@ struct DistributeLetters {
     letters: Key,
 }
 
-// can have more letters than groups
-impl<'a> Seed<'a, Key> for DistributeLetters {
+impl<'a> Seed<'a, Key, Vec<Key>> for DistributeLetters {
     fn is_empty(&self) -> bool {
         self.key_sizes.is_empty()
+    }
+
+    fn add(result: Vec<Key>, item: Key) -> Vec<Key> {
+        let mut result = result.clone();
+        result.push(item);
+        result
     }
 
     fn children(&self) -> impl Iterator<Item = (Key, Self)> + 'a {

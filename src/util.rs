@@ -117,14 +117,14 @@ mod tests {
     #[test]
     #[should_panic]
     fn same_set_bits_panic_if_count_more_than_32() {
-        same_set_bits(33);
+        same_set_bits(33).count();
     }
 
     #[test]
     #[should_panic]
     fn same_set_bits_panic_if_count_is_0() {
         #[allow(unused)]
-        same_set_bits(0);
+        same_set_bits(0).count();
     }
 
     #[test]

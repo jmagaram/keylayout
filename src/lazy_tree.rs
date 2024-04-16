@@ -1,29 +1,42 @@
+/// The Struct that implements this trait can be thought of as the "state" that
+/// is used to lazily create a tree of items. The tree is created by recursively
+/// calling the `children` function. The `children` function returns an Iterator
+/// of pairs of `(value:N, state:Self)`. Every `value` along each path from root
+/// to leaf is collected into in `T`, and all `T` values are returned.
+///
 /// N is the type of item calculated at each step in the recursive process
 /// T is the type that collects each N into a result, such as a Vec  
-pub trait SeedPlus<'a, N, T>
+pub trait Seed<'a, N, T>
 where
     Self: 'a + Sized,
     N: 'a + Clone,
     T: 'a + Clone + Default + Eq,
 {
+    /// Used to collect each `N` into a `T`. The `T` value is initialized using
+    /// the `Default` trait. For `i32`, for example, that would be zero. For a
+    /// `Vec`, that would be an empty vector.
     fn add(result: T, item: N) -> T;
 
-    /// Return true when no more children can be created.
+    /// Return true when at the leaf and no more children can be created.
     fn is_empty(&self) -> bool;
 
     /// This will never be called as long as is_empty is true.
     fn children(&self) -> impl Iterator<Item = (N, Self)> + 'a;
 
-    /// This returns a default T if called with a seed that generates no
-    /// children.
-    fn dfs_internal(&self) -> Box<dyn Iterator<Item = T> + 'a> {
+    /// Does a depth first traversal by recursively calling `children` until
+    /// `is_empty`. Collects every item `N` along the each path from root to
+    /// leaf into a T. Each `T` is initialized using the `Default` trait.
+    ///
+    /// **Note** If the tree is empty (no children are generated), this returns
+    /// one item which is the default value of `T`.
+    fn dfs_include_empty(&self) -> Box<dyn Iterator<Item = T> + 'a> {
         if self.is_empty() {
             let once_empty = std::iter::once(Default::default());
             let once_empty_boxed: Box<dyn Iterator<Item = T> + 'a> = Box::new(once_empty);
             once_empty_boxed
         } else {
             let result = self.children().flat_map(|(item, rest)| {
-                let children = rest.dfs_internal();
+                let children = rest.dfs_include_empty();
                 let with_item = children.map(move |child| Self::add(child, item.clone()));
                 with_item
             });
@@ -33,124 +46,48 @@ where
     }
 
     /// Does a depth first traversal by recursively calling `children` until
-    /// `is_empty`. Collects every item N along the path from root to leaf into
-    /// a T.
-    fn dfs(&self) -> Box<dyn Iterator<Item = T> + 'a> {
-        Box::new(self.dfs_internal().filter(|i| !i.eq(&Default::default())))
-    }
-}
-
-pub trait Seed<'a, T>
-where
-    Self: 'a + Sized,
-    T: 'a + Clone,
-{
-    /// Return true when no more children can be created.
-    fn is_empty(&self) -> bool;
-
-    /// This will never be called as long as is_empty is true.
-    fn children(&self) -> impl Iterator<Item = (T, Self)> + 'a;
-
-    /// Do not use. For internal use only.
+    /// `is_empty`. Collects every item `N` along the each path from root to
+    /// leaf into a T. Each `T` is initialized using the `Default` trait.
     ///
-    /// This returns a vec![[]] if called with a seed that generates no
-    /// children. Ideally this would not be needed as part of the trait
-    /// implementation, but removing it is difficult because private trait
-    /// members are not supported. The core dfs functionality could be moved to
-    /// an external function.
-    fn dfs_internal(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
-        if self.is_empty() {
-            let once_empty = std::iter::once(vec![]);
-            let once_empty_boxed: Box<dyn Iterator<Item = Vec<T>> + 'a> = Box::new(once_empty);
-            once_empty_boxed
-        } else {
-            let result = self.children().flat_map(|(item, rest)| {
-                let children = rest.dfs_internal();
-                let with_item = children.map(move |mut child| {
-                    child.push(item.clone());
-                    child
-                });
-                with_item
-            });
-            let result_boxed: Box<dyn Iterator<Item = Vec<T>> + 'a> = Box::new(result);
-            result_boxed
-        }
-    }
-
-    /// Does a depth first traversal by recursively calling `children` until
-    /// `is_empty`. Returns every path from leaf to root, in that order.
-    fn dfs(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
-        Box::new(self.dfs_internal().filter(|i| i.len() > 0))
+    /// **Note** If the tree is empty (no children are generated), this returns
+    /// an empty Iterator.
+    fn dfs(&self) -> Box<dyn Iterator<Item = T> + 'a> {
+        Box::new(
+            self.dfs_include_empty()
+                .filter(|i| !i.eq(&Default::default())),
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fmt::Display;
 
+    // The state used to generate all combinations of a vector of characters.
+    // For example, if the items are 'a', 'b', 'c', and index starts at 0, this
+    // is used to generate a, b, c, ab, ac, bc, abc.
     struct Combinations<'a> {
         items: &'a Vec<char>,
         index: usize,
     }
 
-    #[derive(Clone)]
-    struct Exponential {
-        value: u32,
-        current_depth_index: u32,
-        max_depth_index: u32,
-        child_count: usize,
-    }
-
-    impl<'a> Seed<'a, u32> for Exponential {
-        fn is_empty(&self) -> bool {
-            self.current_depth_index > self.max_depth_index
-        }
-
-        fn children(&self) -> impl Iterator<Item = (u32, Self)> + 'a {
-            let child = (
-                self.value,
-                Exponential {
-                    current_depth_index: self.current_depth_index + 1,
-                    ..*self
-                },
-            );
-            let result = match self.is_empty() {
-                true => panic!(
-                    "Attempting to generate children for an empty seed. This should never happen."
-                ),
-                false => std::iter::repeat(child).take(self.child_count),
-            };
-            let boxed_result: Box<dyn Iterator<Item = (u32, Self)> + 'a> = Box::new(result);
-            boxed_result
-        }
-    }
-
-    impl Display for Combinations<'_> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let chars_as_string = self
-                .items
-                .iter()
-                .map(|c| c.to_string())
-                .collect::<Vec<String>>()
-                .join("");
-            write!(f, "{} '{}'", self.index, chars_as_string)
-        }
-    }
-
-    impl<'a> SeedPlus<'a, Option<String>, Vec<Option<String>>> for Combinations<'a> {
+    impl<'a> Seed<'a, Option<char>, String> for Combinations<'a> {
+        // We're done (at a leaf) when the index value is beyond the end of the
+        // vector of characters.
         fn is_empty(&self) -> bool {
             self.index == self.items.len()
         }
 
-        fn children(&self) -> impl Iterator<Item = (Option<String>, Self)> + 'a {
+        // Each state branches into two children, one where the current
+        // character is included and one where that character is excluded.
+        fn children(&self) -> impl Iterator<Item = (Option<char>, Self)> + 'a {
             if self.index == self.items.len() {
                 let empty = std::iter::empty();
-                Box::new(empty) as Box<dyn Iterator<Item = (Option<String>, Self)> + 'a>
+                Box::new(empty) as Box<dyn Iterator<Item = (Option<char>, Self)> + 'a>
             } else {
-                let result = vec![
+                let result = [
                     (
-                        Some(self.items[self.index].to_string()),
+                        Some(self.items[self.index]),
                         Combinations {
                             index: self.index + 1,
                             ..*self
@@ -165,52 +102,21 @@ mod tests {
                     ),
                 ]
                 .into_iter();
-                Box::new(result) as Box<dyn Iterator<Item = (Option<String>, Self)> + 'a>
+                Box::new(result) as Box<dyn Iterator<Item = (Option<char>, Self)> + 'a>
             }
         }
 
-        fn add(result: Vec<Option<String>>, item: Option<String>) -> Vec<Option<String>> {
-            let mut result = result.clone();
-            result.push(item);
-            result
-        }
-    }
-
-    impl Combinations<'_> {
-        fn combination_as_string(c: Vec<Option<String>>) -> String {
-            if c.len() == 0 {
-                "(empty)".to_string()
-            } else {
-                let result = c
-                    .into_iter()
-                    .filter_map(|i| i)
-                    .collect::<Vec<String>>()
-                    .join(",");
-                result
+        // Adds an optional char to the result String.
+        fn add(result: String, item: Option<char>) -> String {
+            match item {
+                None => result,
+                Some(c) => {
+                    let mut result = result;
+                    result.push(c);
+                    result
+                }
             }
         }
-
-        pub fn combinations(&self) -> Vec<String> {
-            let results = self
-                .dfs()
-                .into_iter()
-                .map(Combinations::combination_as_string)
-                .collect::<Vec<String>>();
-            results
-        }
-    }
-
-    #[test]
-    fn exponential_dfs_is_completely_lazy() {
-        let source = Exponential {
-            child_count: 1000,
-            current_depth_index: 0,
-            max_depth_index: 99,
-            value: 7,
-        };
-        let result: Vec<Vec<u32>> = source.dfs().take(1).collect();
-        assert!(result[0].iter().all(|n| *n == 7));
-        assert_eq!(100, result[0].len());
     }
 
     #[test]
@@ -219,8 +125,8 @@ mod tests {
             items: &vec!['a', 'b', 'c'],
             index: 0,
         };
-        let result = source.combinations();
-        let expected = ["c", "b", "a", "c,b", "c,a", "b,a", "c,b,a", ""];
+        let result = source.dfs_include_empty().collect::<Vec<String>>();
+        let expected = ["c", "b", "a", "cb", "ca", "ba", "cba", ""];
         assert_eq!(result.len(), expected.len());
         assert!(expected
             .into_iter()
@@ -233,7 +139,7 @@ mod tests {
             items: &vec!['a'],
             index: 0,
         };
-        let result = source.combinations();
+        let result = source.dfs_include_empty().collect::<Vec<String>>();
         let expected = ["a", ""];
         assert_eq!(result.len(), expected.len());
         assert!(expected
@@ -247,7 +153,7 @@ mod tests {
             items: &vec![],
             index: 0,
         };
-        let result = source.combinations();
+        let result = source.dfs().collect::<Vec<String>>();
         assert!(result.is_empty());
     }
 }
