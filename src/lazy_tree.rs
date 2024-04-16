@@ -36,7 +36,7 @@ where
     }
 
     /// Does a depth first traversal by recursively calling `children` until
-    /// `is_empty`. Returns every path from root to leaf.
+    /// `is_empty`. Returns every path from left to root, in that order.
     fn dfs(&self) -> Box<dyn Iterator<Item = Vec<T>> + 'a> {
         Box::new(self.dfs_internal().filter(|i| i.len() > 0))
     }
