@@ -14,6 +14,7 @@ mod merge_keys;
 mod partitions;
 mod penalty;
 mod permutable;
+mod scratch;
 mod solution;
 mod util;
 mod word;

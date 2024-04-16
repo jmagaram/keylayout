@@ -1,3 +1,49 @@
+/// N is the type of item calculated at each step in the recursive process
+/// T is the type that collects each N into a result, such as a Vec  
+pub trait SeedPlus<'a, N, T>
+where
+    Self: 'a + Sized,
+    N: 'a + Clone,
+    T: 'a + Clone + Default + Eq,
+{
+    fn add(result: T, item: N) -> T;
+
+    /// Return true when no more children can be created.
+    fn is_empty(&self) -> bool;
+
+    /// This will never be called as long as is_empty is true.
+    fn children(&self) -> impl Iterator<Item = (N, Self)> + 'a;
+
+    /// Do not use. For internal use only.
+    ///
+    /// This returns a vec![[]] if called with a seed that generates no
+    /// children. Ideally this would not be needed as part of the trait
+    /// implementation, but removing it is difficult because private trait
+    /// members are not supported. The core dfs functionality could be moved to
+    /// an external function.
+    fn dfs_internal(&self) -> Box<dyn Iterator<Item = T> + 'a> {
+        if self.is_empty() {
+            let once_empty = std::iter::once(Default::default());
+            let once_empty_boxed: Box<dyn Iterator<Item = T> + 'a> = Box::new(once_empty);
+            once_empty_boxed
+        } else {
+            let result = self.children().flat_map(|(item, rest)| {
+                let children = rest.dfs_internal();
+                let with_item = children.map(move |child| Self::add(child, item.clone()));
+                with_item
+            });
+            let result_boxed: Box<dyn Iterator<Item = T> + 'a> = Box::new(result);
+            result_boxed
+        }
+    }
+
+    /// Does a depth first traversal by recursively calling `children` until
+    /// `is_empty`. Returns every path from leaf to root, in that order.
+    fn dfs(&self) -> Box<dyn Iterator<Item = T> + 'a> {
+        Box::new(self.dfs_internal().filter(|i| !i.eq(&Default::default())))
+    }
+}
+
 pub trait Seed<'a, T>
 where
     Self: 'a + Sized,
@@ -96,7 +142,7 @@ mod tests {
         }
     }
 
-    impl<'a> Seed<'a, Option<String>> for Combinations<'a> {
+    impl<'a> SeedPlus<'a, Option<String>, Vec<Option<String>>> for Combinations<'a> {
         fn is_empty(&self) -> bool {
             self.index == self.items.len()
         }
@@ -125,6 +171,12 @@ mod tests {
                 .into_iter();
                 Box::new(result) as Box<dyn Iterator<Item = (Option<String>, Self)> + 'a>
             }
+        }
+
+        fn add(result: Vec<Option<String>>, item: Option<String>) -> Vec<Option<String>> {
+            let mut result = result.clone();
+            result.push(item);
+            result
         }
     }
 

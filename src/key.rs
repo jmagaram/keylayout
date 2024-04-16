@@ -6,8 +6,12 @@ use std::{
 use rand::Rng;
 
 use crate::{
-    item_count::ItemCount, key::subset_implementation::SubsetSeed, lazy_tree::Seed, letter::Letter,
-    permutable::Permutable, util,
+    item_count::ItemCount,
+    key::subset_implementation::SubsetSeed,
+    lazy_tree::{Seed, SeedPlus},
+    letter::Letter,
+    permutable::Permutable,
+    util,
 };
 
 #[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy, Default)]
@@ -180,10 +184,10 @@ impl Key {
         let seed = SubsetSeed {
             available: self.clone(),
             needed: size as usize,
-            selected: Key::EMPTY,
             include_empty_set: size == 0,
         };
-        let z = seed.dfs().map(|rs| rs.first().map(|i| *i).unwrap());
+        // let z = seed.dfs();
+        let z = seed.dfs_internal();
         z.into_iter()
     }
 
@@ -206,23 +210,22 @@ impl Key {
 
 mod subset_implementation {
 
-    use crate::lazy_tree::Seed;
+    use crate::{lazy_tree::SeedPlus, letter::Letter};
 
     use super::Key;
 
     pub struct SubsetSeed {
         pub available: Key,
-        pub selected: Key,
         pub needed: usize,
         pub include_empty_set: bool, // i think this is actually ONLY empty set returned!
     }
 
-    impl<'a> Seed<'a, Key> for SubsetSeed {
+    impl<'a> SeedPlus<'a, Option<Letter>, Key> for SubsetSeed {
         fn is_empty(&self) -> bool {
             self.needed == 0 && !self.include_empty_set
         }
 
-        fn children(&self) -> impl Iterator<Item = (Key, Self)> + 'a {
+        fn children(&self) -> impl Iterator<Item = (Option<Letter>, Self)> + 'a {
             let max_letter = self.available.max_letter();
             match (max_letter, self.include_empty_set) {
                 (None, false) => {
@@ -230,10 +233,9 @@ mod subset_implementation {
                 }
                 (_, true) => {
                     let result = (
-                        Key::EMPTY,
+                        None,
                         SubsetSeed {
                             available: Key::EMPTY,
-                            selected: Key::EMPTY,
                             needed: 0,
                             include_empty_set: false,
                         },
@@ -243,10 +245,9 @@ mod subset_implementation {
                 (Some(max_letter), _) => {
                     let available = self.available.remove(max_letter);
                     let with_max_letter = (
-                        self.selected.add(max_letter),
+                        Some(max_letter),
                         SubsetSeed {
                             available,
-                            selected: self.selected.add(max_letter),
                             needed: self.needed - 1,
                             include_empty_set: self.include_empty_set,
                         },
@@ -256,10 +257,9 @@ mod subset_implementation {
                         false => vec![
                             with_max_letter,
                             (
-                                self.selected,
+                                None,
                                 SubsetSeed {
                                     available,
-                                    selected: self.selected,
                                     needed: self.needed,
                                     include_empty_set: self.include_empty_set,
                                 },
@@ -269,6 +269,13 @@ mod subset_implementation {
                     };
                     result
                 }
+            }
+        }
+
+        fn add(result: Key, item: Option<Letter>) -> Key {
+            match item {
+                Some(letter) => result.add(letter),
+                None => result,
             }
         }
     }
@@ -882,15 +889,10 @@ mod tests {
         let m = subset_implementation::SubsetSeed {
             needed: choose,
             available: k,
-            selected: Key::EMPTY,
             include_empty_set: false,
         };
         for i in m.dfs() {
-            let leaf = i.first();
-            match leaf {
-                Some(k) => println!("{}", *k),
-                None => println!("none found"),
-            }
+            println!("{}", i);
         }
     }
 }
