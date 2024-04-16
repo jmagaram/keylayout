@@ -53,7 +53,7 @@ impl Keyboard {
     }
 
     pub fn max_key_size(&self) -> Option<u32> {
-        self.keys.iter().map(|k| k.count_items()).max()
+        self.keys.iter().map(|k| k.count_letters()).max()
     }
 
     fn find_key_index_for_letter(&self, letter: Letter) -> Option<usize> {
@@ -183,7 +183,7 @@ impl Keyboard {
                 let combined_key = self.keys[a_index].union(self.keys[b_index]);
                 if prohibited_pairs
                     .iter()
-                    .all(move |k| k.intersect(combined_key).count_items() <= 1)
+                    .all(move |k| k.intersect(combined_key).count_letters() <= 1)
                 {
                     let new_keys: Vec<Key> = self
                         .keys

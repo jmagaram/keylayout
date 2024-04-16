@@ -45,7 +45,7 @@ impl Key {
         self.0 & (1 << r.to_u8()) != 0
     }
 
-    pub fn count_items(&self) -> u32 {
+    pub fn count_letters(&self) -> u32 {
         self.into_iter().count() as u32 // fix!
     }
 
@@ -92,16 +92,16 @@ impl Key {
 
     pub fn random_subset(&self, size: RangeInclusive<u32>) -> Key {
         assert!(
-            *size.start() <= self.count_items(),
+            *size.start() <= self.count_letters(),
             "Can not get a minimum of {} random letters from a Key with only {} letters in it.",
             size.start(),
-            self.count_items()
+            self.count_letters()
         );
         assert!(
-            *size.end() <= self.count_items(),
+            *size.end() <= self.count_letters(),
             "Can not get a maximum of {} random letters from a Key with only {} letters in it.",
             size.end(),
-            self.count_items()
+            self.count_letters()
         );
         assert!(
             *size.start() <= *size.end(),
@@ -126,7 +126,7 @@ impl Key {
             "Every subset size must be 1 or more."
         );
         debug_assert!(
-            groupings.iter().fold(0, |total, i| total + i) <= self.count_items(),
+            groupings.iter().fold(0, |total, i| total + i) <= self.count_letters(),
             "The total size of all the groups exceeds the number of letters in the Key."
         );
         RandomSubsets {
@@ -253,7 +253,7 @@ impl<'a> Seed<'a, Key> for DistributeLetters {
             "Expected the list of key sizes to not be empty."
         );
         assert!(
-            self.letters.count_items() > 0,
+            self.letters.count_letters() > 0,
             "Expected the number of remaining letters to be 1 or more."
         );
         debug_assert!(
@@ -261,7 +261,7 @@ impl<'a> Seed<'a, Key> for DistributeLetters {
             "Every key size should be 1 or more."
         );
         debug_assert!(
-            self.key_sizes.iter().fold(0, |total, i| total + i) <= self.letters.count_items(),
+            self.key_sizes.iter().fold(0, |total, i| total + i) <= self.letters.count_letters(),
             "Expected the sum of all the key sizes <= the number of remaining letters."
         );
         let (current_key_size, remaining_key_sizes) = self
@@ -446,11 +446,11 @@ mod tests {
     }
 
     #[test]
-    fn count_items_test() {
+    fn count_letters_test() {
         let data = [(""), ("a"), ("abcde"), ("abcdefghijklmnopqrstuvwxyz'")];
         for start in data {
             let start = Key::try_from(start).unwrap();
-            assert_eq!(start.count_items() as usize, start.to_string().len());
+            assert_eq!(start.count_letters() as usize, start.to_string().len());
         }
     }
 
