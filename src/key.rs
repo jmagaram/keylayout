@@ -737,7 +737,9 @@ mod tests {
     #[should_panic]
     fn random_subsets_panic_if_more_groups_than_letters() {
         #[allow(unused_must_use)]
-        Key::with_first_n_letters(4).random_subsets(&vec![2, 2, 1]);
+        Key::with_first_n_letters(4)
+            .random_subsets(&vec![2, 2, 1])
+            .count();
     }
 
     #[test]
@@ -745,7 +747,9 @@ mod tests {
     #[should_panic]
     fn random_subsets_panic_if_any_group_has_size_zero() {
         #[allow(unused_must_use)]
-        Key::with_first_n_letters(4).random_subsets(&vec![1, 1, 0, 2]);
+        Key::with_first_n_letters(4)
+            .random_subsets(&vec![1, 1, 0, 2])
+            .count();
     }
 
     #[test]
