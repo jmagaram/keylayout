@@ -14,13 +14,8 @@ where
     /// This will never be called as long as is_empty is true.
     fn children(&self) -> impl Iterator<Item = (N, Self)> + 'a;
 
-    /// Do not use. For internal use only.
-    ///
-    /// This returns a vec![[]] if called with a seed that generates no
-    /// children. Ideally this would not be needed as part of the trait
-    /// implementation, but removing it is difficult because private trait
-    /// members are not supported. The core dfs functionality could be moved to
-    /// an external function.
+    /// This returns a default T if called with a seed that generates no
+    /// children.
     fn dfs_internal(&self) -> Box<dyn Iterator<Item = T> + 'a> {
         if self.is_empty() {
             let once_empty = std::iter::once(Default::default());
@@ -38,7 +33,8 @@ where
     }
 
     /// Does a depth first traversal by recursively calling `children` until
-    /// `is_empty`. Returns every path from leaf to root, in that order.
+    /// `is_empty`. Collects every item N along the path from root to leaf into
+    /// a T.
     fn dfs(&self) -> Box<dyn Iterator<Item = T> + 'a> {
         Box::new(self.dfs_internal().filter(|i| !i.eq(&Default::default())))
     }
