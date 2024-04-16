@@ -5,7 +5,10 @@ use std::{
 
 use rand::Rng;
 
-use crate::{item_count::ItemCount, lazy_tree::Seed, letter::Letter, permutable::Permutable, util};
+use crate::{
+    item_count::ItemCount, key::subset_implementation::SubsetSeed, lazy_tree::Seed, letter::Letter,
+    permutable::Permutable, util,
+};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Key(u32);
@@ -168,6 +171,22 @@ impl Key {
         }
     }
 
+    pub fn subsets_of_size2(&self, size: u32) -> impl Iterator<Item = Key> {
+        assert!(
+            size <= Key::MAX_SIZE,
+            "Expected the subset size to be 0..={} (the maximum letters in the alphabet.",
+            Key::MAX_SIZE
+        );
+        let seed = SubsetSeed {
+            available: self.clone(),
+            needed: size as usize,
+            selected: Key::EMPTY,
+            include_empty_set: size == 0,
+        };
+        let z = seed.dfs().map(|rs| rs.first().map(|i| *i).unwrap());
+        z.into_iter()
+    }
+
     pub fn distribute(&self, key_sizes: ItemCount<u32>) -> impl Iterator<Item = Vec<Key>> + '_ {
         let results = key_sizes
             .permute()
@@ -182,6 +201,76 @@ impl Key {
             })
             .flatten();
         results
+    }
+}
+
+mod subset_implementation {
+
+    use crate::lazy_tree::Seed;
+
+    use super::Key;
+
+    pub struct SubsetSeed {
+        pub available: Key,
+        pub selected: Key,
+        pub needed: usize,
+        pub include_empty_set: bool, // i think this is actually ONLY empty set returned!
+    }
+
+    impl<'a> Seed<'a, Key> for SubsetSeed {
+        fn is_empty(&self) -> bool {
+            self.needed == 0 && !self.include_empty_set
+        }
+
+        fn children(&self) -> impl Iterator<Item = (Key, Self)> + 'a {
+            let max_letter = self.available.max_letter();
+            match (max_letter, self.include_empty_set) {
+                (None, false) => {
+                    panic!("Could not get a letter from the Key but was expecting one.")
+                }
+                (_, true) => {
+                    let result = (
+                        Key::EMPTY,
+                        SubsetSeed {
+                            available: Key::EMPTY,
+                            selected: Key::EMPTY,
+                            needed: 0,
+                            include_empty_set: false,
+                        },
+                    );
+                    vec![result].into_iter()
+                }
+                (Some(max_letter), _) => {
+                    let available = self.available.remove(max_letter);
+                    let with_max_letter = (
+                        self.selected.add(max_letter),
+                        SubsetSeed {
+                            available,
+                            selected: self.selected.add(max_letter),
+                            needed: self.needed - 1,
+                            include_empty_set: self.include_empty_set,
+                        },
+                    );
+                    let result = match self.needed == self.available.count_letters() as usize {
+                        true => vec![with_max_letter].into_iter(),
+                        false => vec![
+                            with_max_letter,
+                            (
+                                self.selected,
+                                SubsetSeed {
+                                    available,
+                                    selected: self.selected,
+                                    needed: self.needed,
+                                    include_empty_set: self.include_empty_set,
+                                },
+                            ),
+                        ]
+                        .into_iter(),
+                    };
+                    result
+                }
+            }
+        }
     }
 }
 
@@ -778,6 +867,26 @@ mod tests {
                 .flat_map(|ks| ks)
                 .fold(Key::EMPTY, |total, i| total.union(i));
             assert_eq!(all_letters.count(), letter_count as usize);
+        }
+    }
+
+    #[test]
+    fn subsets() {
+        let total_letters = 7;
+        let choose = 3;
+        let k = Key::with_first_n_letters(total_letters);
+        let m = subset_implementation::SubsetSeed {
+            needed: choose,
+            available: k,
+            selected: Key::EMPTY,
+            include_empty_set: false,
+        };
+        for i in m.dfs() {
+            let leaf = i.first();
+            match leaf {
+                Some(k) => println!("{}", *k),
+                None => println!("none found"),
+            }
         }
     }
 }
