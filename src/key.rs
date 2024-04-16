@@ -674,7 +674,6 @@ mod tests {
         }
     }
 
-    // fn format_distribute_results()
     #[test]
     #[ignore]
     fn distribute_key_and_print() {

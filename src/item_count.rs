@@ -23,10 +23,6 @@ impl<T> ItemCount<T> {
         }
         ItemCount(map)
     }
-
-    // pub fn permute(&self) -> i32 {
-    //     self.permute()
-    // }
 }
 
 impl<T> Permutable<T> for ItemCount<T>
