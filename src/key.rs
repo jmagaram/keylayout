@@ -138,26 +138,34 @@ impl Key {
 
     pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Key> {
         assert!(
-            size > 0 && size <= Key::MAX_SIZE,
-            "Expected the subset size to be 1..={} (the maximum letters in the alphabet.",
+            size <= Key::MAX_SIZE,
+            "Expected the subset size to be 0..={} (the maximum letters in the alphabet.",
             Key::MAX_SIZE
         );
-        let letters = self.into_iter().collect::<Vec<Letter>>();
-        let letters_count = letters.len();
-        let max_exclusive = 1 << letters_count;
-        assert!(
-            letters_count >= size.try_into().unwrap(),
-            "Expected the subset size ({}) to be <= the number of letters on the key ({}).",
-            size,
-            letters_count
-        );
-        util::same_set_bits(size)
-            .take_while(move |i| *i < max_exclusive)
-            .map(move |i| {
-                Key(i as u32)
-                    .into_iter()
-                    .fold(Key::EMPTY, |total, i| total.add(letters[i.to_usize()]))
-            })
+        if size == 0 {
+            let result = std::iter::once(Key::EMPTY);
+            let result_boxed: Box<dyn Iterator<Item = Key>> = Box::new(result);
+            result_boxed
+        } else {
+            let letters = self.into_iter().collect::<Vec<Letter>>();
+            let letters_count = letters.len();
+            let max_exclusive = 1 << letters_count;
+            assert!(
+                letters_count >= size.try_into().unwrap(),
+                "Expected the subset size ({}) to be <= the number of letters on the key ({}).",
+                size,
+                letters_count
+            );
+            let result = util::same_set_bits(size)
+                .take_while(move |i| *i < max_exclusive)
+                .map(move |i| {
+                    Key(i as u32)
+                        .into_iter()
+                        .fold(Key::EMPTY, |total, i| total.add(letters[i.to_usize()]))
+                });
+            let result_boxed: Box<dyn Iterator<Item = Key>> = Box::new(result);
+            result_boxed
+        }
     }
 }
 
@@ -532,10 +540,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn subsets_of_size_panic_if_zero() {
+    fn subsets_of_size_return_one_empty_set() {
         let key = Key::with_every_letter();
-        key.subsets_of_size(0).take(1).count();
+        let result = key.subsets_of_size(0).collect::<Vec<Key>>();
+        assert_eq!(1, result.len());
+        assert_eq!(Key::EMPTY, result[0]);
     }
 
     #[test]
