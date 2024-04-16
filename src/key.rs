@@ -5,7 +5,7 @@ use std::{
 
 use rand::Rng;
 
-use crate::{letter::Letter, util};
+use crate::{lazy_tree::Seed, letter::Letter, util};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Key(u32);
@@ -236,76 +236,64 @@ impl Iterator for RandomSubsets {
     }
 }
 
-struct DistributeLetters<'a> {
-    groups: &'a Vec<u32>,
-    group_index: usize,
+struct DistributeLetters {
+    key_sizes: Vec<u32>,
     letters: Key,
 }
 
-impl<'a> crate::lazy_tree::Seed<'a, Key> for DistributeLetters<'a> {
-    fn children(&self) -> Vec<(Key, Self)> {
-        if self.group_index == self.groups.len() {
-            vec![]
-        } else {
-            let key_size = self.groups[self.group_index];
-            if self.letters.count_items() < key_size {
-                panic!(
-                    "Can't generate a key of size {} since there are no remaining letters.",
-                    key_size
-                )
-            }
-            let first_letter = self.letters.max_letter().unwrap();
-            let remaining_letters = self.letters.remove(first_letter);
-            let remaining_work = match remaining_letters.count_items() {
-                0 => {
-                    let key = self.letters;
-                    vec![(
-                        key,
-                        DistributeLetters {
-                            group_index: self.group_index + 1,
-                            letters: Key::EMPTY,
-                            ..*self
-                        },
-                    )]
-                }
-                _ => match key_size {
-                    1 => {
-                        let key = Key::with_one_letter(first_letter);
-                        let remaining_letters = self.letters.except(key);
-                        let seed = DistributeLetters {
-                            group_index: self.group_index + 1,
-                            letters: remaining_letters,
-                            ..*self
-                        };
-                        vec![(key, seed)]
-                    }
-                    _ => {
-                        let result = remaining_letters
-                            .subsets_of_size(key_size - 1)
-                            .map(|k| {
-                                let key = k.add(first_letter);
-                                let remaining_letters = self.letters.except(key);
-                                let seed = DistributeLetters {
-                                    group_index: self.group_index + 1,
-                                    letters: remaining_letters,
-                                    ..*self
-                                };
-                                (key, seed)
-                            })
-                            .collect::<Vec<(Key, DistributeLetters<'a>)>>();
-                        result
-                    }
-                },
-            };
-            remaining_work
-        }
+// can have more letters than groups
+impl<'a> Seed<'a, Key> for DistributeLetters {
+    fn is_empty(&self) -> bool {
+        self.key_sizes.is_empty()
+    }
+
+    fn children(&self) -> impl Iterator<Item = (Key, Self)> + 'a {
+        assert!(
+            self.key_sizes.len() > 0,
+            "Expected the list of key sizes to not be empty."
+        );
+        assert!(
+            self.letters.count_items() > 0,
+            "Expected the number of remaining letters to be 1 or more."
+        );
+        debug_assert!(
+            self.key_sizes.iter().all(|i| *i > 0),
+            "Every key size should be 1 or more."
+        );
+        debug_assert!(
+            self.key_sizes.iter().fold(0, |total, i| total + i) <= self.letters.count_items(),
+            "Expected the sum of all the key sizes <= the number of remaining letters."
+        );
+        let (current_key_size, remaining_key_sizes) = self
+            .key_sizes
+            .split_first()
+            .expect("Could not extract the first and remaining key sizes.");
+        let remaining_key_sizes = remaining_key_sizes.to_vec();
+        let max_letter = self.letters.max_letter().unwrap();
+        let remaining_letters = self.letters.remove(max_letter);
+        let letters_to_distribute = self.letters.clone();
+        let results =
+            remaining_letters
+                .subsets_of_size(current_key_size - 1)
+                .map(move |other_letters| {
+                    let new_key = other_letters.add(max_letter);
+                    let remaining_letters = letters_to_distribute.except(new_key);
+                    let seed = DistributeLetters {
+                        key_sizes: remaining_key_sizes.clone(),
+                        letters: remaining_letters,
+                    };
+                    (new_key, seed)
+                });
+        let boxed_results: Box<dyn Iterator<Item = (Key, Self)> + 'a> = Box::new(results);
+        boxed_results
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        keyboard::Keyboard, lazy_tree::Seed, letter::Letter, permutable::Permutable, util,
+        item_count, keyboard::Keyboard, lazy_tree::Seed, letter::Letter, permutable::Permutable,
+        util,
     };
 
     use super::*;
@@ -671,18 +659,21 @@ mod tests {
         let layouts = crate::partitions::Partitions {
             parts: 2,
             sum: letter_count,
-            min: 1,
+            min: 2,
             max: letter_count,
         }
         .permute();
         for layout in layouts {
-            let source = DistributeLetters {
-                letters,
-                group_index: 0,
-                groups: &layout,
-            };
-            for k in source.dfs().map(|ks| Keyboard::new_from_keys(ks)) {
-                println!("{0}", k)
+            println!();
+            let rearrange = item_count::with_u32_groups(&layout);
+            for arrangement in rearrange.permute() {
+                let source = DistributeLetters {
+                    key_sizes: arrangement,
+                    letters: letters,
+                };
+                for k in source.dfs().map(|ks| Keyboard::new_from_keys(ks)) {
+                    println!("{0}", k)
+                }
             }
         }
     }
