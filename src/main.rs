@@ -5,7 +5,6 @@ use penalty::Penalty;
 mod dictionary;
 mod frequency;
 mod genetic;
-mod item_count;
 mod key;
 mod keyboard;
 mod lazy_tree;

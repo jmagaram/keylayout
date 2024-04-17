@@ -37,6 +37,24 @@ pub fn same_set_bits(count: u32) -> impl Iterator<Item = u64> {
     iterator
 }
 
+pub fn frequency_map_from_string(key_sizes: &str) -> HashMap<u32, u32> {
+    key_sizes
+        .split(" ")
+        .map(|size| size.parse::<u32>().unwrap())
+        .collect::<Vec<u32>>()
+        .iter()
+        .fold(HashMap::new(), |mut total, i| match total.get(i) {
+            Some(count) => {
+                total.insert(i.clone(), count + 1u32);
+                total
+            }
+            None => {
+                total.insert(i.clone(), 1u32);
+                total
+            }
+        })
+}
+
 pub fn permute_by_frequency<T>(items: HashMap<T, u32>) -> Vec<Vec<T>>
 where
     T: Clone + Hash + Eq,

@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use keylayout::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty};
+use keylayout::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty, util};
 
 fn calculate_penalty_score(c: &mut Criterion) {
     let d = Dictionary::load();
@@ -62,12 +64,33 @@ fn generate_small_subsets(c: &mut Criterion) {
         })
     });
 }
+
+fn distribute_keys(c: &mut Criterion) {
+    fn make_key_sizes() -> HashMap<u32, u32> {
+        let mut map = HashMap::new();
+        map.insert(4, 2);
+        map.insert(3, 3);
+        map.insert(2, 4);
+        map.insert(1, 2);
+        map
+    }
+    c.bench_function("PERMUTE KEY SIZES", |b| {
+        b.iter(|| {
+            // let item_counts = ItemCount::<u32>::new(make_key_sizes()); // awkward
+            // Permutable::permute(&black_box(item_counts));
+
+            util::permute_by_frequency(make_key_sizes());
+        })
+    });
+}
+
 criterion_group!(
     benches,
-    generate_big_subsets,
-    generate_small_subsets,
-    load_dictionary,
-    calculate_penalty_score,
-    spell_every_word
+    // generate_big_subsets,
+    // generate_small_subsets,
+    // load_dictionary,
+    // calculate_penalty_score,
+    // spell_every_word,
+    distribute_keys
 );
 criterion_main!(benches);

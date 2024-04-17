@@ -1,7 +1,6 @@
 pub mod dictionary;
 pub mod frequency;
 pub mod genetic;
-pub mod item_count;
 pub mod key;
 pub mod keyboard;
 pub mod lazy_tree;

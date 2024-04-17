@@ -1,14 +1,12 @@
 use std::{
+    collections::HashMap,
     fmt::{self, Debug},
     ops::RangeInclusive,
 };
 
 use rand::Rng;
 
-use crate::{
-    item_count::ItemCount, key::subset_implementation::SubsetSeed, lazy_tree::Seed, letter::Letter,
-    permutable::Permutable, util,
-};
+use crate::{key::subset_implementation::SubsetSeed, lazy_tree::Seed, letter::Letter, util};
 
 #[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy, Default)]
 pub struct Key(u32);
@@ -187,9 +185,8 @@ impl Key {
         z.into_iter()
     }
 
-    pub fn distribute(&self, key_sizes: ItemCount<u32>) -> impl Iterator<Item = Vec<Key>> + '_ {
-        let results = key_sizes
-            .permute()
+    pub fn distribute(&self, key_sizes: HashMap<u32, u32>) -> impl Iterator<Item = Vec<Key>> + '_ {
+        let results = util::permute_by_frequency(key_sizes)
             .into_iter()
             .map(|arrangement| {
                 let distributor = DistributeLetters {
@@ -407,7 +404,7 @@ mod tests {
 
     use std::collections::HashSet;
 
-    use crate::{item_count::ItemCount, keyboard::Keyboard, letter::Letter, util};
+    use crate::{keyboard::Keyboard, letter::Letter, util};
 
     use super::*;
 
@@ -773,7 +770,7 @@ mod tests {
     #[ignore]
     fn distribute_key_and_print() {
         let key = Key::with_first_n_letters(6);
-        let key_sizes = ItemCount::<u32>::with_groups(&vec![2, 3, 1]); // ugly syntax
+        let key_sizes = util::frequency_map_from_string("2 3 1");
         let results = key.distribute(key_sizes);
         for r in results {
             let k = Keyboard::new_from_keys(r);
@@ -793,7 +790,7 @@ mod tests {
     #[test]
     fn distribute_letters_with_equal_key_sizes() {
         let key = Key::with_first_n_letters(4);
-        let key_sizes = ItemCount::<u32>::with_groups(&vec![2, 2]);
+        let key_sizes = util::frequency_map_from_string("2 2");
         let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
         let results_as_text = format_keys(&results);
         assert_eq!("ab cd : ac bd : ad bc", results_as_text);
@@ -802,7 +799,7 @@ mod tests {
     #[test]
     fn distribute_letters_with_unequal_key_sizes() {
         let key = Key::with_first_n_letters(3);
-        let key_sizes = ItemCount::<u32>::with_groups(&vec![1, 2]);
+        let key_sizes = util::frequency_map_from_string("1 2");
         let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
         let results_as_text = format_keys(&results);
         assert_eq!("a bc : ab c : ac b", results_as_text);
@@ -811,7 +808,7 @@ mod tests {
     #[test]
     fn distribute_many_letters_with_one_key() {
         let key = Key::with_first_n_letters(3);
-        let key_sizes = ItemCount::<u32>::with_groups(&vec![3]);
+        let key_sizes = util::frequency_map_from_string("3");
         let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
         let results_as_text = format_keys(&results);
         assert_eq!("abc", results_as_text);
@@ -820,7 +817,7 @@ mod tests {
     #[test]
     fn distribute_one_letter_on_one_key() {
         let key = Key::with_first_n_letters(1);
-        let key_sizes = ItemCount::<u32>::with_groups(&vec![1]);
+        let key_sizes = util::frequency_map_from_string("1");
         let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
         let results_as_text = format_keys(&results);
         assert_eq!("a", results_as_text);
@@ -829,7 +826,7 @@ mod tests {
     #[test]
     fn distribute_letters_calculates_correct_number_of_results() {
         let key = Key::with_first_n_letters(14);
-        let key_sizes = ItemCount::<u32>::with_groups(&vec![2, 2, 3, 3, 4]);
+        let key_sizes = util::frequency_map_from_string("2 2 3 3 4");
         let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
         assert_eq!(6306300, results.iter().count());
     }
@@ -847,7 +844,12 @@ mod tests {
         for d in data {
             let letter_count: u32 = d.iter().fold(0, |total, i| total + i);
             let key = Key::with_first_n_letters(letter_count);
-            let key_sizes = ItemCount::<u32>::with_groups(&d);
+            let key_sizes_string = d
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>()
+                .join(" ");
+            let key_sizes = util::frequency_map_from_string(key_sizes_string.as_str());
             key.distribute(key_sizes)
                 .map(|ks| Keyboard::new_from_keys(ks).to_string())
                 .fold(HashSet::new(), |mut total, i| {
@@ -873,7 +875,12 @@ mod tests {
         for d in data {
             let letter_count: u32 = d.iter().fold(0, |total, i| total + i);
             let key = Key::with_first_n_letters(letter_count);
-            let key_sizes = ItemCount::<u32>::with_groups(&d);
+            let key_sizes_string = d
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>()
+                .join(" ");
+            let key_sizes = util::frequency_map_from_string(key_sizes_string.as_str());
             let all_letters = key
                 .distribute(key_sizes)
                 .flat_map(|ks| ks)
