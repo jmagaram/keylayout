@@ -82,13 +82,12 @@ impl Key {
     }
 
     pub fn random_letter(&self) -> Option<Letter> {
-        let letters = self.collect::<Vec<Letter>>();
-        match letters.len() {
-            0 => None,
-            count => {
-                let index = rand::random::<usize>().rem_euclid(count);
-                Some(letters[index])
-            }
+        let total_letters = self.count_letters();
+        if total_letters == 0 {
+            None
+        } else {
+            let index = rand::random::<usize>().rem_euclid(total_letters as usize);
+            self.into_iter().nth(index)
         }
     }
 
