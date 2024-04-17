@@ -133,7 +133,7 @@ impl Key {
         );
         RandomSubsets {
             groups: groupings.to_vec(),
-            remaining_letters: self.clone(), // needed?
+            remaining_letters: *self,
         }
         .into_iter()
     }
