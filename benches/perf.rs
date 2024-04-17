@@ -72,9 +72,6 @@ fn distribute_keys(c: &mut Criterion) {
     }
     c.bench_function("PERMUTE KEY SIZES", |b| {
         b.iter(|| {
-            // let item_counts = ItemCount::<u32>::new(make_key_sizes()); // awkward
-            // Permutable::permute(&black_box(item_counts));
-
             let key_sizes = black_box(make_key_sizes());
             key_sizes.combinations();
         })
@@ -95,6 +92,37 @@ fn partition_sum(c: &mut Criterion) {
     });
 }
 
+fn distribute_letters(c: &mut Criterion) {
+    let source = Partitions {
+        sum: 27,
+        parts: 10,
+        min: 1,
+        max: 27,
+    };
+    c.bench_function("DISTRIBUTE LETTERS", |b| {
+        b.iter(|| {
+            let key = Key::with_every_letter();
+            let key_sizes = Tally::from([3, 3, 3, 3, 3, 3, 3, 2, 2, 2]);
+            let keyboard_count = 1000;
+            let results = key.distribute(key_sizes).take(black_box(keyboard_count));
+        })
+    });
+}
+
+fn random_subsets(c: &mut Criterion) {
+    let key = Key::with_every_letter();
+    let key_sizes = vec![3, 3, 3, 3, 3, 3, 3, 2, 2, 2];
+    c.bench_function("RANDOM SUBSETS", |b| {
+        b.iter(|| {
+            for _ in 1..1000 {
+                let keys = key.random_subsets(black_box(&key_sizes));
+                let _keys_materialized = keys.collect::<Vec<Key>>();
+                // let kbd = Keyboard::new_from_keys(keys_materialized);
+                // println!("{}", kbd);
+            }
+        })
+    });
+}
 criterion_group!(
     benches,
     // generate_big_subsets,
@@ -103,6 +131,8 @@ criterion_group!(
     // calculate_penalty_score,
     // spell_every_word,
     // distribute_keys,
-    partition_sum
+    // partition_sum,
+    // distribute_letters,
+    random_subsets
 );
 criterion_main!(benches);
