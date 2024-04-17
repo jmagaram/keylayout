@@ -11,5 +11,6 @@ pub mod penalty;
 pub mod permutable;
 pub mod scratch;
 pub mod solution;
+pub mod tally;
 pub mod util;
 pub mod word;

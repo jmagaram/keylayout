@@ -15,6 +15,7 @@ mod penalty;
 mod permutable;
 mod scratch;
 mod solution;
+mod tally;
 mod util;
 mod word;
 
