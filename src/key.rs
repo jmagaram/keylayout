@@ -170,22 +170,6 @@ impl Key {
         }
     }
 
-    pub fn subsets_of_size2(&self, size: u32) -> impl Iterator<Item = Key> {
-        assert!(
-            size <= Key::MAX_SIZE,
-            "Expected the subset size to be 0..={} (the maximum letters in the alphabet.",
-            Key::MAX_SIZE
-        );
-        let seed = SubsetSeed {
-            available: self.clone(),
-            needed: size as usize,
-            include_empty_set: size == 0,
-        };
-        // let z = seed.dfs();
-        let z = seed.dfs_include_empty();
-        z.into_iter()
-    }
-
     pub fn distribute(&self, key_sizes: Tally<u32>) -> impl Iterator<Item = Vec<Key>> + '_ {
         let results = key_sizes
             .combinations()
