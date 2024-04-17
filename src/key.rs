@@ -134,6 +134,7 @@ impl Key {
         RandomSubsets {
             groups: groupings.to_vec(),
             remaining_letters: *self,
+            group_index: 0,
         }
         .into_iter()
     }
@@ -325,6 +326,7 @@ impl Iterator for Key {
 
 struct RandomSubsets {
     groups: Vec<u32>,
+    group_index: usize,
     remaining_letters: Key,
 }
 
@@ -332,14 +334,18 @@ impl Iterator for RandomSubsets {
     type Item = Key;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (group_size, remaining_groups) = self.groups.split_first()?;
-        let key = self
-            .remaining_letters
-            .random_subset(*group_size..=*group_size);
-        let remaining_letters = self.remaining_letters.except(key);
-        self.groups = remaining_groups.to_vec();
-        self.remaining_letters = remaining_letters;
-        Some(key)
+        if self.group_index >= self.groups.len() {
+            None
+        } else {
+            let group_size = self.groups[self.group_index];
+            let key = self
+                .remaining_letters
+                .random_subset(group_size..=group_size);
+            let remaining_letters = self.remaining_letters.except(key);
+            self.remaining_letters = remaining_letters;
+            self.group_index = self.group_index + 1;
+            Some(key)
+        }
     }
 }
 
@@ -757,6 +763,28 @@ mod tests {
         Key::with_first_n_letters(4)
             .random_subsets(&vec![1, 1, 0, 2])
             .count();
+    }
+
+    #[test]
+    fn random_subsets() {
+        let key = Key::with_every_letter();
+        let data = [
+            vec![3, 3, 5, 4],
+            vec![1, 1, 1, 1],
+            vec![5, 5, 2, 1],
+            vec![1],
+        ];
+        for key_sizes in data {
+            let result = key.random_subsets(&key_sizes).collect::<Vec<Key>>();
+            let total_letters = key_sizes.iter().fold(0, |total, i| total + i);
+            let every_letter = result.iter().fold(Key::EMPTY, |total, i| total.union(*i));
+            assert_eq!(every_letter.count_letters(), total_letters);
+            let unique_letters = result
+                .into_iter()
+                .flat_map(|k| k.into_iter().map(|r| r))
+                .collect::<HashSet<Letter>>();
+            assert_eq!(unique_letters.len(), total_letters as usize);
+        }
     }
 
     #[test]
