@@ -8,7 +8,6 @@ pub mod letter;
 pub mod merge_keys;
 pub mod partitions;
 pub mod penalty;
-pub mod permutable;
 pub mod scratch;
 pub mod solution;
 pub mod tally;

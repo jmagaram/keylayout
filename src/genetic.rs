@@ -2,7 +2,7 @@ use rand::Rng;
 
 use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
-    permutable::Permutable, solution::Solution,
+    solution::Solution,
 };
 use std::sync::mpsc;
 
