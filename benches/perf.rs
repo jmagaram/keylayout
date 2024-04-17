@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use keylayout::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty, util};
+use keylayout::{
+    dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty, tally::Tally,
+};
 
 fn calculate_penalty_score(c: &mut Criterion) {
     let d = Dictionary::load();
@@ -66,20 +66,16 @@ fn generate_small_subsets(c: &mut Criterion) {
 }
 
 fn distribute_keys(c: &mut Criterion) {
-    fn make_key_sizes() -> HashMap<u32, u32> {
-        let mut map = HashMap::new();
-        map.insert(4, 2);
-        map.insert(3, 3);
-        map.insert(2, 4);
-        map.insert(1, 2);
-        map
+    fn make_key_sizes() -> Tally<u32> {
+        Tally::from_iter([4, 4, 3, 3, 3, 2, 2, 2, 2, 1, 1])
     }
     c.bench_function("PERMUTE KEY SIZES", |b| {
         b.iter(|| {
             // let item_counts = ItemCount::<u32>::new(make_key_sizes()); // awkward
             // Permutable::permute(&black_box(item_counts));
 
-            util::permute_by_frequency(make_key_sizes());
+            let key_sizes = black_box(make_key_sizes());
+            key_sizes.combinations();
         })
     });
 }

@@ -77,6 +77,18 @@ where
     }
 }
 
+impl<K> FromIterator<K> for Tally<K>
+where
+    K: Hash + Eq + Clone,
+{
+    fn from_iter<T: IntoIterator<Item = K>>(iter: T) -> Self {
+        iter.into_iter().fold(Tally::<K>::new(), |mut total, i| {
+            total.increment(i.clone());
+            total
+        })
+    }
+}
+
 impl<K, const N: usize> From<[(K, u32); N]> for Tally<K>
 where
     K: Hash + Eq + Clone,
@@ -97,6 +109,13 @@ mod tests {
     use super::*;
 
     use std::collections::HashSet;
+
+    #[test]
+    fn from_iterator_of_items() {
+        let tally = Tally::from_iter(["a", "a", "b", "b", "a"]);
+        assert_eq!(*tally.count(&"a"), 3);
+        assert_eq!(*tally.count(&"b"), 2);
+    }
 
     #[test]
     fn from_tuples_array_sums_duplicate_items() {
