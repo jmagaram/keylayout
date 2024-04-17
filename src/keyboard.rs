@@ -1,10 +1,10 @@
-use std::{collections::HashMap, fmt, iter};
+use std::{fmt, iter};
 
 use rand::Rng;
 
 use crate::{
     dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, solution::Solution,
-    word::Word,
+    tally::Tally, word::Word,
 };
 
 // fix this!
@@ -212,18 +212,18 @@ impl Keyboard {
     }
 
     pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
-        let mut found = HashMap::new();
+        let mut found = Tally::<String>::new();
         let mut penalty = Penalty::ZERO;
         for word in dictionary.words() {
             let how_to_spell = self.spell_serialized(word);
-            let word_penalty = match found.get(&how_to_spell) {
-                None => {
-                    found.insert(how_to_spell, 1);
+            let word_penalty = match found.count(&how_to_spell) {
+                0 => {
+                    found.increment(how_to_spell);
                     Penalty::ZERO
                 }
-                Some(seen) => {
+                seen => {
                     let seen = *seen;
-                    found.insert(how_to_spell, seen + 1);
+                    found.increment(how_to_spell);
                     Penalty::new(word.frequency().to_f32() * seen.min(4) as f32)
                 }
             };
