@@ -58,14 +58,14 @@ where
                 } else {
                     items.insert(item.clone(), count - 1);
                 }
-                permute_by_frequency(items)
-                    .iter()
-                    .map(|p| {
-                        let mut c = p.clone();
-                        c.push(item.clone());
-                        c
+                let results = permute_by_frequency(items)
+                    .into_iter()
+                    .map(|mut p| {
+                        p.push(item.clone());
+                        p
                     })
-                    .collect::<Vec<Vec<T>>>()
+                    .collect::<Vec<Vec<T>>>();
+                results
             })
             .collect::<Vec<Vec<T>>>()
     }
@@ -97,7 +97,7 @@ mod tests {
         #[test]
         #[ignore]
         fn display_permutations() {
-            let data = [(2, 3, 0), (1, 1, 0), (5, 4, 3)];
+            let data = [(2, 1, 0)];
             for (a, b, c) in data {
                 let m = make_map(a, b, c);
                 let ff = permute_by_frequency(m);
