@@ -37,8 +37,7 @@ impl Keyboard {
         let keys = s
             .split(",")
             .map(|letters| {
-                let m = Key::try_from(letters).unwrap();
-                m
+                Key::try_from(letters).expect("Expected each key to be separated by a comma.")
             })
             .collect::<Vec<Key>>();
         Keyboard::new_from_keys(keys)
@@ -211,10 +210,12 @@ impl Keyboard {
         self.every_combine_two_keys_filter(&vec![])
     }
 
-    pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
-        let mut found = Tally::<String>::new();
-        let mut penalty = Penalty::ZERO;
-        for word in dictionary.words() {
+    pub fn penalty_by_word<'a>(
+        &'a self,
+        dictionary: &'a Dictionary,
+    ) -> impl Iterator<Item = (&Word, Penalty)> {
+        let mut found = Tally::new();
+        dictionary.words().iter().map(move |word| {
             let how_to_spell = self.spell_serialized(word);
             let word_penalty = match found.count(&how_to_spell) {
                 0 => {
@@ -227,6 +228,13 @@ impl Keyboard {
                     Penalty::new(word.frequency().to_f32() * seen.min(4) as f32)
                 }
             };
+            (word, word_penalty)
+        })
+    }
+
+    pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
+        let mut penalty = Penalty::ZERO;
+        for (_, word_penalty) in self.penalty_by_word(dictionary) {
             penalty = penalty + word_penalty;
             if penalty >= to_beat {
                 break;
@@ -364,21 +372,15 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn output_letters_to_scoring() {
+    fn create_file_of_penalty_per_word() {
         use std::fs::File;
         use std::io::prelude::*;
         let mut file = File::create("output.txt").unwrap();
-        writeln!(file, "This is a line of text written to a file.").unwrap();
-
-        let letters = "pt,ly,bn,sz,em,gr,afj,ikwx,cdu',hoqv";
+        writeln!(file, "word, penalty").unwrap();
         let d = Dictionary::load();
-        let total_words = d.words().len();
-        for i in 1..total_words {
-            let d = d.with_top_n_words(i);
-            let keyboard = Keyboard::new_from_layout(letters);
-            let penalty = keyboard.penalty(&d, Penalty::MAX);
-            println!("{},{}", i, penalty.to_f32());
-            writeln!(file, "{},{}", i, penalty.to_f32()).unwrap();
+        let keyboard = Keyboard::new_from_layout("ot,gr,dh,su,im,bn,awz,cky',fjlx,epqv");
+        for (word, penalty) in keyboard.penalty_by_word(&d) {
+            writeln!(file, "{},{}", word, penalty.to_f32()).unwrap();
         }
     }
 }
