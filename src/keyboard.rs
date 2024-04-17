@@ -376,11 +376,11 @@ mod tests {
         use std::fs::File;
         use std::io::prelude::*;
         let mut file = File::create("output.txt").unwrap();
-        writeln!(file, "word, penalty").unwrap();
+        writeln!(file, "index, word, penalty").unwrap();
         let d = Dictionary::load();
         let keyboard = Keyboard::new_from_layout("ot,gr,dh,su,im,bn,awz,cky',fjlx,epqv");
-        for (word, penalty) in keyboard.penalty_by_word(&d) {
-            writeln!(file, "{},{}", word, penalty.to_f32()).unwrap();
+        for (word_index, (word, penalty)) in keyboard.penalty_by_word(&d).enumerate() {
+            writeln!(file, "{},{},{}", word_index + 1, word, penalty.to_f32()).unwrap();
         }
     }
 }
