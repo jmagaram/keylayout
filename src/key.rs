@@ -93,19 +93,19 @@ impl Key {
     }
 
     pub fn random_subset(&self, size: RangeInclusive<u32>) -> Key {
-        assert!(
+        debug_assert!(
             *size.start() <= self.count_letters(),
             "Can not get a minimum of {} random letters from a Key with only {} letters in it.",
             size.start(),
             self.count_letters()
         );
-        assert!(
+        debug_assert!(
             *size.end() <= self.count_letters(),
             "Can not get a maximum of {} random letters from a Key with only {} letters in it.",
             size.end(),
             self.count_letters()
         );
-        assert!(
+        debug_assert!(
             *size.start() <= *size.end(),
             "The range {:?} is not valid. Expected start <= end.",
             size
