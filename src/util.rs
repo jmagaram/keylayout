@@ -1,4 +1,5 @@
 use std::iter;
+use std::{collections::HashMap, hash::Hash};
 
 pub fn choose(n: u32, k: u32) -> u128 {
     let n = n as u128;
@@ -36,68 +37,101 @@ pub fn same_set_bits(count: u32) -> impl Iterator<Item = u64> {
     iterator
 }
 
-// pub trait Permutable<T>
-// where
-//     Self: Sized,
-// {
-//     fn is_empty(&self) -> bool;
-//     fn parts(&self) -> Box<dyn Iterator<Item = (T, Self)>>;
-//     fn permute(&self, first_time_called: bool) -> Box<dyn Iterator<Item = Vec<T>>>
-//     where
-//         T: Copy + Clone,
-//     {
-//         match (self.is_empty(), first_time_called) {
-//             (true, true) => {
-//                 let result = iter::empty();
-//                 let result_boxed: Box<dyn Iterator<Item = Vec<T>>> = Box::new(result);
-//                 result_boxed
-//             }
-//             (true, false) => {
-//                 let result = iter::once(vec![]);
-//                 let result_boxed: Box<dyn Iterator<Item = Vec<T>>> = Box::new(result);
-//                 result_boxed
-//             }
-//             (false, _) => {
-//                 let result = self.parts().into_iter().flat_map(|part| {
-//                     let (item, rest) = part;
-//                     let result = rest.permute(false).map(move |r| {
-//                         let mut results_copy = r.to_owned();
-//                         results_copy.push(item);
-//                         results_copy
-//                     });
-//                     result
-//                 });
-//                 let result_boxed: Box<dyn Iterator<Item = Vec<T>>> = Box::new(result);
-//                 result_boxed
-//             }
-//         }
-//     }
-// }
+pub fn permute_by_frequency<T>(items: HashMap<T, u32>) -> Vec<Vec<T>>
+where
+    T: Clone + Hash + Eq,
+{
+    debug_assert!(
+        items.values().all(|i| *i > 0),
+        "Every item is expected to have a frequency of 1 or more."
+    );
+    if items.len() == 0 {
+        vec![vec![]]
+    } else {
+        items
+            .iter()
+            .flat_map(|pair| {
+                let (item, count) = pair;
+                let mut items = items.clone();
+                if *count == 1 {
+                    items.remove(&item);
+                } else {
+                    items.insert(item.clone(), count - 1);
+                }
+                permute_by_frequency(items)
+                    .iter()
+                    .map(|p| {
+                        let mut c = p.clone();
+                        c.push(item.clone());
+                        c
+                    })
+                    .collect::<Vec<Vec<T>>>()
+            })
+            .collect::<Vec<Vec<T>>>()
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // #[test]
-    // fn permuter() {
-    //     fn combos(items: Vec<i32>) -> Option<Box<dyn Iterator<Item = (i32, Vec<i32>)>>> {
-    //         match items.len() {
-    //             0 => None,
-    //             len => {
-    //                 let states = items.iter().enumerate().map(|(index, item)| {
-    //                     let head = items[index];
-    //                     let rest = if index == len - 1 {
-    //                         vec![]
-    //                     } else {
-    //                         items[index + 1..].to_vec()
-    //                     };
-    //                     (head, rest)
-    //                 });
-    //                 Some(Box::new(states))
-    //             }
-    //         }
-    //     }
-    // }
+    mod permute_by_frequency_tests {
+        use std::collections::{HashMap, HashSet};
+
+        use crate::util::permute_by_frequency;
+
+        fn make_map(a: u32, b: u32, c: u32) -> HashMap<String, u32> {
+            let mut map = HashMap::new();
+            if a > 0 {
+                map.insert("A".to_string(), a);
+            };
+            if b > 0 {
+                map.insert("B".to_string(), b);
+            };
+            if c > 0 {
+                map.insert("C".to_string(), c);
+            };
+            map
+        }
+
+        #[test]
+        #[ignore]
+        fn display_permutations() {
+            let data = [(2, 3, 0), (1, 1, 0), (5, 4, 3)];
+            for (a, b, c) in data {
+                let m = make_map(a, b, c);
+                let ff = permute_by_frequency(m);
+                let q = ff.iter().map(|c| c.join(","));
+                println!("");
+                for i in q {
+                    println!("{}", i)
+                }
+            }
+        }
+
+        #[test]
+        fn count_is_correct() {
+            let data = [
+                (1, 1, 1, 6),
+                (4, 3, 2, 1260),
+                (3, 3, 2, 560),
+                (7, 1, 4, 3960),
+                (1, 0, 0, 1),
+                (1, 1, 0, 2),
+            ];
+            for (a, b, c, expected) in data {
+                let map = make_map(a, b, c);
+                let f = permute_by_frequency(map);
+
+                // total count is correct
+                assert_eq!(expected, f.len());
+
+                // each is unique
+                let unique = f.iter().map(|x| x.join(",")).collect::<HashSet<String>>();
+                assert_eq!(unique.len(), f.len());
+            }
+        }
+    }
 
     #[test]
     fn choose_test() {
