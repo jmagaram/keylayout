@@ -7,36 +7,33 @@ pub struct Partitions {
 }
 
 impl Partitions {
-    pub fn calculate(&self) -> Vec<Vec<u32>> {
-        fn helper(
-            n: u32,
-            remaining_parts: u32,
-            max: u32,
-            z: u32,
-            min_value: u32,
-            max_value: u32,
-        ) -> Vec<Vec<u32>> {
-            if n == 0 && remaining_parts == 0 {
-                return vec![vec![]];
-            }
-            if n == 0 || remaining_parts == 0 {
-                return vec![];
-            }
-
-            let mut result = Vec::new();
-            for i in min_value..=max.min(n).min(max_value) {
-                let sub_partitions = helper(n - i, remaining_parts - 1, i, z, min_value, max_value);
-                for mut sub_partition in sub_partitions {
-                    sub_partition.push(i);
-                    result.push(sub_partition);
-                }
-            }
-            result
+    fn go(
+        sum: u32,
+        remaining_parts: u32,
+        max: u32,
+        min_value: u32,
+        max_value: u32,
+    ) -> Vec<Vec<u32>> {
+        if sum == 0 && remaining_parts == 0 {
+            return vec![vec![]];
         }
-        helper(
-            self.sum, self.parts, self.sum, self.parts, self.min, self.max,
-        )
-        // helper(n, z, n, z, min_value, max_value)
+        if sum == 0 || remaining_parts == 0 {
+            return vec![];
+        }
+        let mut result = Vec::new();
+        for i in min_value..=max.min(sum).min(max_value) {
+            let sub_partitions =
+                Partitions::go(sum - i, remaining_parts - 1, i, min_value, max_value);
+            for mut sub_partition in sub_partitions {
+                sub_partition.push(i);
+                result.push(sub_partition);
+            }
+        }
+        result
+    }
+
+    pub fn calculate(&self) -> Vec<Vec<u32>> {
+        Partitions::go(self.sum, self.parts, self.sum, self.min, self.max)
     }
 }
 
