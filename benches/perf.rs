@@ -1,6 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use keylayout::{
-    dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty, tally::Tally,
+    dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
+    tally::Tally,
 };
 
 fn calculate_penalty_score(c: &mut Criterion) {
@@ -80,6 +81,20 @@ fn distribute_keys(c: &mut Criterion) {
     });
 }
 
+fn partition_sum(c: &mut Criterion) {
+    let source = Partitions {
+        sum: 27,
+        parts: 10,
+        min: 1,
+        max: 27,
+    };
+    c.bench_function("PARTITION SUM", |b| {
+        b.iter(|| {
+            black_box(source.calculate());
+        })
+    });
+}
+
 criterion_group!(
     benches,
     // generate_big_subsets,
@@ -87,6 +102,7 @@ criterion_group!(
     // load_dictionary,
     // calculate_penalty_score,
     // spell_every_word,
-    distribute_keys
+    // distribute_keys,
+    partition_sum
 );
 criterion_main!(benches);

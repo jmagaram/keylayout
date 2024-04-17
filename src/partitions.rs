@@ -1,5 +1,3 @@
-use crate::permutable::Permutable;
-
 #[derive(Debug)]
 pub struct Partitions {
     pub sum: u32,
@@ -8,32 +6,37 @@ pub struct Partitions {
     pub max: u32,
 }
 
-impl Permutable<u32> for Partitions {
-    fn is_empty(&self) -> bool {
-        self.sum == 0
-    }
+impl Partitions {
+    pub fn calculate(&self) -> Vec<Vec<u32>> {
+        fn helper(
+            n: u32,
+            remaining_parts: u32,
+            max: u32,
+            z: u32,
+            min_value: u32,
+            max_value: u32,
+        ) -> Vec<Vec<u32>> {
+            if n == 0 && remaining_parts == 0 {
+                return vec![vec![]];
+            }
+            if n == 0 || remaining_parts == 0 {
+                return vec![];
+            }
 
-    fn parts(&self) -> Vec<(u32, Self)> {
-        (self.min..=self.max)
-            .into_iter()
-            .filter_map(|n| {
-                match n + (self.min * (self.parts - 1)) <= self.sum && n * self.parts >= self.sum {
-                    true => Some(n),
-                    false => None,
+            let mut result = Vec::new();
+            for i in min_value..=max.min(n).min(max_value) {
+                let sub_partitions = helper(n - i, remaining_parts - 1, i, z, min_value, max_value);
+                for mut sub_partition in sub_partitions {
+                    sub_partition.push(i);
+                    result.push(sub_partition);
                 }
-            })
-            .map(|digit| {
-                (
-                    digit,
-                    Partitions {
-                        sum: self.sum - digit,
-                        parts: self.parts - 1,
-                        min: self.min,
-                        max: digit,
-                    },
-                )
-            })
-            .collect()
+            }
+            result
+        }
+        helper(
+            self.sum, self.parts, self.sum, self.parts, self.min, self.max,
+        )
+        // helper(n, z, n, z, min_value, max_value)
     }
 }
 
@@ -60,7 +63,7 @@ mod tests {
                     min: min,
                     max: max
                 }
-                .permute()
+                .calculate()
                 .len(),
                 expected
             );
@@ -79,7 +82,7 @@ mod tests {
                             min,
                             max,
                         }
-                        .permute()
+                        .calculate()
                         .into_iter()
                         .map(|digits| digits.into_iter().fold(0, |total, i| total + i))
                         .all(|r| r == sum);
@@ -103,7 +106,7 @@ mod tests {
             min,
             max,
         }
-        .permute()
+        .calculate()
         .into_iter()
         .for_each(|p| println!("{:?}", p))
     }

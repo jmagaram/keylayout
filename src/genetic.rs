@@ -51,7 +51,7 @@ pub fn find_best(
         min: 2,
         max: 4,
     }
-    .permute();
+    .calculate();
     let layout = {
         let mut rng = rand::thread_rng();
         let layout_index = rng.gen_range(0..layouts.len());
