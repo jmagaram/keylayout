@@ -58,14 +58,10 @@ where
                 } else {
                     items.insert(item.clone(), count - 1);
                 }
-                let results = permute_by_frequency(items)
-                    .into_iter()
-                    .map(|mut p| {
-                        p.push(item.clone());
-                        p
-                    })
-                    .collect::<Vec<Vec<T>>>();
-                results
+                permute_by_frequency(items).into_iter().map(|mut p| {
+                    p.push(item.clone());
+                    p
+                })
             })
             .collect::<Vec<Vec<T>>>()
     }
