@@ -383,8 +383,7 @@ impl<'a> Seed<'a, Key, Vec<Key>> for DistributeLetters {
                     };
                     (new_key, seed)
                 });
-        let boxed_results: Box<dyn Iterator<Item = (Key, Self)> + 'a> = Box::new(results);
-        boxed_results
+        results // was boxed before
     }
 }
 
