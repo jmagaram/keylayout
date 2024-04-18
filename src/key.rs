@@ -5,9 +5,7 @@ use std::{
 
 use rand::Rng;
 
-use crate::{
-    key::subset_implementation::SubsetSeed, lazy_tree::Seed, letter::Letter, tally::Tally, util,
-};
+use crate::{lazy_tree::Seed, letter::Letter, tally::Tally, util};
 
 #[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy, Default)]
 pub struct Key(u32);
