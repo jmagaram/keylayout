@@ -11,6 +11,7 @@ pub struct EvolveKeyboardArgs<'a> {
     pub die_threshold: Penalty,
     pub dictionary: &'a Dictionary,
     pub verbose_print: bool,
+    pub avoid_on_any_key: Vec<Key>,
 }
 
 pub fn evolve_keyboard(args: EvolveKeyboardArgs) -> Solution {
@@ -18,7 +19,12 @@ pub fn evolve_keyboard(args: EvolveKeyboardArgs) -> Solution {
     let mut generations = 0;
     loop {
         let mut current_best = best.clone();
-        for child in best.keyboard().every_swap() {
+        for child in best
+            .keyboard()
+            .every_swap()
+            .iter()
+            .filter(|k| false == k.contains_on_any_key(&args.avoid_on_any_key))
+        {
             let child_penalty = child.penalty(args.dictionary, current_best.penalty());
             if child_penalty < current_best.penalty() {
                 current_best = Solution::new(
@@ -49,6 +55,7 @@ pub fn find_best(
     print_best: bool,
     die_threshold: Penalty,
     verbose_print: bool,
+    avoid_on_any_key: &Vec<Key>,
 ) -> Solution {
     let alphabet = dict.alphabet();
     let layouts = Partitions {
@@ -71,6 +78,7 @@ pub fn find_best(
         solution: keyboard.with_penalty(penalty),
         verbose_print,
         die_threshold,
+        avoid_on_any_key: avoid_on_any_key.to_vec(),
     };
     let best = evolve_keyboard(args);
     if print_best {
@@ -85,6 +93,7 @@ pub struct Args {
     pub threads: u32,
     pub die_threshold: Penalty,
     pub verbose_print: bool,
+    pub exclude_on_any_key: Vec<Key>,
 }
 
 pub fn solve(args: Args) -> () {
@@ -93,8 +102,15 @@ pub fn solve(args: Args) -> () {
     for _ in 0..args.threads {
         let tx = tx.clone();
         let dictionary = Dictionary::load();
+        let avoid_on_any_key = args.exclude_on_any_key.to_vec();
         std::thread::spawn(move || loop {
-            let best = find_best(&dictionary, false, args.die_threshold, args.verbose_print);
+            let best = find_best(
+                &dictionary,
+                false,
+                args.die_threshold,
+                args.verbose_print,
+                &avoid_on_any_key,
+            );
             tx.send(best).unwrap();
         });
     }
@@ -112,59 +128,4 @@ pub fn solve(args: Args) -> () {
             }
         }
     }
-}
-
-pub fn smarter_genetic() {
-    let dict_full = Dictionary::load();
-    let dict_small = Dictionary::load().with_top_n_words(50000);
-    let part = Partitions {
-        sum: 27,
-        parts: 10,
-        min: 2,
-        max: 4,
-    };
-    let mut best: Option<Solution> = None;
-    let mut seen = 1;
-    let mut skipped = 0;
-    let initial_screening_limit = Penalty::new(0.035);
-    let die_threshold = Penalty::new(0.001);
-    let results = Keyboard::random(dict_full.alphabet(), &part)
-        .enumerate()
-        .filter_map(|(index, k)| {
-            // println!("seen {} skipped {}", seen, skipped);
-            seen = seen + 1;
-            let penalty_partial = k.penalty(&dict_small, Penalty::MAX);
-            if penalty_partial < initial_screening_limit {
-                let penalty = k.penalty(&dict_full, Penalty::MAX);
-                let solution = k.with_penalty_and_notes(penalty, format!("keyboard {}", index));
-                Some(solution)
-            } else {
-                skipped = skipped + 1;
-                None
-            }
-        })
-        .map(|s| {
-            let args = EvolveKeyboardArgs {
-                dictionary: &dict_full,
-                die_threshold,
-                solution: s,
-                verbose_print: false,
-            };
-            evolve_keyboard(args)
-        })
-        .filter(move |s| {
-            if s.penalty()
-                < (&best)
-                    .as_ref()
-                    .map(|best| best.penalty())
-                    .unwrap_or(Penalty::MAX)
-            {
-                best = Some(s.clone());
-                println!("{}", s);
-                true
-            } else {
-                false
-            }
-        });
-    results.count();
 }
