@@ -4,7 +4,7 @@ use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     solution::Solution,
 };
-use std::sync::mpsc;
+use std::{fmt, sync::mpsc};
 
 pub struct EvolveKeyboardArgs<'a> {
     pub solution: Solution,
@@ -89,6 +89,26 @@ pub fn find_best(
     best
 }
 
+impl fmt::Display for Args {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pairs = self
+            .exclude_on_any_key
+            .iter()
+            .filter(|w| w.count_letters() == 2)
+            .count();
+        let triples = self
+            .exclude_on_any_key
+            .iter()
+            .filter(|w| w.count_letters() == 3)
+            .count();
+        writeln!(
+            f,
+            "Threads:{} Die:{} Pairs:{} Triples:{} Words:{}",
+            self.threads, self.die_threshold, pairs, triples, self.words_in_dictionary
+        )
+    }
+}
+
 pub struct Args {
     pub threads: u32,
     pub die_threshold: Penalty,
@@ -115,6 +135,7 @@ pub fn solve(args: Args) -> () {
             tx.send(best).unwrap();
         });
     }
+    println!("{}", args);
     for solution in rx {
         match best {
             None => {

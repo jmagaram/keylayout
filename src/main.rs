@@ -1,6 +1,3 @@
-use key::Key;
-use keylayout::keyboard::Keyboard;
-use letter::Letter;
 use penalty::Penalty;
 
 mod dictionary;
@@ -27,24 +24,21 @@ enum Run {
 }
 
 fn main() {
-    let bad_pairs_to_avoid = 75;
-    let bad_pairs = english::pair_penalties(bad_pairs_to_avoid)
-        .into_iter()
-        .map(|(key, _)| key)
-        .collect::<Vec<Key>>();
+    // For bad pairs, they show up around 90
+    // For bad triples, they show up around 1880
 
     let genetic = Run::Genetic(genetic::Args {
         threads: 8,
         die_threshold: Penalty::new(0.0001),
         verbose_print: false,
-        exclude_on_any_key: bad_pairs.clone(),
+        exclude_on_any_key: english::top_penalties(75, 200),
         words_in_dictionary: 150000,
     });
 
     let merge_keys = Run::MergeKeys(merge_keys::Args {
         total_words: 90000,
-        max_penalty: Penalty::new(0.020),
-        never_together: bad_pairs.clone(),
+        max_penalty: Penalty::new(0.021),
+        never_together: english::top_penalties(75, 1000),
     });
 
     let best_n_key = Run::BestNKey(2);
