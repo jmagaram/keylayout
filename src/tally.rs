@@ -77,6 +77,24 @@ where
     }
 }
 
+impl From<Vec<u32>> for Tally<u32> {
+    fn from(value: Vec<u32>) -> Self {
+        value.iter().fold(Tally::<u32>::new(), |mut total, i| {
+            total.increment(*i);
+            total
+        })
+    }
+}
+
+impl From<&Vec<u32>> for Tally<u32> {
+    fn from(value: &Vec<u32>) -> Self {
+        value.iter().fold(Tally::<u32>::new(), |mut total, i| {
+            total.increment(*i);
+            total
+        })
+    }
+}
+
 impl<K> FromIterator<K> for Tally<K>
 where
     K: Hash + Eq + Clone,
