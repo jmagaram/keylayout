@@ -45,6 +45,10 @@ impl Key {
         self.0 & (1 << r.to_u8()) != 0
     }
 
+    pub fn contains_all(&self, other: Key) -> bool {
+        self.intersect(other) == other
+    }
+
     pub fn count_letters(&self) -> u32 {
         self.into_iter().count() as u32 // fix!
     }
@@ -540,6 +544,29 @@ mod tests {
             let start = Key::try_from(start).unwrap();
             let other = Letter::try_from(find).unwrap();
             assert_eq!(start.contains(other), expected);
+        }
+    }
+
+    #[test]
+    fn contains_all_test() {
+        let data = [
+            ("", "", true),
+            ("a", "a", true),
+            ("a", "ab", false),
+            ("a", "x", false),
+            ("abc", "a", true),
+            ("abc", "ab", true),
+            ("abc", "ac", true),
+            ("abc", "abc", true),
+            ("abc", "abcx", false),
+            ("abc", "ax", false),
+            ("abc", "x", false),
+            ("abc", "", true),
+        ];
+        for (start, other, expected) in data {
+            let start = Key::try_from(start).unwrap();
+            let other = Key::try_from(other).unwrap();
+            assert_eq!(start.contains_all(other), expected);
         }
     }
 
