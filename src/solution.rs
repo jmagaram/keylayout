@@ -6,11 +6,16 @@ use crate::{keyboard::Keyboard, penalty::Penalty};
 pub struct Solution {
     keyboard: Keyboard,
     penalty: Penalty,
+    notes: String,
 }
 
 impl Solution {
-    pub fn new(keyboard: Keyboard, penalty: Penalty) -> Solution {
-        Solution { keyboard, penalty }
+    pub fn new(keyboard: Keyboard, penalty: Penalty, notes: String) -> Solution {
+        Solution {
+            keyboard,
+            penalty,
+            notes,
+        }
     }
 
     pub fn penalty(&self) -> Penalty {
@@ -24,6 +29,6 @@ impl Solution {
 
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.penalty, self.keyboard)
+        write!(f, "{} {} {}", self.penalty, self.keyboard, self.notes)
     }
 }

@@ -21,6 +21,7 @@ mod word;
 enum Run {
     Genetic(genetic::Args),
     MergeKeys(merge_keys::Args),
+    SmarterGenetic,
 }
 
 fn main() {
@@ -48,10 +49,13 @@ fn main() {
         ],
     });
 
-    let run = genetic;
+    let smarter_genetic = Run::SmarterGenetic;
+
+    let run = smarter_genetic;
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),
         Run::MergeKeys(penalty) => merge_keys::solve(penalty),
+        Run::SmarterGenetic => genetic::smarter_genetic(),
     }
 }

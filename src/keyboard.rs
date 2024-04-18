@@ -44,7 +44,11 @@ impl Keyboard {
     }
 
     pub fn with_penalty(self, penalty: Penalty) -> Solution {
-        Solution::new(self, penalty)
+        Solution::new(self, penalty, "".to_string())
+    }
+
+    pub fn with_penalty_and_notes(self, penalty: Penalty, notes: String) -> Solution {
+        Solution::new(self, penalty, notes)
     }
 
     pub fn key_count(&self) -> usize {
