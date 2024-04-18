@@ -29,8 +29,9 @@ enum Run {
 fn main() {
     let bad_pairs_to_avoid = 75;
     let bad_pairs = english::pair_penalties(bad_pairs_to_avoid)
-        .iter()
-        .map(|(key, penalty)| key);
+        .into_iter()
+        .map(|(key, _)| key)
+        .collect::<Vec<Key>>();
 
     let genetic = Run::Genetic(genetic::Args {
         threads: 8,
