@@ -1,4 +1,5 @@
 use key::Key;
+use keylayout::keyboard::Keyboard;
 use letter::Letter;
 use penalty::Penalty;
 
@@ -31,31 +32,26 @@ fn main() {
         die_threshold: Penalty::new(0.0001),
         verbose_print: false,
     });
-
+    let bad_pairs_to_take = 75;
+    let avoid_bad_pairs = Keyboard::PAIR_PENALTIES
+        .into_iter()
+        .take(bad_pairs_to_take)
+        .map(|i| {
+            let (letters, _) = i;
+            Key::from_iter(letters.chars().map(|c| Letter::new(c)))
+        })
+        .collect::<Vec<Key>>();
     let merge_keys = Run::MergeKeys(merge_keys::Args {
         total_words: 90000,
         max_penalty: Penalty::new(0.020),
-        never_together: vec![
-            Key::EMPTY
-                .add(Letter::new('a'))
-                .add(Letter::new('e'))
-                .add(Letter::new('i'))
-                .add(Letter::new('o'))
-                .add(Letter::new('u')),
-            Key::EMPTY
-                .add(Letter::new('e'))
-                .add(Letter::new('a'))
-                .add(Letter::new('r'))
-                .add(Letter::new('i'))
-                .add(Letter::new('s')),
-        ],
+        never_together: avoid_bad_pairs,
     });
 
     let smarter_genetic = Run::SmarterGenetic;
 
     let best_n_key = Run::BestNKey(2);
 
-    let run = best_n_key;
+    let run = merge_keys;
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),
