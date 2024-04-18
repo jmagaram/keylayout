@@ -24,6 +24,18 @@ pub fn triple_penalties(count: usize) -> Vec<(Key, Penalty)> {
         .collect::<Vec<(Key, Penalty)>>()
 }
 
+pub fn top_penalties(pairs: usize, triples: usize) -> Vec<Key> {
+    let pairs = pair_penalties(pairs)
+        .into_iter()
+        .map(|(key, _)| key)
+        .collect::<Vec<Key>>();
+    let triples = triple_penalties(triples)
+        .into_iter()
+        .map(|(key, _)| key)
+        .collect::<Vec<Key>>();
+    [pairs, triples].concat()
+}
+
 const PAIR_PENALTIES: [(&'static str, f32); 351] = [
     ("ai", 0.034938633),
     ("st", 0.024594279),
