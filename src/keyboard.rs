@@ -3,8 +3,8 @@ use std::{fmt, iter};
 use rand::Rng;
 
 use crate::{
-    dictionary::Dictionary, key::Key, letter::Letter, penalty::Penalty, solution::Solution,
-    tally::Tally, word::Word,
+    dictionary::Dictionary, key::Key, letter::Letter, partitions::Partitions, penalty::Penalty,
+    solution::Solution, tally::Tally, word::Word,
 };
 
 // fix this!
@@ -98,6 +98,18 @@ impl Keyboard {
             ),
             Some(spelling) => spelling,
         }
+    }
+
+    pub fn random(alphabet: Key, layout: &Partitions) -> impl Iterator<Item = Keyboard> {
+        let mut rng = rand::thread_rng();
+        let layout_options = layout.calculate();
+        iter::repeat_with(move || {
+            let layout_index = rng.gen_range(0..layout_options.len());
+            let layout = layout_options.get(layout_index).unwrap();
+            let keys = alphabet.random_subsets(layout).collect::<Vec<Key>>();
+            let keyboard = Keyboard::new_from_keys(keys);
+            keyboard
+        })
     }
 
     pub fn swap_random_letters(&self) -> Result<Keyboard, &'static str> {
@@ -381,6 +393,22 @@ mod tests {
         let keyboard = Keyboard::new_from_layout("ot,gr,dh,su,im,bn,awz,cky',fjlx,epqv");
         for (word_index, (word, penalty)) in keyboard.penalty_by_word(&d).enumerate() {
             writeln!(file, "{},{},{}", word_index + 1, word, penalty.to_f32()).unwrap();
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn random_keyboard_print_out() {
+        let partition = Partitions {
+            sum: 27,
+            parts: 10,
+            min: 2,
+            max: 5,
+        };
+        let dict = Dictionary::load();
+        let keyboards = Keyboard::random(dict.alphabet(), &partition);
+        for k in keyboards.take(50) {
+            println!("{}", k)
         }
     }
 }
