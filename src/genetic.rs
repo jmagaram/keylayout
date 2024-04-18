@@ -94,6 +94,7 @@ pub struct Args {
     pub die_threshold: Penalty,
     pub verbose_print: bool,
     pub exclude_on_any_key: Vec<Key>,
+    pub words_in_dictionary: usize,
 }
 
 pub fn solve(args: Args) -> () {
@@ -101,7 +102,7 @@ pub fn solve(args: Args) -> () {
     let mut best: Option<Solution> = None;
     for _ in 0..args.threads {
         let tx = tx.clone();
-        let dictionary = Dictionary::load();
+        let dictionary = Dictionary::load().with_top_n_words(args.words_in_dictionary);
         let avoid_on_any_key = args.exclude_on_any_key.to_vec();
         std::thread::spawn(move || loop {
             let best = find_best(
