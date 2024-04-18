@@ -104,6 +104,24 @@ impl Keyboard {
         }
     }
 
+    pub fn penalty_by_key_size(dictionary: &Dictionary, size: u32) -> Vec<(Key, Penalty)> {
+        let alphabet = dictionary.alphabet();
+        let keys_to_evaluate = alphabet.subsets_of_size(size);
+        let mut result: Vec<(Key, Penalty)> = vec![];
+        for evaluate in keys_to_evaluate {
+            let rest = alphabet.except(evaluate);
+            let mut keys = rest
+                .into_iter()
+                .map(Key::with_one_letter)
+                .collect::<Vec<Key>>();
+            keys.push(evaluate);
+            let keyboard = Keyboard::new_from_keys(keys);
+            let penalty = keyboard.penalty(&dictionary, Penalty::MAX);
+            result.push((evaluate, penalty));
+        }
+        result
+    }
+
     pub fn random(alphabet: Key, layout: &Partitions) -> impl Iterator<Item = Keyboard> {
         let mut rng = rand::thread_rng();
         let layout_options = layout.calculate();
@@ -421,6 +439,19 @@ mod tests {
         let keyboards = Keyboard::random(dict.alphabet(), &partition);
         for k in keyboards.take(50) {
             println!("{}", k)
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn output_penalty_by_key_size() {
+        use std::fs::File;
+        use std::io::prelude::*;
+        let key_size = 2;
+        let mut file = File::create("output.txt").unwrap();
+        let dict = Dictionary::load();
+        for (key, penalty) in Keyboard::penalty_by_key_size(&dict, key_size) {
+            writeln!(file, "{},{}", key, penalty.to_f32()).unwrap();
         }
     }
 }
