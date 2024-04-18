@@ -14,7 +14,7 @@ pub fn best_n_key(count: u32) {
     }
     .calculate();
     let keyboards = key_sizes.iter().flat_map(|key_sizes| {
-        let arrangements = Tally::from_iter(key_sizes.iter().map(|i| *i));
+        let arrangements: Tally<u32> = Tally::from(key_sizes);
         alphabet
             .distribute(arrangements)
             .map(|keys| Keyboard::new_from_keys(keys))
