@@ -116,6 +116,15 @@ impl Keyboard {
         })
     }
 
+    pub fn swap_random_letters_n_times(k: Keyboard, count: u32) -> Result<Keyboard, &'static str> {
+        if count == 0 {
+            Ok(k)
+        } else {
+            let k = k.swap_random_letters()?;
+            Keyboard::swap_random_letters_n_times(k, count - 1)
+        }
+    }
+
     pub fn swap_random_letters(&self) -> Result<Keyboard, &'static str> {
         let total_keys = self.keys.len();
         if total_keys == 1 {
