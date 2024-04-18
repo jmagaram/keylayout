@@ -33,7 +33,7 @@ fn main() {
 
     let merge_keys = Run::MergeKeys(merge_keys::Args {
         total_words: 90000,
-        max_penalty: Penalty::new(0.022),
+        max_penalty: Penalty::new(0.020),
         never_together: vec![
             Key::EMPTY
                 .add(Letter::new('a'))
