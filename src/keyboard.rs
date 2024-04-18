@@ -248,7 +248,6 @@ impl Keyboard {
                     Penalty::ZERO
                 }
                 seen => {
-                    let seen = *seen;
                     found.increment(how_to_spell);
                     Penalty::new(word.frequency().to_f32() * seen.min(4) as f32)
                 }

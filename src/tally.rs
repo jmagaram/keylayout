@@ -23,18 +23,26 @@ where
         self.increment_by(item, 1);
     }
 
-    pub fn count(&self, item: &T) -> &u32 {
-        self.0.get(item).unwrap_or(&0)
+    pub fn count(&self, item: &T) -> u32 {
+        match self.0.get(item) {
+            None => 0,
+            Some(count) => {
+                println!("Found count of {}", count.clone());
+                count.clone()
+            }
+        }
     }
 
     pub fn decrement_by(&mut self, item: T, n: u32) {
-        let remain = self.count(&item) - n;
-        if remain == 0 {
-            self.0.remove(&item);
-        } else if remain > 0 {
-            self.0.insert(item, remain);
-        } else {
+        let remain = self.count(&item);
+        if remain < n {
             panic!("Attempted to decrement the tally for an item below zero.");
+        } else if n == 0 || remain == 0 {
+            ()
+        } else if remain == n {
+            self.0.remove(&item);
+        } else {
+            self.0.insert(item, remain - n);
         }
     }
 
@@ -131,15 +139,15 @@ mod tests {
     #[test]
     fn from_iterator_of_items() {
         let tally = Tally::from_iter(["a", "a", "b", "b", "a"]);
-        assert_eq!(*tally.count(&"a"), 3);
-        assert_eq!(*tally.count(&"b"), 2);
+        assert_eq!(tally.count(&"a"), 3);
+        assert_eq!(tally.count(&"b"), 2);
     }
 
     #[test]
     fn from_tuples_array_sums_duplicate_items() {
         let tally = Tally::<&str>::from([("a", 3), ("b", 2), ("a", 1)]);
         println!("{:?}", tally);
-        assert_eq!(*tally.count(&"a"), 4);
+        assert_eq!(tally.count(&"a"), 4);
     }
 
     #[test]
@@ -151,23 +159,23 @@ mod tests {
     #[test]
     fn count() {
         let tally = Tally::<&str>::from([("a", 3), ("b", 0), ("c", 5)]);
-        assert_eq!(3, *tally.count(&"a"));
-        assert_eq!(5, *tally.count(&"c"));
+        assert_eq!(3, tally.count(&"a"));
+        assert_eq!(5, tally.count(&"c"));
     }
 
     #[test]
     fn count_is_zero_if_item_missing() {
         let tally = Tally::<&str>::from([("a", 3), ("b", 0), ("c", 5)]);
-        assert_eq!(0, *tally.count(&"banana"));
+        assert_eq!(0, tally.count(&"banana"));
     }
 
     #[test]
     fn increment_by() {
         let mut tally = Tally::<&str>::from([("a", 3), ("b", 0), ("c", 5)]);
         tally.increment_by(&"b", 2);
-        assert_eq!(2, *tally.count(&"b"));
+        assert_eq!(2, tally.count(&"b"));
         tally.increment_by(&"b", 0);
-        assert_eq!(2, *tally.count(&"b"));
+        assert_eq!(2, tally.count(&"b"));
     }
 
     #[test]
@@ -181,20 +189,22 @@ mod tests {
     fn decrement_by() {
         let mut tally = Tally::<&str>::from([("a", 5)]);
         tally.decrement_by(&"a", 2);
-        assert_eq!(3, *tally.count(&"a"));
+        assert_eq!(3, tally.count(&"a"));
     }
 
     #[test]
     #[should_panic]
     fn decrement_by_count_larger_than_current_panics() {
-        let mut tally = Tally::<&str>::from([("a", 5)]);
-        tally.decrement_by(&"a", 6);
+        let letter = "a";
+        let mut tally = Tally::<&str>::from([(letter, 5)]);
+        tally.decrement_by(letter, 100000);
     }
 
     #[test]
     fn decrement_by_removes_item_if_zero() {
-        let mut tally = Tally::<&str>::from([("a", 5)]);
-        tally.decrement_by(&"a", 5);
+        let letter = "a";
+        let mut tally = Tally::<&str>::from([(letter, 5)]);
+        tally.decrement_by(letter, 5);
         assert_eq!(0, tally.0.len());
     }
 
