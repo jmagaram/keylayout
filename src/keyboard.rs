@@ -87,7 +87,7 @@ impl Keyboard {
         result
     }
 
-    pub fn includes_on_any_key(&self, other: &Vec<Key>) -> bool {
+    pub fn contains_on_any_key(&self, other: &Vec<Key>) -> bool {
         self.keys
             .iter()
             .any(|k| other.iter().any(|o| k.contains_all(*o)))
@@ -730,7 +730,7 @@ mod tests {
     }
 
     #[test]
-    fn includes_on_any_key_test() {
+    fn contains_on_any_key_test() {
         let data = [
             ("abc", "a,b,c", true),
             ("abc", "a", true),
@@ -751,7 +751,7 @@ mod tests {
                 .split(",")
                 .map(|p| Key::try_from(p).unwrap())
                 .collect::<Vec<Key>>();
-            let actual = k.includes_on_any_key(&contains);
+            let actual = k.contains_on_any_key(&contains);
             assert_eq!(
                 actual, expected,
                 "KBD: {}   OTHER: {} EXPECT: {}",
