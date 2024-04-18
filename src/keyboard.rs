@@ -87,6 +87,12 @@ impl Keyboard {
         result
     }
 
+    pub fn includes_on_any_key(&self, other: &Vec<Key>) -> bool {
+        self.keys
+            .iter()
+            .any(|k| other.iter().any(|o| k.contains_all(*o)))
+    }
+
     pub fn spell(&self, word: &Word) -> String {
         let result = word
             .letters()
@@ -656,7 +662,7 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
-    use crate::util;
+    use crate::{key, util};
 
     use super::*;
 
@@ -721,6 +727,37 @@ mod tests {
         let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
         let actual: f32 = k.penalty(&d, Penalty::MAX).to_f32(); // why into does not work
         assert!(actual >= 0.0802 && actual <= 0.0804); // 0.0803
+    }
+
+    #[test]
+    fn includes_on_any_key_test() {
+        let data = [
+            ("abc", "a,b,c", true),
+            ("abc", "a", true),
+            ("abc", "b", true),
+            ("abc", "c", true),
+            ("abc", "cd", false),
+            ("abc", "ad", false),
+            ("abc", "x", false),
+            ("abc,def", "ac", true),
+            ("abc,def", "df", true),
+            ("abc,def", "cd", false),
+            ("abc,def", "c", true),
+            ("abc,def", "x", false),
+        ];
+        for (keyboard, other, expected) in data {
+            let k = Keyboard::new_from_layout(keyboard);
+            let contains = other
+                .split(",")
+                .map(|p| Key::try_from(p).unwrap())
+                .collect::<Vec<Key>>();
+            let actual = k.includes_on_any_key(&contains);
+            assert_eq!(
+                actual, expected,
+                "KBD: {}   OTHER: {} EXPECT: {}",
+                keyboard, other, expected
+            );
+        }
     }
 
     #[test]
