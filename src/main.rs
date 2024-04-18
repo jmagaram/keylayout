@@ -4,6 +4,7 @@ use letter::Letter;
 use penalty::Penalty;
 
 mod dictionary;
+mod english;
 mod frequency;
 mod genetic;
 mod key;
@@ -27,27 +28,22 @@ enum Run {
 
 fn main() {
     let bad_pairs_to_avoid = 75;
-    let bad_pairs = Keyboard::PAIR_PENALTIES
-        .into_iter()
-        .take(bad_pairs_to_avoid)
-        .map(|i| {
-            let (letters, _) = i;
-            Key::from_iter(letters.chars().map(|c| Letter::new(c)))
-        })
-        .collect::<Vec<Key>>();
+    let bad_pairs = english::pair_penalties(bad_pairs_to_avoid)
+        .iter()
+        .map(|(key, penalty)| key);
 
     let genetic = Run::Genetic(genetic::Args {
         threads: 8,
         die_threshold: Penalty::new(0.0001),
         verbose_print: false,
-        exclude_on_any_key: bad_pairs.to_vec(),
+        exclude_on_any_key: bad_pairs.clone(),
         words_in_dictionary: 150000,
     });
 
     let merge_keys = Run::MergeKeys(merge_keys::Args {
         total_words: 90000,
         max_penalty: Penalty::new(0.020),
-        never_together: bad_pairs.to_vec(),
+        never_together: bad_pairs.clone(),
     });
 
     let best_n_key = Run::BestNKey(2);

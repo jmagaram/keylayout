@@ -1,4 +1,5 @@
 pub mod dictionary;
+pub mod english;
 pub mod frequency;
 pub mod genetic;
 pub mod key;
