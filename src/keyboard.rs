@@ -308,7 +308,7 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
-    use crate::{key, util};
+    use crate::util;
 
     use super::*;
 
@@ -490,5 +490,16 @@ mod tests {
         for (key, penalty) in Keyboard::penalty_by_key_size(&dict, key_size) {
             writeln!(file, "{},{}", key, penalty.to_f32()).unwrap();
         }
+    }
+
+    #[test]
+    #[ignore]
+    fn display_penalty_for_specific_keyboard() {
+        let dict = Dictionary::load();
+        let layout = "akw,bn,cejq,dfx',gm,hiv,lyz,ot,pr,su";
+        let keyboard = Keyboard::new_from_layout(layout);
+        let penalty = keyboard.penalty(&dict, Penalty::MAX);
+        let solution = keyboard.with_penalty(penalty);
+        println!("{}", solution);
     }
 }
