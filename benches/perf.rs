@@ -93,12 +93,6 @@ fn partition_sum(c: &mut Criterion) {
 }
 
 fn distribute_letters(c: &mut Criterion) {
-    let source = Partitions {
-        sum: 27,
-        parts: 10,
-        min: 1,
-        max: 27,
-    };
     c.bench_function("DISTRIBUTE LETTERS", |b| {
         b.iter(|| {
             let key = Key::with_every_letter();
