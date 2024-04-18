@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty, solution::Solution,
 };
@@ -35,11 +37,24 @@ pub struct Args {
     pub total_words: usize,
 }
 
+impl fmt::Display for Args {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "MaxPenalty:{} TotalWords:{} Excluded:{}",
+            self.max_penalty,
+            self.total_words,
+            self.never_together.len()
+        )
+    }
+}
+
 pub fn solve(args: Args) {
     let d = Dictionary::load().with_top_n_words(args.total_words);
     let k = Keyboard::new_from_keys(d.alphabet().map(|r| Key::with_one_letter(r)).collect());
     let result = go(&d, k, args.max_penalty, &args.never_together);
     println!("=====================================================");
+    println!("{}", args);
     match result {
         None => println!(
             "No keyboard found with maximum penalty of {}",
