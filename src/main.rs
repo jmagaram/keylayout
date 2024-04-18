@@ -32,6 +32,7 @@ fn main() {
     });
 
     let merge_keys = Run::MergeKeys(merge_keys::Args {
+        total_words: 90000,
         max_penalty: Penalty::new(0.050),
         never_together: vec![
             Key::EMPTY
@@ -51,7 +52,7 @@ fn main() {
 
     let smarter_genetic = Run::SmarterGenetic;
 
-    let run = smarter_genetic;
+    let run = merge_keys;
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),

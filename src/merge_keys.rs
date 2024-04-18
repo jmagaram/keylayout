@@ -32,10 +32,11 @@ fn go(
 pub struct Args {
     pub max_penalty: Penalty,
     pub never_together: Vec<Key>,
+    pub total_words: usize,
 }
 
 pub fn solve(args: Args) {
-    let d = Dictionary::load();
+    let d = Dictionary::load().with_top_n_words(args.total_words);
     let k = Keyboard::new_from_keys(d.alphabet().map(|r| Key::with_one_letter(r)).collect());
     let result = go(&d, k, args.max_penalty, &args.never_together);
     println!("=====================================================");
