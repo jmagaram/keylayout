@@ -39,12 +39,20 @@ pub struct Args {
 
 impl fmt::Display for Args {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pairs = self
+            .never_together
+            .iter()
+            .filter(|w| w.count_letters() == 2)
+            .count();
+        let triples = self
+            .never_together
+            .iter()
+            .filter(|w| w.count_letters() == 3)
+            .count();
         writeln!(
             f,
-            "MaxPenalty:{} TotalWords:{} Excluded:{}",
-            self.max_penalty,
-            self.total_words,
-            self.never_together.len()
+            "MaxPenalty:{} TotalWords:{} Pairs:{} Triples:{}",
+            self.max_penalty, self.total_words, pairs, triples
         )
     }
 }
