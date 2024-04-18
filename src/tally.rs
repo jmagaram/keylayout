@@ -26,10 +26,7 @@ where
     pub fn count(&self, item: &T) -> u32 {
         match self.0.get(item) {
             None => 0,
-            Some(count) => {
-                println!("Found count of {}", count.clone());
-                count.clone()
-            }
+            Some(count) => count.clone(),
         }
     }
 
