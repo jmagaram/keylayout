@@ -22,12 +22,13 @@ enum Run {
     Genetic(genetic::Args),
     MergeKeys(merge_keys::Args),
     SmarterGenetic,
+    BestNKey(u32),
 }
 
 fn main() {
     let genetic = Run::Genetic(genetic::Args {
         threads: 8,
-        die_threshold: Penalty::new(0.001),
+        die_threshold: Penalty::new(0.0001),
         verbose_print: false,
     });
 
@@ -52,11 +53,14 @@ fn main() {
 
     let smarter_genetic = Run::SmarterGenetic;
 
-    let run = merge_keys;
+    let best_n_key = Run::BestNKey(2);
+
+    let run = best_n_key;
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),
         Run::MergeKeys(penalty) => merge_keys::solve(penalty),
         Run::SmarterGenetic => genetic::smarter_genetic(),
+        Run::BestNKey(count) => scratch::best_n_key(count),
     }
 }
