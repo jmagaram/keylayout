@@ -126,7 +126,7 @@ criterion_group!(
     // spell_every_word,
     // distribute_keys,
     // partition_sum,
-    // distribute_letters,
-    random_subsets
+    distribute_letters,
+    // random_subsets
 );
 criterion_main!(benches);
