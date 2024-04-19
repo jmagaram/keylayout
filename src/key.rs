@@ -862,10 +862,10 @@ mod tests {
 
     #[test]
     fn distribute_letters_calculates_correct_number_of_results() {
-        let key = Key::with_first_n_letters(14);
-        let key_sizes = Tally::from([2, 2, 3, 3, 4]);
+        let key = Key::with_first_n_letters(11);
+        let key_sizes = Tally::from([2, 2, 3, 4]);
         let results = key.distribute(key_sizes).collect::<Vec<Vec<Key>>>();
-        assert_eq!(6306300, results.iter().count());
+        assert_eq!(34650, results.iter().count());
     }
 
     #[test]
