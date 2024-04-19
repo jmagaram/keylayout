@@ -29,6 +29,6 @@ impl Solution {
 
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {} {}", self.penalty, self.keyboard, self.notes)
+        write!(f, "{} {} | {}", self.penalty, self.keyboard, self.notes)
     }
 }
