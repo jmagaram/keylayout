@@ -1,15 +1,15 @@
 use crate::letter::Letter;
 
-struct Node {
+struct WordTally {
     count: u32,
-    children: [Option<Box<Node>>; Letter::ALPHABET_SIZE],
+    children: [Option<Box<WordTally>>; Letter::ALPHABET_SIZE],
 }
 
-impl Node {
+impl WordTally {
     const MAX_WORD_LENGTH: usize = 35;
 
-    pub fn new() -> Node {
-        Node {
+    pub fn new() -> WordTally {
+        WordTally {
             count: 0,
             children: Default::default(),
         }
@@ -27,7 +27,7 @@ impl Node {
                 .expect("The letter was too big; must be smaller than the alphabet size.");
             match node {
                 None => {
-                    let mut node = Box::new(Node::new());
+                    let mut node = Box::new(WordTally::new());
                     let result = node.insert_helper(word, word_index + 1);
                     self.children[letter] = Some(node);
                     result
@@ -43,7 +43,7 @@ impl Node {
             "Attempted to insert an empty word into the trie."
         );
         assert!(
-            word.len() <= Node::MAX_WORD_LENGTH,
+            word.len() <= WordTally::MAX_WORD_LENGTH,
             "Attempted to insert a word that is too long."
         );
         self.insert_helper(word, 0)
@@ -57,41 +57,43 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn insert_word_panic_on_empty_word() {
-        let mut root = Node::new();
+    fn panic_on_empty_word() {
+        let mut root = WordTally::new();
         let spelling: Vec<u8> = vec![];
         let _result = root.insert(&spelling);
     }
 
     #[test]
     #[should_panic]
-    fn insert_word_panic_on_word_longer_than_max() {
-        let mut root = Node::new();
-        let spelling: Vec<u8> = (1..=Node::MAX_WORD_LENGTH + 1)
+    fn panic_on_word_longer_than_max() {
+        let mut root = WordTally::new();
+        let spelling: Vec<u8> = (1..=WordTally::MAX_WORD_LENGTH + 1)
             .map(|_| 9)
             .collect::<Vec<u8>>();
         let _result = root.insert(&spelling);
     }
 
     #[test]
-    fn insert_word_accept_word_of_max_length() {
-        let mut root = Node::new();
-        let spelling: Vec<u8> = (1..=Node::MAX_WORD_LENGTH).map(|_| 9).collect::<Vec<u8>>();
+    fn accept_word_of_max_length() {
+        let mut root = WordTally::new();
+        let spelling: Vec<u8> = (1..=WordTally::MAX_WORD_LENGTH)
+            .map(|_| 9)
+            .collect::<Vec<u8>>();
         let _result = root.insert(&spelling);
     }
 
     #[test]
     #[should_panic]
-    fn insert_word_panic_if_letter_bigger_than_alphabet() {
-        let mut root = Node::new();
+    fn panic_if_letter_bigger_than_alphabet() {
+        let mut root = WordTally::new();
         let max_letter = Letter::ALPHABET_SIZE as u8;
         let max_word = vec![max_letter, max_letter];
         root.insert(&max_word);
     }
 
     #[test]
-    fn insert_word_accept_max_letter_in_alphabet() {
-        let mut root = Node::new();
+    fn accept_max_letter_in_alphabet() {
+        let mut root = WordTally::new();
         let max_letter = (Letter::ALPHABET_SIZE - 1) as u8;
         let max_word = vec![max_letter, max_letter];
         root.insert(&max_word);
@@ -99,7 +101,7 @@ mod tests {
     }
 
     #[test]
-    fn insert_returns_number_of_words_inserted() {
+    fn returns_number_of_same_words_inserted() {
         let data = [
             ("a", 1),
             ("ab", 1),
@@ -121,7 +123,7 @@ mod tests {
             ("experiment", 1),
             ("experiment", 2),
         ];
-        let mut root = Node::new();
+        let mut root = WordTally::new();
         for (word, expected) in data {
             let letters = word
                 .chars()

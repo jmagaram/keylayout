@@ -12,6 +12,6 @@ pub mod penalty;
 pub mod scratch;
 pub mod solution;
 pub mod tally;
-pub mod trie;
 pub mod util;
 pub mod word;
+pub mod word_tally;

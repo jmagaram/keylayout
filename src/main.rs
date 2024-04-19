@@ -14,9 +14,9 @@ mod penalty;
 mod scratch;
 mod solution;
 mod tally;
-mod trie;
 mod util;
 mod word;
+mod word_tally;
 
 enum Run {
     Genetic(genetic::Args),
