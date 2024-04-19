@@ -37,7 +37,7 @@ pub fn evolve_keyboard(args: EvolveKeyboardArgs) -> Solution {
                 }
             }
         }
-        let progress_made = (current_best.penalty().to_f32() - best.penalty().to_f32()).abs()
+        let progress_made = (best.penalty().to_f32() - current_best.penalty().to_f32())
             > args.die_threshold.to_f32();
         if current_best.penalty() < best.penalty() {
             best = current_best;
