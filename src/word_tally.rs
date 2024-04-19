@@ -1,6 +1,6 @@
 use crate::letter::Letter;
 
-struct WordTally {
+pub struct WordTally {
     count: u32,
     children: [Option<Box<WordTally>>; Letter::ALPHABET_SIZE],
 }
@@ -15,7 +15,7 @@ impl WordTally {
         }
     }
 
-    fn insert_helper(&mut self, word: &Vec<u8>, word_index: usize) -> u32 {
+    fn increment_helper(&mut self, word: &Vec<u8>, word_index: usize) -> u32 {
         if word_index as usize == word.len() {
             self.count = self.count + 1;
             self.count
@@ -28,16 +28,16 @@ impl WordTally {
             match node {
                 None => {
                     let mut node = Box::new(WordTally::new());
-                    let result = node.insert_helper(word, word_index + 1);
+                    let result = node.increment_helper(word, word_index + 1);
                     self.children[letter] = Some(node);
                     result
                 }
-                Some(child) => child.insert_helper(word, word_index + 1),
+                Some(child) => child.increment_helper(word, word_index + 1),
             }
         }
     }
 
-    pub fn insert(&mut self, word: &Vec<u8>) -> u32 {
+    pub fn increment(&mut self, word: &Vec<u8>) -> u32 {
         assert!(
             word.len() > 0,
             "Attempted to insert an empty word into the trie."
@@ -46,7 +46,7 @@ impl WordTally {
             word.len() <= WordTally::MAX_WORD_LENGTH,
             "Attempted to insert a word that is too long."
         );
-        self.insert_helper(word, 0)
+        self.increment_helper(word, 0)
     }
 }
 
@@ -60,7 +60,7 @@ mod tests {
     fn panic_on_empty_word() {
         let mut root = WordTally::new();
         let spelling: Vec<u8> = vec![];
-        let _result = root.insert(&spelling);
+        let _result = root.increment(&spelling);
     }
 
     #[test]
@@ -70,7 +70,7 @@ mod tests {
         let spelling: Vec<u8> = (1..=WordTally::MAX_WORD_LENGTH + 1)
             .map(|_| 9)
             .collect::<Vec<u8>>();
-        let _result = root.insert(&spelling);
+        let _result = root.increment(&spelling);
     }
 
     #[test]
@@ -79,7 +79,7 @@ mod tests {
         let spelling: Vec<u8> = (1..=WordTally::MAX_WORD_LENGTH)
             .map(|_| 9)
             .collect::<Vec<u8>>();
-        let _result = root.insert(&spelling);
+        let _result = root.increment(&spelling);
     }
 
     #[test]
@@ -88,7 +88,7 @@ mod tests {
         let mut root = WordTally::new();
         let max_letter = Letter::ALPHABET_SIZE as u8;
         let max_word = vec![max_letter, max_letter];
-        root.insert(&max_word);
+        root.increment(&max_word);
     }
 
     #[test]
@@ -96,8 +96,8 @@ mod tests {
         let mut root = WordTally::new();
         let max_letter = (Letter::ALPHABET_SIZE - 1) as u8;
         let max_word = vec![max_letter, max_letter];
-        root.insert(&max_word);
-        assert_eq!(2, root.insert(&max_word));
+        root.increment(&max_word);
+        assert_eq!(2, root.increment(&max_word));
     }
 
     #[test]
@@ -129,7 +129,7 @@ mod tests {
                 .chars()
                 .map(|r| Letter::new(r).to_u8())
                 .collect::<Vec<u8>>();
-            let actual = root.insert(&letters);
+            let actual = root.increment(&letters);
             assert_eq!(
                 actual, expected,
                 "inserted word '{}' and expected count '{}'",
