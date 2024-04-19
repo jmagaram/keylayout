@@ -1,6 +1,13 @@
-use std::{borrow::Borrow, cmp::Ordering, iter};
+use std::{borrow::Borrow, clone, cmp::Ordering, iter};
 
-use crate::{dictionary::Dictionary, key::Key, penalty::Penalty, solution::Solution};
+use crate::{
+    dictionary::{self, Dictionary},
+    key::Key,
+    keyboard::Keyboard,
+    partitions::Partitions,
+    penalty::Penalty,
+    solution::Solution,
+};
 
 pub struct Evolve<'a> {
     best: Solution,
@@ -10,9 +17,9 @@ pub struct Evolve<'a> {
 }
 
 pub struct EvolveArgs<'a> {
-    start: Solution,
-    dictionary: &'a Dictionary,
-    prohibited: Vec<Key>,
+    pub start: Solution,
+    pub dictionary: &'a Dictionary,
+    pub prohibited: Vec<Key>,
 }
 
 impl<'a> EvolveArgs<'a> {
@@ -24,13 +31,43 @@ impl<'a> EvolveArgs<'a> {
             prohibited: self.prohibited.clone(),
         }
     }
+}
 
-    pub fn repeat(&'a self, generations: usize) -> impl Iterator<Item = Solution> + 'a {
-        iter::repeat_with(move || {
-            let m = self.start().take(generations).last();
-            m
-        })
-        .flat_map(|solution| solution)
+pub fn repeat(dict: &Dictionary, prohibited: Vec<Key>, generations: usize) {
+    let partition = Partitions {
+        sum: 27,
+        parts: 10,
+        min: 2,
+        max: 4,
+    };
+    // let mut best: Option<Solution> = None;
+    let mut best_penalty = None;
+    loop {
+        let start = Keyboard::random(dict.alphabet(), &partition)
+            .take(1)
+            .map(|k| {
+                let penalty = k.penalty(&dict, best_penalty.unwrap_or(Penalty::MAX));
+                k.with_penalty_and_notes(penalty, "initial state".to_string())
+            })
+            .last()
+            .unwrap();
+        let args: EvolveArgs = EvolveArgs {
+            dictionary: &dict,
+            start,
+            prohibited: prohibited.clone(),
+        };
+        let next = args.start().take(generations).last();
+        match next {
+            None => {
+                println!("Could not find a solution");
+            }
+            Some(solution) => {
+                if solution.penalty() < best_penalty.unwrap_or(Penalty::MAX) {
+                    best_penalty = Some(solution.penalty());
+                    println!("{}", solution);
+                }
+            }
+        }
     }
 }
 
@@ -115,8 +152,9 @@ mod tests {
             start,
             prohibited: english::top_penalties(0, 0),
         };
-        for s in args.start().take(10) {
-            println!("{}", s)
-        }
+        // args.repeat(5);
+        // for s in args.start().take(10) {
+        //     println!("{}", s)
+        // }
     }
 }
