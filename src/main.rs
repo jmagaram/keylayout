@@ -2,6 +2,7 @@ use penalty::Penalty;
 
 mod dictionary;
 mod english;
+mod evolution;
 mod frequency;
 mod genetic;
 mod key;
