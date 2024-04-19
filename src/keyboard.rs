@@ -264,15 +264,10 @@ impl Keyboard {
         let mut found = Tally::new();
         dictionary.words().iter().map(move |word| {
             let how_to_spell = self.spell_serialized(word);
-            let word_penalty = match found.count(&how_to_spell) {
-                0 => {
-                    found.increment(how_to_spell);
-                    Penalty::ZERO
-                }
-                seen => {
-                    found.increment(how_to_spell);
-                    Penalty::new(word.frequency().to_f32() * seen.min(4) as f32)
-                }
+            let serialized_count = found.increment(how_to_spell);
+            let word_penalty = match serialized_count {
+                1 => Penalty::ZERO,
+                _ => Penalty::new(word.frequency().to_f32() * (serialized_count - 1).min(4) as f32),
             };
             (word, word_penalty)
         })
