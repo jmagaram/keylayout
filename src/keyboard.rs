@@ -138,12 +138,12 @@ impl Keyboard {
         })
     }
 
-    pub fn swap_random_letters_n_times(k: Keyboard, count: u32) -> Result<Keyboard, &'static str> {
+    pub fn swap_random_letters_n_times(&self, count: u32) -> Result<Keyboard, &'static str> {
         if count == 0 {
-            Ok(k)
+            Ok(self.clone())
         } else {
-            let k = k.swap_random_letters()?;
-            Keyboard::swap_random_letters_n_times(k, count - 1)
+            let k = self.swap_random_letters()?;
+            k.swap_random_letters_n_times(count - 1)
         }
     }
 
