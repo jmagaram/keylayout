@@ -69,8 +69,8 @@ impl Keyboard {
         Some(*key)
     }
 
-    pub fn spell_serialized(&self, word: &Word) -> String {
-        let mut result = String::new();
+    pub fn spell_serialized(&self, word: &Word) -> Vec<u8> {
+        let mut result = vec![];
         for letter in word.letters() {
             match self.find_key_index_for_letter(*letter) {
                 None => panic!(
@@ -78,9 +78,7 @@ impl Keyboard {
                     word, letter
                 ),
                 Some(index) => {
-                    const BASE_CHAR: u32 = 'A' as u32;
-                    let char = char::from_u32((index as u32 + BASE_CHAR) as u32).unwrap();
-                    result.push(char);
+                    result.push(index as u8);
                 }
             }
         }
@@ -496,7 +494,7 @@ mod tests {
     #[ignore]
     fn display_penalty_for_specific_keyboard() {
         let dict = Dictionary::load();
-        let layout = "akw,bn,cejq,dfx',gm,hiv,lyz,ot,pr,su";
+        let layout = "akw,bn,cej,dfx,gmq,hiv,lyz,ot,pr,su'";
         let keyboard = Keyboard::new_from_layout(layout);
         let penalty = keyboard.penalty(&dict, Penalty::MAX);
         let solution = keyboard.with_penalty(penalty);
