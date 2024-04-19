@@ -14,6 +14,7 @@ mod penalty;
 mod scratch;
 mod solution;
 mod tally;
+mod trie;
 mod util;
 mod word;
 
@@ -31,19 +32,19 @@ fn main() {
         threads: 8,
         die_threshold: Penalty::new(0.0001),
         verbose_print: false,
-        exclude_on_any_key: english::top_penalties(75, 200),
+        exclude_on_any_key: english::top_penalties(75, 500),
         words_in_dictionary: 150000,
     });
 
     let merge_keys = Run::MergeKeys(merge_keys::Args {
         total_words: 90000,
-        max_penalty: Penalty::new(0.021),
-        never_together: english::top_penalties(75, 1000),
+        max_penalty: Penalty::new(0.0235),
+        never_together: english::top_penalties(75, 750),
     });
 
     let best_n_key = Run::BestNKey(2);
 
-    let run = genetic;
+    let run = merge_keys;
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),
