@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, cmp::Ordering};
+use std::{borrow::Borrow, cmp::Ordering, iter};
 
 use crate::{dictionary::Dictionary, key::Key, penalty::Penalty, solution::Solution};
 
@@ -23,6 +23,14 @@ impl<'a> EvolveArgs<'a> {
             current_generation: 1,
             prohibited: self.prohibited.clone(),
         }
+    }
+
+    pub fn repeat(&'a self, generations: usize) -> impl Iterator<Item = Solution> + 'a {
+        iter::repeat_with(move || {
+            let m = self.start().take(generations).last();
+            m
+        })
+        .flat_map(|solution| solution)
     }
 }
 
