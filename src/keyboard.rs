@@ -494,7 +494,8 @@ mod tests {
     #[ignore]
     fn display_penalty_for_specific_keyboard() {
         let dict = Dictionary::load();
-        let layout = "akw,bn,cej,dfx,gmq,hiv,lyz,ot,pr,su'";
+        let layout = "akw bn cej df gmx hov iqt lyz pr' su";
+        let layout = &layout.replace(" ", ",");
         let keyboard = Keyboard::new_from_layout(layout);
         let penalty = keyboard.penalty(&dict, Penalty::MAX);
         let solution = keyboard.with_penalty(penalty);
