@@ -32,6 +32,7 @@ pub fn top_penalties(pairs: usize, triples: usize) -> Vec<Key> {
     let triples = triple_penalties(triples)
         .into_iter()
         .map(|(key, _)| key)
+        .filter(|triple| !pairs.iter().any(|pair| triple.contains_all(*pair)))
         .collect::<Vec<Key>>();
     [pairs, triples].concat()
 }
@@ -3317,3 +3318,24 @@ const TRIPLE_PENALTIES: [(&str, f32); 2925] = [
     ("qx'", 0.0000828739),
     ("qz'", 0.00006027255),
 ];
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn extras_are_removed_if_redundant() {
+        let m = top_penalties(100, 20);
+        assert_eq!(100, m.len());
+    }
+
+    #[test]
+    #[ignore]
+    fn extras_are_removed_if_redundant_again() {
+        let m = top_penalties(100, 2000);
+        for w in m {
+            println!("{}", w);
+        }
+    }
+}
