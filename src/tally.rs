@@ -12,15 +12,26 @@ where
         Tally(HashMap::new())
     }
 
-    pub fn increment_by(&mut self, item: T, n: u32) {
-        if n > 0 {
-            let count = self.count(&item);
-            self.0.insert(item, count + n);
+    pub fn increment_by(&mut self, item: T, n: u32) -> u32 {
+        match self.0.get_mut(&item) {
+            None => {
+                if n > 0 {
+                    self.0.insert(item, n);
+                    n
+                } else {
+                    0
+                }
+            }
+            Some(count) => {
+                let new_count = *count + n;
+                *count = new_count;
+                new_count
+            }
         }
     }
 
-    pub fn increment(&mut self, item: T) {
-        self.increment_by(item, 1);
+    pub fn increment(&mut self, item: T) -> u32 {
+        self.increment_by(item, 1)
     }
 
     pub fn count(&self, item: &T) -> u32 {
@@ -30,21 +41,32 @@ where
         }
     }
 
-    pub fn decrement_by(&mut self, item: T, n: u32) {
-        let remain = self.count(&item);
-        if remain < n {
-            panic!("Attempted to decrement the tally for an item below zero.");
-        } else if n == 0 || remain == 0 {
-            ()
-        } else if remain == n {
-            self.0.remove(&item);
-        } else {
-            self.0.insert(item, remain - n);
+    pub fn decrement_by(&mut self, item: T, n: u32) -> u32 {
+        match self.0.get_mut(&item) {
+            None => {
+                if n > 0 {
+                    panic!("Attempted to decrement the tally below zero.");
+                } else {
+                    0
+                }
+            }
+            Some(count) => {
+                if n > *count {
+                    panic!("Attempted to decrement the tally below zero.");
+                } else if n < *count {
+                    let new_count = *count - n;
+                    *count = new_count;
+                    new_count
+                } else {
+                    self.0.remove(&item);
+                    0
+                }
+            }
         }
     }
 
-    pub fn decrement(&mut self, item: T) {
-        self.decrement_by(item, 1);
+    pub fn decrement(&mut self, item: T) -> u32 {
+        self.decrement_by(item, 1)
     }
 
     pub fn combinations(&self) -> Vec<Vec<T>>
@@ -167,6 +189,14 @@ mod tests {
     }
 
     #[test]
+    fn increment_by_returns_count() {
+        let mut tally = Tally::<&str>::from([("a", 1)]);
+        assert_eq!(2, tally.increment_by(&"a", 1));
+        assert_eq!(5, tally.increment_by(&"a", 3));
+        assert_eq!(5, tally.increment_by(&"a", 0));
+    }
+
+    #[test]
     fn increment_by() {
         let mut tally = Tally::<&str>::from([("a", 3), ("b", 0), ("c", 5)]);
         tally.increment_by(&"b", 2);
@@ -183,10 +213,32 @@ mod tests {
     }
 
     #[test]
+    fn increment_by_zero_returns_same_count() {
+        let mut tally = Tally::<&str>::from([("a", 1)]);
+        assert_eq!(1, tally.increment_by(&"a", 0));
+    }
+
+    #[test]
     fn decrement_by() {
         let mut tally = Tally::<&str>::from([("a", 5)]);
         tally.decrement_by(&"a", 2);
         assert_eq!(3, tally.count(&"a"));
+    }
+
+    #[test]
+    fn decrement_by_returns_new_count() {
+        let mut tally = Tally::<&str>::from([("a", 5)]);
+        assert_eq!(3, tally.decrement_by(&"a", 2));
+        assert_eq!(2, tally.decrement_by(&"a", 1));
+    }
+
+    #[test]
+    fn decrement_by_zero_returns_same_count() {
+        let mut t1 = Tally::<&str>::from([("a", 5)]);
+        assert_eq!(5, t1.decrement_by(&"a", 0));
+
+        let mut t2 = Tally::<&str>::from([("a", 5)]);
+        assert_eq!(0, t2.decrement_by(&"b", 0));
     }
 
     #[test]
