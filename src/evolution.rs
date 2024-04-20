@@ -59,9 +59,11 @@ impl<'a> Iterator for Evolve<'a> {
                     k.swap_random_letters_n_times(2).unwrap(),
                     k.swap_random_letters_n_times(4).unwrap(),
                     k.swap_random_letters_n_times(4).unwrap(),
+                    k.swap_random_letters_n_times(4).unwrap(),
                     k.swap_random_letters_n_times(8).unwrap(),
                     k.swap_random_letters_n_times(8).unwrap(),
                     k.swap_random_letters_n_times(8).unwrap(),
+                    k.swap_random_letters_n_times(12).unwrap(),
                 ]
             })
             .scan(self.best.borrow(), |best, k| {
@@ -98,7 +100,7 @@ impl<'a> Iterator for Evolve<'a> {
 pub fn evolve_one_random_keyboard() {
     let bad_pairs = 60;
     let start_penalty = Penalty::new(0.035);
-    let die_threshold = 0.0001;
+    let die_threshold = 0.00005;
     let dict = Dictionary::load();
     let partition = Partitions {
         sum: 27,
