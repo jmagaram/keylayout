@@ -5,6 +5,7 @@ use penalty::Penalty;
 mod dictionary;
 mod english;
 mod evolution;
+mod exhaustive;
 mod frequency;
 mod key;
 mod keyboard;
@@ -13,7 +14,6 @@ mod letter;
 mod merge_keys;
 mod partitions;
 mod penalty;
-mod scratch;
 mod solution;
 mod tally;
 mod util;
@@ -40,15 +40,17 @@ fn main() {
 
     let other = Run::Other;
 
-    let best_n_key = Run::BestNKey(2);
+    let best_n_key = Run::BestNKey(18);
 
     let run = other;
 
     match run {
         Run::MergeKeys(penalty) => merge_keys::solve(penalty),
-        Run::BestNKey(count) => scratch::best_n_key(count),
-        Run::Other => loop {
-            evolution::evolve_one_random_keyboard();
-        },
+        Run::BestNKey(count) => {
+            exhaustive::best_n_key(count);
+        }
+        Run::Other => {
+            exhaustive::run_dfs();
+        }
     }
 }

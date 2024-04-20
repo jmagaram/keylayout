@@ -1,6 +1,7 @@
 pub mod dictionary;
 pub mod english;
 pub mod evolution;
+pub mod exhaustive;
 pub mod frequency;
 pub mod key;
 pub mod keyboard;
@@ -9,7 +10,6 @@ pub mod letter;
 pub mod merge_keys;
 pub mod partitions;
 pub mod penalty;
-pub mod scratch;
 pub mod solution;
 pub mod tally;
 pub mod util;

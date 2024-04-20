@@ -1,10 +1,10 @@
-use std::{fmt, iter};
+use std::{collections::HashSet, fmt, iter};
 
 use rand::Rng;
 
 use crate::{
-    dictionary::Dictionary, key::Key, letter::Letter, partitions::Partitions, penalty::Penalty,
-    solution::Solution, tally::Tally, word::Word,
+    dictionary::Dictionary, key::Key, lazy_tree::Seed, letter::Letter, partitions::Partitions,
+    penalty::Penalty, solution::Solution, tally::Tally, util, word::Word,
 };
 
 // fix this!
@@ -30,6 +30,13 @@ impl Keyboard {
             keys,
             letter_to_key_index,
         }
+    }
+
+    pub fn new_every_letter_on_own_key(alphabet: Key) -> Keyboard {
+        let keys = alphabet
+            .map(|r| Key::with_one_letter(r))
+            .collect::<Vec<Key>>();
+        Keyboard::new_from_keys(keys)
     }
 
     // abc,def,ghh
@@ -283,6 +290,38 @@ impl Keyboard {
         }
         penalty
     }
+
+    pub fn subsets_of_keys<'a>(&'a self, size: usize) -> impl Iterator<Item = Keyboard> + 'a {
+        assert!(
+            size <= self.key_count(),
+            "Can not create subset keyboards with that many keys; too many."
+        );
+        let minimum: u64 = (1u64 << size) - 1;
+        let maximum: u64 = minimum << (self.key_count() - size);
+        util::same_set_bits(size as u32)
+            .filter(move |n| *n <= maximum)
+            .map(|n| {
+                let keys = util::set_bits(n as u32).fold(vec![], |mut total, i| {
+                    total.push(self.keys[i]);
+                    total
+                });
+                Keyboard::new_from_keys(keys)
+            })
+    }
+
+    pub fn fill_missing(&self, alphabet: Key) -> Keyboard {
+        let add = alphabet
+            .into_iter()
+            .filter_map(|r| match self.find_key_for_letter(r) {
+                None => Some(Key::with_one_letter(r)),
+                Some(_) => None,
+            });
+        let new_keys = add.fold(self.keys.clone(), |mut total, i| {
+            total.push(i);
+            total
+        });
+        Keyboard::new_from_keys(new_keys)
+    }
 }
 
 impl fmt::Display for Keyboard {
@@ -304,6 +343,28 @@ mod tests {
     use crate::util;
 
     use super::*;
+
+    #[test]
+    fn subsets_of_keys_when_one_key() {
+        let source = Keyboard::new_from_layout("abc");
+        let result = source.subsets_of_keys(1).collect::<Vec<Keyboard>>();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].to_string(), "abc");
+    }
+
+    #[test]
+    fn subsets_of_keys_test() {
+        let source = Keyboard::new_from_layout("abc,def,ghi,pqr");
+        let result = source.subsets_of_keys(2);
+        assert_eq!(6, result.count());
+    }
+
+    #[test]
+    #[should_panic]
+    fn subsets_of_keys_panic_if_too_many() {
+        let source = Keyboard::new_from_layout("abc,def,ghi,pqr");
+        source.subsets_of_keys(5).count();
+    }
 
     #[test]
     #[cfg(debug_assertions)]
