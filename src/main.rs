@@ -14,6 +14,7 @@ mod letter;
 mod merge_keys;
 mod partitions;
 mod penalty;
+mod penalty_goal;
 mod solution;
 mod tally;
 mod util;
