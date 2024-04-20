@@ -86,6 +86,8 @@ impl<'a> Iterator for Evolve<'a> {
 }
 
 pub fn evolve_one_random_keyboard() {
+    let bad_pairs = 60;
+    let die_threshold = 0.00001;
     let dict = Dictionary::load();
     let partition = Partitions {
         sum: 27,
@@ -93,7 +95,7 @@ pub fn evolve_one_random_keyboard() {
         min: 2,
         max: 4,
     };
-    let bad_pairs = english::top_penalties(60, 0);
+    let bad_pairs = english::top_penalties(bad_pairs, 0);
     let start = Keyboard::random(dict.alphabet(), &partition)
         .filter(|k| false == k.contains_on_any_key(&bad_pairs))
         .take(1)
@@ -106,7 +108,7 @@ pub fn evolve_one_random_keyboard() {
     let args: EvolveArgs = EvolveArgs {
         dictionary: &dict,
         start,
-        die_threshold: Penalty::new(0.0001),
+        die_threshold: Penalty::new(die_threshold),
     };
     println!("");
     println!("{}", args);
