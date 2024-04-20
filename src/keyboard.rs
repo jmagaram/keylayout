@@ -284,7 +284,7 @@ impl Keyboard {
         let mut penalty = Penalty::ZERO;
         for (_, word_penalty) in self.penalty_by_word(dictionary) {
             penalty = penalty + word_penalty;
-            if penalty >= to_beat {
+            if penalty > to_beat {
                 break;
             }
         }
@@ -550,7 +550,7 @@ mod tests {
     #[ignore]
     fn display_penalty_for_specific_keyboard() {
         let dict = Dictionary::load();
-        let layout = "akw bn cej df gmx hov iqt lyz pr' su";
+        let layout = "ajxz' biky cglov dfpu emq h n r sw t";
         let layout = &layout.replace(" ", ",");
         let keyboard = Keyboard::new_from_layout(layout);
         let penalty = keyboard.penalty(&dict, Penalty::MAX);

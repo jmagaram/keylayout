@@ -83,7 +83,7 @@ pub fn dumb_run_dfs() {
     let d = Dictionary::load();
     let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
     let penalty_goals = PenaltyGoals::none(d.alphabet())
-        .with_random_sampling(12..=27, 10, 0, &d)
+        .with_random_sampling(12..=26, 10, 0, &d)
         .with_specific(10, Penalty::new(0.5));
     println!("Penalties: {}", penalty_goals);
     let max_letters_per_key = 4;
