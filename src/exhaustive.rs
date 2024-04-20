@@ -2,12 +2,8 @@ use core::fmt;
 use std::{cmp::Ordering, collections::HashMap};
 
 use crate::{
-    dictionary::Dictionary,
-    keyboard::Keyboard,
-    partitions::Partitions,
-    penalty::Penalty,
-    solution::{self, Solution},
-    tally::Tally,
+    dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
+    solution::Solution, tally::Tally,
 };
 
 #[derive(Debug)]
@@ -35,6 +31,8 @@ impl PenaltyGoals {
         m.insert(key_count, penalty);
         PenaltyGoals(m)
     }
+
+    // average scores for random keyboards of a specific size!
 
     pub fn from_keyboard(keyboard: &Keyboard, dictionary: &Dictionary) -> PenaltyGoals {
         // let penalties_by_key_count = (2..=5)
