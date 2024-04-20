@@ -10,6 +10,7 @@ pub struct Evolve<'a> {
     dictionary: &'a Dictionary,
     current_generation: u32,
     die_threshold: Penalty,
+    keyboards_seen: u32,
 }
 
 pub struct EvolveArgs<'a> {
@@ -37,6 +38,7 @@ impl<'a> EvolveArgs<'a> {
             dictionary: self.dictionary,
             current_generation: 1,
             die_threshold: self.die_threshold,
+            keyboards_seen: 0,
         }
     }
 }
@@ -64,8 +66,14 @@ impl<'a> Iterator for Evolve<'a> {
             })
             .scan(self.best.borrow(), |best, k| {
                 let penalty = k.penalty(&self.dictionary, best.penalty());
-                let solution =
-                    k.with_penalty_and_notes(penalty, format!("gen:{}", self.current_generation));
+                self.keyboards_seen = self.keyboards_seen + 1;
+                let solution = k.with_penalty_and_notes(
+                    penalty,
+                    format!(
+                        "gen:{} kbds:{}",
+                        self.current_generation, self.keyboards_seen
+                    ),
+                );
                 Some(solution)
             })
             .min_by(|a, b| {
