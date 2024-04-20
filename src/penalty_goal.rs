@@ -27,7 +27,7 @@ impl PenaltyGoals {
         result
     }
 
-    pub fn adjust(&self, key_counts: RangeInclusive<u8>, multiplier: f32) -> PenaltyGoals {
+    pub fn with_adjustment(&self, key_counts: RangeInclusive<u8>, multiplier: f32) -> PenaltyGoals {
         assert!(
             multiplier > 0.0,
             "The multiplier must be greater that zero."

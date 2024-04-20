@@ -103,7 +103,7 @@ pub fn run_dfs() {
     let d = Dictionary::load();
     let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
     let penalty_goals = PenaltyGoals::none(d.alphabet())
-        .with_random_sampling(11..=26, 1000, 20, &d)
+        .with_random_sampling(11..=26, 5000, 10, &d)
         .with_specific(10, Penalty::new(0.0240));
     let max_letters_per_key = 5;
     let desired_keys = 10;
@@ -129,7 +129,8 @@ mod tests {
         let d = Dictionary::load();
         let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
         let penalty_goals = PenaltyGoals::none(d.alphabet())
-            .with_random_sampling(2..=27, 1000, 20, &d)
+            .with_random_sampling(11..=26, 10, 0, &d)
+            .with_adjustment(12..=26, 0.7)
             .with_specific(10, Penalty::new(0.5));
         let max_letters_per_key = 5;
         let desired_keys = 10;
