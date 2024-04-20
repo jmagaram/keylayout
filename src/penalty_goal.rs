@@ -27,6 +27,32 @@ impl PenaltyGoals {
         result
     }
 
+    pub fn adjust(&self, key_counts: RangeInclusive<u8>, multiplier: f32) -> PenaltyGoals {
+        assert!(
+            multiplier > 0.0,
+            "The multiplier must be greater that zero."
+        );
+        assert!(
+            key_counts.clone().min().unwrap() > 0,
+            "The minimum key count is 1."
+        );
+        assert!(
+            key_counts.clone().max().unwrap() as usize <= self.alphabet.count(),
+            "The maximum key count must be less than or equal to the size of the alphabet."
+        );
+        let mut result = self.clone();
+        for key_count in key_counts {
+            match result.goals.get(&key_count) {
+                None => (),
+                Some(previous) => {
+                    let penalty = Penalty::new(previous.to_f32() * multiplier);
+                    result.goals.insert(key_count, penalty);
+                }
+            }
+        }
+        result
+    }
+
     pub fn with_random_sampling(
         &self,
         key_counts: RangeInclusive<u8>,
@@ -93,6 +119,13 @@ impl fmt::Display for PenaltyGoals {
             .join(", ");
         write!(f, "{}", ordered)
     }
+}
+
+pub fn calculate_for_standard() {
+    let d = Dictionary::load();
+    let p = PenaltyGoals::none(d.alphabet()).with_random_sampling(11..=26, 10000, 0, &d);
+    println!("Best penalty goals with 10000 random samples");
+    println!("{}", p);
 }
 
 #[cfg(test)]
