@@ -47,11 +47,15 @@ impl PenaltyGoals {
             key_counts.clone().max().unwrap() as usize <= self.alphabet.count(),
             "The maximum key count must be less than or equal to the size of the alphabet."
         );
-        let partitions = key_counts.map(move |key_count| Partitions {
-            sum: self.alphabet.count() as u32,
-            parts: key_count as u32,
-            min: 1,
-            max: self.alphabet.count() as u32,
+        let alphabet_size = self.alphabet.count();
+        let partitions = key_counts.map(move |key_count| {
+            let max = ((alphabet_size / (key_count as usize)) + 2).min(alphabet_size);
+            Partitions {
+                sum: alphabet_size as u32,
+                parts: key_count as u32,
+                min: 1,
+                max: max as u32,
+            }
         });
         let mut result = self.clone();
         for p in partitions {
