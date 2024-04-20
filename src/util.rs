@@ -36,9 +36,55 @@ pub fn same_set_bits(count: u32) -> impl Iterator<Item = u64> {
     iterator
 }
 
+struct BitEnumerator {
+    value: u32,
+    current_bit_index: usize,
+}
+
+impl Iterator for BitEnumerator {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.value == 0 {
+            None
+        } else {
+            while (self.value & 1) != 1 {
+                self.value = self.value >> 1;
+                self.current_bit_index = self.current_bit_index + 1;
+            }
+            self.value = self.value >> 1;
+            self.current_bit_index = self.current_bit_index + 1;
+            Some(self.current_bit_index - 1)
+        }
+    }
+}
+
+pub fn set_bits(n: u32) -> impl Iterator<Item = usize> {
+    BitEnumerator {
+        value: n,
+        current_bit_index: 0,
+    }
+    .into_iter()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn set_bits_test() {
+        let data = [
+            (127, vec![0, 1, 2, 3, 4, 5, 6]),
+            (0, vec![]),
+            (1, vec![0]),
+            (3, vec![0, 1]),
+            (12, vec![2, 3]),
+        ];
+        for (n, expected) in data {
+            let actual = set_bits(n).collect::<Vec<usize>>();
+            assert_eq!(expected, actual);
+        }
+    }
 
     #[test]
     fn choose_test() {
