@@ -97,6 +97,7 @@ impl<'a> Iterator for Evolve<'a> {
 
 pub fn evolve_one_random_keyboard() {
     let bad_pairs = 60;
+    let start_penalty = Penalty::new(0.035);
     let die_threshold = 0.0001;
     let dict = Dictionary::load();
     let partition = Partitions {
@@ -108,6 +109,7 @@ pub fn evolve_one_random_keyboard() {
     let bad_pairs = english::top_penalties(bad_pairs, 0);
     let start = Keyboard::random(dict.alphabet(), &partition)
         .filter(|k| false == k.contains_on_any_key(&bad_pairs))
+        .filter(|k| k.penalty(&dict, start_penalty) < start_penalty)
         .take(1)
         .map(|k| {
             let penalty = k.penalty(&dict, Penalty::MAX);
