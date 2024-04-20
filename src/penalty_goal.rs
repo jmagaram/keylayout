@@ -14,14 +14,14 @@ pub struct PenaltyGoals {
 }
 
 impl PenaltyGoals {
-    pub fn empty(alphabet: Key) -> PenaltyGoals {
+    pub fn none(alphabet: Key) -> PenaltyGoals {
         PenaltyGoals {
             goals: BTreeMap::new(),
             alphabet,
         }
     }
 
-    pub fn with_specific_penalty(&self, key_count: u8, penalty: Penalty) -> PenaltyGoals {
+    pub fn with_specific(&self, key_count: u8, penalty: Penalty) -> PenaltyGoals {
         let mut result = self.clone();
         result.goals.insert(key_count, penalty);
         result
@@ -55,7 +55,10 @@ impl PenaltyGoals {
         });
         let mut result = self.clone();
         for p in partitions {
-            println!("Calculating sample for {}", p.parts);
+            println!(
+                "Calculating random sample of size {} for keyboard with {} keys...",
+                sample_size, p.parts
+            );
             let mut penalties = Keyboard::random(self.alphabet, &p)
                 .take(sample_size)
                 .map(|k| k.penalty(&dictionary, Penalty::MAX))
@@ -67,7 +70,7 @@ impl PenaltyGoals {
         result
     }
 
-    pub fn penalty_goal(&self, key_count: u8) -> Option<Penalty> {
+    pub fn get(&self, key_count: u8) -> Option<Penalty> {
         assert!(
             key_count > 0,
             "The minimum number of keys on a keyboard is 1."
@@ -81,7 +84,7 @@ impl fmt::Display for PenaltyGoals {
         let ordered = self
             .goals
             .iter()
-            .map(|(key_count, penalty)| format!("{} {}", key_count, penalty))
+            .map(|(key_count, penalty)| format!("{}:{}", key_count, penalty))
             .collect::<Vec<String>>()
             .join(", ");
         write!(f, "{}", ordered)
@@ -96,7 +99,7 @@ mod tests {
     #[ignore]
     fn display_property() {
         let d = Dictionary::load();
-        let p = PenaltyGoals::empty(d.alphabet()).with_random_sampling(1..=10, 100, 10, &d);
+        let p = PenaltyGoals::none(d.alphabet()).with_random_sampling(1..=10, 100, 10, &d);
         println!("Penalties: {}", p);
     }
 }
