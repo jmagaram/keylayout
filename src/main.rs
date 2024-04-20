@@ -1,7 +1,5 @@
 use dictionary::Dictionary;
-use evolution::EvolveArgs;
-use keyboard::Keyboard;
-use partitions::Partitions;
+
 use penalty::Penalty;
 
 mod dictionary;
@@ -27,7 +25,7 @@ enum Run {
     Genetic(genetic::Args),
     MergeKeys(merge_keys::Args),
     BestNKey(u32),
-    BetterGenetic,
+    Other,
 }
 
 fn main() {
@@ -50,16 +48,18 @@ fn main() {
         never_together: english::top_penalties(75, 500),
     });
 
+    let other = Run::Other;
+
     let best_n_key = Run::BestNKey(2);
 
-    let better_genetic = Run::BetterGenetic;
-
-    let run = better_genetic;
+    let run = other;
 
     match run {
         Run::Genetic(threads) => genetic::solve(threads),
         Run::MergeKeys(penalty) => merge_keys::solve(penalty),
         Run::BestNKey(count) => scratch::best_n_key(count),
-        Run::BetterGenetic => evolution::repeat(&dict, english::top_penalties(30, 0), 10),
+        Run::Other => loop {
+            evolution::evolve_one_random_keyboard();
+        },
     }
 }
