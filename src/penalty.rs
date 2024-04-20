@@ -7,7 +7,7 @@ impl fmt::Display for Penalty {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Penalty(penalty) = self;
         let suffix = '\u{1D561}';
-        write!(f, "{:.4}{}", penalty, suffix)
+        write!(f, "{:.5}{}", penalty, suffix)
     }
 }
 
