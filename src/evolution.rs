@@ -97,7 +97,7 @@ impl<'a> Iterator for Evolve<'a> {
     }
 }
 
-pub fn evolve_one_random_keyboard() {
+pub fn evolve_one_random_keyboard() -> Option<Solution> {
     let bad_pairs = 60;
     let start_penalty = Penalty::new(0.035);
     let die_threshold = 0.00005;
@@ -127,9 +127,12 @@ pub fn evolve_one_random_keyboard() {
     println!("");
     println!("{}", args);
     println!("");
+    let mut last = None;
     for s in args.start() {
-        println!("  {}", s)
+        println!("  {}", s);
+        last = Some(s);
     }
+    last
 }
 
 #[cfg(test)]

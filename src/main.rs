@@ -6,7 +6,6 @@ mod dictionary;
 mod english;
 mod evolution;
 mod frequency;
-mod genetic;
 mod key;
 mod keyboard;
 mod lazy_tree;
@@ -22,7 +21,6 @@ mod word;
 mod word_tally;
 
 enum Run {
-    Genetic(genetic::Args),
     MergeKeys(merge_keys::Args),
     BestNKey(u32),
     Other,
@@ -33,14 +31,6 @@ fn main() {
     // For bad triples, they show up around 1880
 
     let dict = Dictionary::load();
-
-    let genetic = Run::Genetic(genetic::Args {
-        threads: 8,
-        die_threshold: Penalty::new(0.0001),
-        verbose_print: false,
-        exclude_on_any_key: english::top_penalties(75, 500),
-        words_in_dictionary: 200000,
-    });
 
     let merge_keys = Run::MergeKeys(merge_keys::Args {
         total_words: 200000,
@@ -55,7 +45,6 @@ fn main() {
     let run = other;
 
     match run {
-        Run::Genetic(threads) => genetic::solve(threads),
         Run::MergeKeys(penalty) => merge_keys::solve(penalty),
         Run::BestNKey(count) => scratch::best_n_key(count),
         Run::Other => loop {
