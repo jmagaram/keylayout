@@ -51,7 +51,7 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
             println!("{}", solution);
             best = Some(solution);
         }
-        if index > 0 && index.rem_euclid(100_000) == 0 {
+        if index > 0 && index.rem_euclid(1_000_000) == 0 {
             println!(
                 "> seen {} keyboards with {} keys, {}",
                 index.separate_with_underscores(),
