@@ -78,13 +78,7 @@ impl<'a> Iterator for Evolve<'a> {
                 );
                 Some(solution)
             })
-            .min_by(|a, b| {
-                if a.penalty() < b.penalty() {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                }
-            })?;
+            .min_by(|a, b| a.penalty().partial_cmp(&b.penalty()).unwrap())?;
         let sufficient_progress = (self.best.penalty().to_f32() - best_child.penalty().to_f32())
             > self.die_threshold.to_f32();
         if sufficient_progress {
@@ -95,6 +89,51 @@ impl<'a> Iterator for Evolve<'a> {
             None
         }
     }
+}
+
+pub fn find_best<'a>(
+    dict: &'a Dictionary,
+    key_count: u32,
+    die_threshold: Penalty,
+) -> impl Iterator<Item = Option<Solution>> + 'a {
+    let bad_pairs_count = 50;
+    let bad_pairs = english::top_penalties(bad_pairs_count, 0);
+    let alphabet_size = dict.alphabet().count_letters();
+    let key_size_max = (alphabet_size / key_count + 2).min(alphabet_size);
+    let partition = Partitions {
+        sum: alphabet_size,
+        parts: key_count,
+        min: 1,
+        max: key_size_max,
+    };
+    let mut best: Option<Solution> = None;
+    let results = std::iter::repeat_with(move || {
+        let start = Keyboard::random(dict.alphabet(), &partition)
+            .filter(|k| false == k.contains_on_any_key(&bad_pairs))
+            .map(|k| {
+                let penalty = k.penalty(&dict, Penalty::MAX);
+                k.with_penalty(penalty)
+            })
+            .next()
+            .unwrap();
+        let args: EvolveArgs = EvolveArgs {
+            dictionary: &dict,
+            start,
+            die_threshold,
+        };
+        let solution = args.start().last();
+        match (solution, &best) {
+            (Some(solution), None) => best = Some(solution),
+            (Some(solution), Some(current_best)) => {
+                if solution.penalty() < current_best.penalty() {
+                    best = Some(solution)
+                }
+            }
+            _ => {}
+        }
+        best.clone()
+    });
+    results
 }
 
 pub fn evolve_one_random_keyboard() -> Option<Solution> {
