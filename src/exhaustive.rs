@@ -4,6 +4,7 @@ use crate::{
 };
 use humantime::{format_duration, FormattedDuration};
 use std::time::{Duration, Instant};
+use thousands::Separable;
 
 trait DurationFormatter {
     fn round_to_seconds(&self) -> FormattedDuration;
@@ -43,7 +44,7 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
                 format!(
                     "{} keys, kbd {}, {}",
                     count,
-                    index,
+                    index.separate_with_commas(),
                     start_time.elapsed().round_to_seconds()
                 ),
             );
@@ -53,7 +54,7 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
         if index > 0 && index.rem_euclid(100_000) == 0 {
             println!(
                 "> seen {} keyboards with {} keys, {}",
-                index,
+                index.separate_with_commas(),
                 count,
                 start_time.elapsed().round_to_seconds()
             );
