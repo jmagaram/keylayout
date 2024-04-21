@@ -26,11 +26,12 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
         let best_penalty = best.as_ref().map(|b| b.penalty()).unwrap_or(Penalty::MAX);
         let penalty = k.penalty(&dictionary, best_penalty);
         if penalty < best_penalty {
-            let solution = k.with_penalty_and_notes(penalty, format!("#{}", index));
+            let solution =
+                k.with_penalty_and_notes(penalty, format!("#{} for {} keys", index, count));
             println!("{} > {}", index, solution);
             best = Some(solution);
         }
-        if index.rem_euclid(10000) == 0 {
+        if index.rem_euclid(100000) == 0 {
             match best.clone() {
                 None => {}
                 Some(solution) => {
