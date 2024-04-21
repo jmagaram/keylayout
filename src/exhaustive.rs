@@ -1,9 +1,19 @@
-use std::time::Instant;
-
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     penalty_goal::PenaltyGoals, solution::Solution, tally::Tally,
 };
+use humantime::{format_duration, FormattedDuration};
+use std::time::{Duration, Instant};
+
+trait DurationFormatter {
+    fn round_to_seconds(&self) -> FormattedDuration;
+}
+
+impl DurationFormatter for Duration {
+    fn round_to_seconds(&self) -> FormattedDuration {
+        format_duration(Duration::from_secs(self.as_secs()))
+    }
+}
 
 pub fn best_n_key(count: u32) -> Option<Solution> {
     let dictionary = Dictionary::load();
@@ -30,17 +40,22 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
         if penalty < best_penalty {
             let solution = k.with_penalty_and_notes(
                 penalty,
-                format!("{} keys, kbd {}, {:?}", count, index, start_time.elapsed()),
+                format!(
+                    "{} keys, kbd {}, {}",
+                    count,
+                    index,
+                    start_time.elapsed().round_to_seconds()
+                ),
             );
             println!("{}", solution);
             best = Some(solution);
         }
-        if index > 0 && index.rem_euclid(100000) == 0 {
+        if index > 0 && index.rem_euclid(100_000) == 0 {
             println!(
-                "> seen {} keyboards with {} keys, {:?}",
+                "> seen {} keyboards with {} keys, {}",
                 index,
                 count,
-                start_time.elapsed()
+                start_time.elapsed().round_to_seconds()
             );
         }
     }
@@ -128,9 +143,8 @@ pub fn run_dfs() {
             println!("  {}", solution);
         }
     }
-    let duration = start_time.elapsed();
     println!();
-    println!("Elapsed time: {:?}", duration);
+    println!("Elapsed time: {}", start_time.elapsed().round_to_seconds());
 }
 
 #[cfg(test)]
