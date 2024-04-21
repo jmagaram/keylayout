@@ -84,26 +84,6 @@ fn dfs(
     }
 }
 
-pub fn dumb_run_dfs() {
-    let d = Dictionary::load();
-    let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
-    let penalty_goals = PenaltyGoals::none(d.alphabet())
-        .with_random_sampling(12..=26, 10, 0, &d)
-        .with_specific(10, Penalty::new(0.5));
-    println!("Penalties: {}", penalty_goals);
-    let max_letters_per_key = 4;
-    let desired_keys = 10;
-    let solution = dfs(&d, start, max_letters_per_key, desired_keys, &penalty_goals);
-    match solution {
-        None => {
-            println!("No solution found")
-        }
-        Some(solution) => {
-            println!("{}", solution);
-        }
-    }
-}
-
 pub fn run_dfs() {
     let start_time = Instant::now();
     let d = Dictionary::load();
@@ -125,7 +105,7 @@ pub fn run_dfs() {
         .with_specific(13, Penalty::new(0.016709))
         .with_specific(12, Penalty::new(0.02109))
         .with_adjustment(12..=20, 0.8)
-        .with_adjustment(21..=25, 0.5)
+        .with_adjustment(21..=25, 0.7)
         .with_specific(10, Penalty::new(0.0245));
     let max_letters_per_key = 4;
     let desired_keys = 10;
