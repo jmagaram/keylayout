@@ -11,7 +11,6 @@ mod key;
 mod keyboard;
 mod lazy_tree;
 mod letter;
-mod merge_keys;
 mod partitions;
 mod penalty;
 mod penalty_goal;
@@ -19,10 +18,8 @@ mod solution;
 mod tally;
 mod util;
 mod word;
-mod word_tally;
 
 enum Run {
-    MergeKeys(merge_keys::Args),
     BestNKey(u32),
     Other,
 }
@@ -33,12 +30,6 @@ fn main() {
 
     let dict = Dictionary::load();
 
-    let merge_keys = Run::MergeKeys(merge_keys::Args {
-        total_words: 200000,
-        max_penalty: Penalty::new(0.0235),
-        never_together: english::top_penalties(75, 500),
-    });
-
     let other = Run::Other;
 
     let best_n_key = Run::BestNKey(18);
@@ -46,12 +37,21 @@ fn main() {
     let run = other;
 
     match run {
-        Run::MergeKeys(penalty) => merge_keys::solve(penalty),
         Run::BestNKey(count) => {
             exhaustive::best_n_key(count);
         }
         Run::Other => {
             exhaustive::run_dfs();
+            // for r in evolution::find_best(&dict, 23, Penalty::new(0.001)) {
+            //     match r {
+            //         None => println!("Nothing found"),
+            //         Some(r) => {
+            //             println!("{}", r);
+            //         }
+            //     }
+            // }
+            // exhaustive::best_n_key(23);
+            // exhaustive::dumb_run_dfs();
         }
     }
 }
