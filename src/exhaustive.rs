@@ -104,21 +104,22 @@ pub fn run_dfs() {
     let penalty_goals = PenaltyGoals::none(d.alphabet())
         .with_specific(26, Penalty::new(0.00006))
         .with_specific(25, Penalty::new(0.000174))
-        .with_specific(24, Penalty::new(0.000389))
+        .with_specific(24, Penalty::new(0.000385))
         .with_specific(23, Penalty::new(0.0007))
         .with_specific(22, Penalty::new(0.0012))
         .with_specific(21, Penalty::new(0.001985))
         .with_specific(20, Penalty::new(0.0003152))
-        .with_specific(19, Penalty::new(0.003966))
+        .with_specific(19, Penalty::new(0.0037))
         .with_specific(18, Penalty::new(0.004739))
-        .with_specific(17, Penalty::new(0.00532))
+        .with_specific(17, Penalty::new(0.005092))
         .with_specific(16, Penalty::new(0.00825))
         .with_specific(15, Penalty::new(0.009746))
         .with_specific(14, Penalty::new(0.013445))
         .with_specific(13, Penalty::new(0.016709))
-        .with_specific(12, Penalty::new(0.022335))
+        .with_specific(12, Penalty::new(0.02109))
+        .with_adjustment(12..=21, 0.5)
         .with_specific(10, Penalty::new(0.0240));
-    let max_letters_per_key = 5;
+    let max_letters_per_key = 4;
     let desired_keys = 10;
     let solution = dfs(&d, start, max_letters_per_key, desired_keys, &penalty_goals);
     match solution {
