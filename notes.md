@@ -13,28 +13,29 @@
 
 # Best multiple key from exhaustive search (IN PROGRESS)
 
-16 keys > 0.0069𝕡 a' bz cy dx ev fo g h ip js kw l m n qr tu
-17 keys > 0.0055𝕡 a' bz cy d e fx g h iw jr ko l m n pv qt su
-18 keys > 0.0040𝕡 a' bz cy d ev fx g h iw js ku l m n o p qt r
-19 keys > 0.0081𝕡 ' af be ck dh gi jn lo mq p r s t u v w x y z
-20 keys > 0.0057𝕡 ' af be ck dq gi ho jl m n p r s t u v w x y z
-21 keys > 0.0012𝕡 a b c d e f' g h i ju kx l m n oz p qw r s t vy
+16 keys > 0.0066𝕡 a' bz cy d ev fx go h ip js kw l m n qr tu
+17 keys > 0.0053𝕡 a' bz cy d e fu g h iw jr ko l m n pv qt sx
+18 keys > 0.0037𝕡 a' bz c d ev fu g hx iw js ky l m n o p qt r
+19 keys > 0.0080𝕡 af be ck dh gi jn lo m' p q r s t u v w x y z
+20 keys > 0.0044𝕡 af be ck d' gi hj l m n o p qv r s t u w x y z
+21 keys > 0.0011𝕡 a b c d e fx g h i jv ku l m n oz p qy r s t w'
 22 keys > 0.0007𝕡 a b c d e f g h i ju kx l m n oz p qy r s t v' w
 23 keys > 0.000389𝕡 a b c d e f g h i jx k l m n o p qy r s t uz v' w
 
 # Best multiple key from genetic algorithm (IN PROGRESS)
 
-11 keys > 0.022335𝕡 am bn ci du efjq gko hpx ly rw s' tvz
-12 keys > 0.017728𝕡 afz bn' cl d eqwx gm hj iv kr ot py su
-13 keys > 0.014272𝕡 avw' bn cu dh ej fy gr ik lo mq px sz t
-14 keys > 0.010179𝕡 ak bi ce dq fo gw hv jr lz m nu py sx t'
-15 keys > 0.008250𝕡 aw bn cx d ev fo gp hi jy kz lu m qt r s'
-16 keys > 0.005320𝕡 awz bi cy d ej fu gx hv ko l m' n pq r s t
-17 keys > 0.005161𝕡 aw bk c d ev fo' gj hu iz l m n px qs r t y
-18 keys > 0.004048𝕡 aw bq c du ev fi gj h kx' l mz n o p r s t y
-19 keys > 0.003152𝕡 av b cu dj ez f g hx ik l m n o p qr s t w' y
-20 keys > 0.002160𝕡 a b c d e fu g h i jk l m n oz py qw r s t' vx
-21 keys > 0.002016𝕡 a b c d e f g ho i jwz kx l mq n p r s t u v' y
+11 keys > 0.021065𝕡 aw bej cuz df' gm hix kn ly oqt pr sv
+12 keys > 0.016709𝕡 awz be cv' df gm ho iky jl nx pqr s tu
+13 keys > 0.013027𝕡 af bk cy dhq ew go il jnx mu pv rz s' t
+14 keys > 0.009746𝕡 aw by ck d ef go hx ip js lq mu n' rz tv
+15 keys > 0.007603𝕡 aw bu cy d ef gpz hv ij ko' l mx n qt r s
+16 keys > 0.005569𝕡 aw bv cy dx ej fo gu h ik l mz n p' qr s t
+17 keys > 0.004623𝕡 aw by cu d e fq gv hx ik jn l m oz p r s' t
+18 keys > 0.003633𝕡 aw bu c d e fx g hv iq jy ko l m n pz r' s t
+19 keys > 0.002559𝕡 a bu c d eq fx g hz ik jw l m n o' p r s t vy
+20 keys > 0.001974𝕡 a b' c d ej f g h ik l m n o px qr s t uw v yz
+21 keys > 0.001390𝕡 a b c d e f gz h i jo kx l m n p qw r s t u' vy
+22 keys > 0.000843𝕡 a b c d e fx gq h iz ju' k l m n o p r s t v w y
 
 # Best multiple key from sampling 10,000 random keyboards
 
