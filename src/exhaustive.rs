@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     penalty_goal::PenaltyGoals, solution::Solution, tally::Tally,
@@ -99,6 +101,7 @@ pub fn dumb_run_dfs() {
 }
 
 pub fn run_dfs() {
+    let start_time = Instant::now();
     let d = Dictionary::load();
     let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
     let penalty_goals = PenaltyGoals::none(d.alphabet())
@@ -117,19 +120,32 @@ pub fn run_dfs() {
         .with_specific(14, Penalty::new(0.013445))
         .with_specific(13, Penalty::new(0.016709))
         .with_specific(12, Penalty::new(0.02109))
-        .with_adjustment(12..=21, 0.5)
-        .with_specific(10, Penalty::new(0.0240));
+        .with_adjustment(12..=20, 0.8)
+        .with_specific(10, Penalty::new(0.0245));
     let max_letters_per_key = 4;
     let desired_keys = 10;
     let solution = dfs(&d, start, max_letters_per_key, desired_keys, &penalty_goals);
+    println!();
+    println!("Penalty Goals:");
+    (1..26).for_each(|key_count| match penalty_goals.get(key_count) {
+        None => {}
+        Some(goal) => {
+            println!("  {} : {}", key_count, goal);
+        }
+    });
+    println!();
     match solution {
         None => {
-            println!("No solution found")
+            println!("No solution found");
         }
         Some(solution) => {
-            println!("{}", solution);
+            println!("Solution found:");
+            println!("  {}", solution);
         }
     }
+    let duration = start_time.elapsed();
+    println!();
+    println!("Elapsed time: {:?}", duration);
 }
 
 #[cfg(test)]
