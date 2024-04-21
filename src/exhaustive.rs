@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     penalty_goal::PenaltyGoals, solution::Solution, tally::Tally,
@@ -104,7 +102,21 @@ pub fn run_dfs() {
     let d = Dictionary::load();
     let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
     let penalty_goals = PenaltyGoals::none(d.alphabet())
-        .with_random_sampling(11..=26, 5000, 10, &d)
+        .with_specific(26, Penalty::new(0.00006))
+        .with_specific(25, Penalty::new(0.000174))
+        .with_specific(24, Penalty::new(0.000389))
+        .with_specific(23, Penalty::new(0.0007))
+        .with_specific(22, Penalty::new(0.0012))
+        .with_specific(21, Penalty::new(0.001985))
+        .with_specific(20, Penalty::new(0.0003152))
+        .with_specific(19, Penalty::new(0.003966))
+        .with_specific(18, Penalty::new(0.004739))
+        .with_specific(17, Penalty::new(0.00532))
+        .with_specific(16, Penalty::new(0.00825))
+        .with_specific(15, Penalty::new(0.009746))
+        .with_specific(14, Penalty::new(0.013445))
+        .with_specific(13, Penalty::new(0.016709))
+        .with_specific(12, Penalty::new(0.022335))
         .with_specific(10, Penalty::new(0.0240));
     let max_letters_per_key = 5;
     let desired_keys = 10;
