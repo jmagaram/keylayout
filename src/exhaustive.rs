@@ -20,7 +20,7 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
     let dictionary = Dictionary::load();
     let alphabet = dictionary.alphabet();
     let start_time = Instant::now();
-    let max = ((alphabet.count_letters() / count) + 3).min(alphabet.count_letters());
+    let max = ((alphabet.count_letters() / count) + 4).min(alphabet.count_letters());
     let key_sizes = Partitions {
         sum: alphabet.count_letters(),
         parts: count,
