@@ -67,14 +67,14 @@ impl Keyboard {
         self.keys.iter().map(|k| k.count_letters()).max()
     }
 
-    fn find_key_index_for_letter(&self, letter: Letter) -> Option<usize> {
-        self.letter_to_key_index[letter.to_usize()]
-    }
-
     fn find_key_for_letter(&self, letter: Letter) -> Option<Key> {
         let key_index = self.find_key_index_for_letter(letter)?;
         let key = self.keys.get(key_index)?;
         Some(*key)
+    }
+
+    fn find_key_index_for_letter(&self, letter: Letter) -> Option<usize> {
+        self.letter_to_key_index[letter.to_usize()]
     }
 
     pub fn spell_serialized(&self, word: &Word) -> SmallVec<[u8; Word::MAX_WORD_LENGTH]> {
