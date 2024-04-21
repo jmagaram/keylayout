@@ -8,11 +8,13 @@ use crate::{
 pub fn best_n_key(count: u32) -> Option<Solution> {
     let dictionary = Dictionary::load();
     let alphabet = dictionary.alphabet();
+    let start_time = Instant::now();
+    let max = ((alphabet.count_letters() / count) + 3).min(alphabet.count_letters());
     let key_sizes = Partitions {
-        sum: 27,
+        sum: alphabet.count_letters(),
         parts: count,
         min: 1,
-        max: 27,
+        max,
     }
     .calculate();
     let keyboards = key_sizes.iter().flat_map(|key_sizes| {
@@ -26,18 +28,20 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
         let best_penalty = best.as_ref().map(|b| b.penalty()).unwrap_or(Penalty::MAX);
         let penalty = k.penalty(&dictionary, best_penalty);
         if penalty < best_penalty {
-            let solution =
-                k.with_penalty_and_notes(penalty, format!("#{} for {} keys", index, count));
-            println!("{} > {}", index, solution);
+            let solution = k.with_penalty_and_notes(
+                penalty,
+                format!("{} keys, kbd {}, {:?}", count, index, start_time.elapsed()),
+            );
+            println!("{}", solution);
             best = Some(solution);
         }
-        if index.rem_euclid(100000) == 0 {
-            match best.clone() {
-                None => {}
-                Some(solution) => {
-                    println!("{} > {}", index, solution);
-                }
-            }
+        if index > 0 && index.rem_euclid(100000) == 0 {
+            println!(
+                "> seen {} keyboards with {} keys, {:?}",
+                index,
+                count,
+                start_time.elapsed()
+            );
         }
     }
     best
