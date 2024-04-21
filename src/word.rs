@@ -11,6 +11,8 @@ pub struct Word {
 }
 
 impl Word {
+    pub const MAX_WORD_LENGTH: usize = 36;
+
     pub fn new(word: &str, frequency: f32) -> Result<Word, &'static str> {
         let letters = {
             let vec = word
@@ -19,6 +21,8 @@ impl Word {
                 .collect::<Result<Vec<Letter>, _>>()?;
             if vec.len() == 0 {
                 Err("A Word must have 1 or more letters in it.")
+            } else if vec.len() > Word::MAX_WORD_LENGTH {
+                Err("A Word can not have more than 36 letters in it.")
             } else {
                 Ok(vec)
             }

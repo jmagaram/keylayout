@@ -1,6 +1,7 @@
 use std::{collections::HashSet, fmt, iter};
 
 use rand::Rng;
+use smallvec::SmallVec;
 
 use crate::{
     dictionary::Dictionary, key::Key, lazy_tree::Seed, letter::Letter, partitions::Partitions,
@@ -76,17 +77,17 @@ impl Keyboard {
         Some(*key)
     }
 
-    pub fn spell_serialized(&self, word: &Word) -> Vec<u8> {
-        let mut result = vec![];
+    pub fn spell_serialized(&self, word: &Word) -> SmallVec<[u8; Word::MAX_WORD_LENGTH]> {
+        let mut result = SmallVec::<[u8; Word::MAX_WORD_LENGTH]>::new();
         for letter in word.letters() {
             match self.find_key_index_for_letter(*letter) {
+                Some(index) => {
+                    result.push(index as u8);
+                }
                 None => panic!(
                     "Could not spell the word {} because the keyboard is missing the letter {}",
                     word, letter
                 ),
-                Some(index) => {
-                    result.push(index as u8);
-                }
             }
         }
         result
