@@ -5,7 +5,7 @@
 0.0249𝕡 akw bn cej dfq gmx hiv ly ot prz su'
 0.0249𝕡 akw bn cejq dfx' gm hiv lyz ot pr su
 
-# Best multiple key from exhaustive search
+# Best multiple key from exhaustive search (FINISHED)
 
 26 keys > 0.000001𝕡 a b c d e f g h i j k l m n o p q r s t u v w x y z'
 25 keys > 0.000060𝕡 a b c d e f g h i j k l m n o p qz' r s t u v w x y
@@ -25,13 +25,11 @@
 # Best multiple key from genetic algorithm (IN PROGRESS)
 
 11 keys > 0.022335𝕡 am bn ci du efjq gko hpx ly rw s' tvz
-16 keys > 0.005320𝕡 awz bi cy d ej fu gx hv ko l m' n pq r s t
-
 12 keys > 0.017728𝕡 afz bn' cl d eqwx gm hj iv kr ot py su
 13 keys > 0.014272𝕡 avw' bn cu dh ej fy gr ik lo mq px sz t
 14 keys > 0.010179𝕡 ak bi ce dq fo gw hv jr lz m nu py sx t'
 15 keys > 0.008250𝕡 aw bn cx d ev fo gp hi jy kz lu m qt r s'
-16 keys > 0.007211𝕡 ak bx ci d ew f goz h juy l m' n p qr s tv
+16 keys > 0.005320𝕡 awz bi cy d ej fu gx hv ko l m' n pq r s t
 17 keys > 0.005161𝕡 aw bk c d ev fo' gj hu iz l m n px qs r t y
 18 keys > 0.004048𝕡 aw bq c du ev fi gj h kx' l mz n o p r s t y
 19 keys > 0.003152𝕡 av b cu dj ez f g hx ik l m n o p qr s t w' y
@@ -56,3 +54,79 @@
 24 0.0002𝕡
 25 0.0001𝕡
 26 0.0000𝕡
+
+# Recommended
+
+Penalty for 13 should be better than penalty for 12
+Could set penalty for 13 to penalty for 12
+Could set penalty for x+1 to penalty for x
+
+26 keys
+0.0000 (sampling 10,000)
+0.000001 (exhaustive search finished)
+
+25 keys
+0.0001 (sampling 10,000)
+0.000060 (exhaustive search finished)
+
+24 keys
+0.0002 (sampling 10,000)
+0.000174 (exhaustive search finished)
+
+23 keys
+0.0005 (sampling 10,000)
+0.000389 (exhaustive search in progress)
+
+22 keys
+0.0010 (sampling 10,000)
+0.0007 (exhaustive search in progress)
+
+21 keys
+0.0017 (sampling 10,000)
+0.001554 (genetic algorithm)
+0.0012 (exhaustive search in progress)
+
+20 keys
+0.0024 (sampling 10,000)
+0.001985 (genetic algorithm)
+0.0057 (exhaustive search in progress)
+
+19 keys
+0.0038 (sampling 10,000)
+0.003152 (genetic algorithm)
+0.0081 (exhaustive search in progress)
+
+18 keys
+0.0050 (sampling 10,000)
+0.003966 (genetic algorithm)
+0.0040 (exhaustive search in progress)
+
+17 keys
+0.0065 (sampling 10,000)
+0.004739 (genetic algorithm)
+0.0055 (exhaustive search in progress)
+
+16 keys
+0.0082 (sampling 10,000)
+0.005320 (genetic algorithm)
+0.0069 (exhaustive search in progress)
+
+15 keys
+0.0102 (sampling 10,000)
+0.008250 (genetic algorithm)
+
+14 keys
+0.0127 (sampling 10,000)
+0.009746 (genetic algorithm)
+
+13 keys
+0.0178 (sampling 10,000)
+0.013445 (genetic algorithm)
+
+12 keys
+0.0229 (sampling 10,000)
+0.016709 (genetic algorithm)
+
+11 keys
+0.0273 (sampling 10,000)
+0.022335 (genetic algorithm)
