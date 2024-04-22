@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, cmp::Ordering, fmt};
+use std::{borrow::Borrow, fmt};
 
 use crate::{
     dictionary::Dictionary, english, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
