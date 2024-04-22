@@ -227,6 +227,33 @@ impl Keyboard {
         result
     }
 
+    pub fn every_combine_two_keys_lazy<'a>(&'a self) -> impl Iterator<Item = Keyboard> + 'a {
+        let result = (0..=self.keys.len() - 2)
+            .map(move |a_index| {
+                (a_index + 1..=self.keys.len() - 1).map(move |b_index| {
+                    let combined_key = self.keys[a_index].union(self.keys[b_index]);
+                    let new_keys: Vec<Key> = self
+                        .keys
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(index, k)| {
+                            if index == a_index {
+                                Some(combined_key)
+                            } else if index == b_index {
+                                None
+                            } else {
+                                Some(*k)
+                            }
+                        })
+                        .collect();
+                    let new_keyboard = Keyboard::new_from_keys(new_keys);
+                    new_keyboard
+                })
+            })
+            .flatten();
+        result
+    }
+
     pub fn every_combine_two_keys_filter(&self, prohibited_pairs: &Vec<Key>) -> Vec<Keyboard> {
         if self.keys.len() <= 1 {
             panic!("It is not possible to combine keys on the keyboard since it only has {} keys right now.", self.keys.len());
