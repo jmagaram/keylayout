@@ -140,8 +140,15 @@ fn dfs_perf(c: &mut Criterion) {
                 PenaltyGoals::none(d.alphabet()).with_specific(10, Penalty::new(0.5));
             let max_letters_per_key = 5;
             let desired_keys = 10;
-            let solution =
-                exhaustive::dfs(&d, start, max_letters_per_key, desired_keys, &penalty_goals);
+            let prohibited = english::top_penalties(10, 0);
+            let solution = exhaustive::dfs(
+                &d,
+                start,
+                max_letters_per_key,
+                desired_keys,
+                &penalty_goals,
+                Some(&prohibited),
+            );
             match solution {
                 None => {
                     println!("No solution found")
@@ -160,8 +167,8 @@ criterion_group!(
     // load_dictionary,
     // calculate_penalty_score,
     // spell_every_word,
-    every_combine_two_keys,
-    // dfs_perf,
+    // every_combine_two_keys,
+    dfs_perf,
     // distribute_keys,
     // partition_sum,
     // distribute_letters,
