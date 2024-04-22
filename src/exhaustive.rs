@@ -63,7 +63,7 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
     best
 }
 
-fn dfs(
+pub fn dfs(
     dictionary: &Dictionary,
     keyboard: Keyboard,
     max_letters_per_key: u32,
@@ -81,8 +81,7 @@ fn dfs(
             Some(solution)
         } else {
             keyboard
-                .every_combine_two_keys()
-                .iter()
+                .every_combine_two_keys(None)
                 .filter(move |k| k.max_key_size().unwrap() <= max_letters_per_key)
                 .map(move |k| {
                     dfs(

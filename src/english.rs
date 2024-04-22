@@ -32,7 +32,7 @@ pub fn top_penalties(pairs: usize, triples: usize) -> Vec<Key> {
     let triples = triple_penalties(triples)
         .into_iter()
         .map(|(key, _)| key)
-        .filter(|triple| !pairs.iter().any(|pair| triple.contains_all(*pair)))
+        .filter(|triple| !pairs.iter().any(|pair| triple.contains_all(pair)))
         .collect::<Vec<Key>>();
     [pairs, triples].concat()
 }

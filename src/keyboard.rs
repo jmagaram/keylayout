@@ -1,11 +1,11 @@
-use std::{collections::HashSet, fmt, iter};
+use std::{fmt, iter};
 
 use rand::Rng;
 use smallvec::SmallVec;
 
 use crate::{
-    dictionary::Dictionary, key::Key, lazy_tree::Seed, letter::Letter, partitions::Partitions,
-    penalty::Penalty, solution::Solution, tally::Tally, util, word::Word,
+    dictionary::Dictionary, key::Key, letter::Letter, partitions::Partitions, penalty::Penalty,
+    solution::Solution, tally::Tally, util, word::Word,
 };
 
 // fix this!
@@ -96,7 +96,7 @@ impl Keyboard {
     pub fn contains_on_any_key(&self, other: &Vec<Key>) -> bool {
         self.keys
             .iter()
-            .any(|k| other.iter().any(|o| k.contains_all(*o)))
+            .any(|k| other.iter().any(|o| k.contains_all(o)))
     }
 
     pub fn spell(&self, word: &Word) -> String {
@@ -227,69 +227,44 @@ impl Keyboard {
         result
     }
 
-    pub fn every_combine_two_keys_lazy<'a>(&'a self) -> impl Iterator<Item = Keyboard> + 'a {
+    pub fn every_combine_two_keys<'a>(
+        &'a self,
+        prohibited: Option<&'a Vec<Key>>,
+    ) -> impl Iterator<Item = Keyboard> + 'a {
+        if self.keys.len() <= 1 {
+            panic!("It is not possible to combine keys on the keyboard since it only has {} keys right now.", self.keys.len());
+        }
         let result = (0..=self.keys.len() - 2)
             .map(move |a_index| {
                 (a_index + 1..=self.keys.len() - 1).map(move |b_index| {
                     let combined_key = self.keys[a_index].union(self.keys[b_index]);
-                    let new_keys: Vec<Key> = self
-                        .keys
-                        .iter()
-                        .enumerate()
-                        .filter_map(|(index, k)| {
-                            if index == a_index {
-                                Some(combined_key)
-                            } else if index == b_index {
-                                None
-                            } else {
-                                Some(*k)
-                            }
-                        })
-                        .collect();
-                    let new_keyboard = Keyboard::new_from_keys(new_keys);
-                    new_keyboard
+                    if prohibited
+                        .map(|p| p.iter().all(move |p| false == combined_key.contains_all(p)))
+                        .unwrap_or(true)
+                    {
+                        let new_keys: Vec<Key> = self
+                            .keys
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(index, k)| {
+                                if index == a_index {
+                                    Some(combined_key)
+                                } else if index == b_index {
+                                    None
+                                } else {
+                                    Some(*k)
+                                }
+                            })
+                            .collect();
+                        let new_keyboard = Keyboard::new_from_keys(new_keys);
+                        Some(new_keyboard)
+                    } else {
+                        None
+                    }
                 })
             })
             .flatten();
-        result
-    }
-
-    pub fn every_combine_two_keys_filter(&self, prohibited_pairs: &Vec<Key>) -> Vec<Keyboard> {
-        if self.keys.len() <= 1 {
-            panic!("It is not possible to combine keys on the keyboard since it only has {} keys right now.", self.keys.len());
-        }
-        let mut results = vec![];
-        for a_index in 0..=self.keys.len() - 2 {
-            for b_index in a_index + 1..=self.keys.len() - 1 {
-                let combined_key = self.keys[a_index].union(self.keys[b_index]);
-                if prohibited_pairs
-                    .iter()
-                    .all(move |k| k.intersect(combined_key).count_letters() <= 1)
-                {
-                    let new_keys: Vec<Key> = self
-                        .keys
-                        .iter()
-                        .enumerate()
-                        .filter_map(|(index, k)| {
-                            if index == a_index {
-                                Some(combined_key)
-                            } else if index == b_index {
-                                None
-                            } else {
-                                Some(*k)
-                            }
-                        })
-                        .collect();
-                    let new_keyboard = Keyboard::new_from_keys(new_keys);
-                    results.push(new_keyboard);
-                }
-            }
-        }
-        results
-    }
-
-    pub fn every_combine_two_keys(&self) -> Vec<Keyboard> {
-        self.every_combine_two_keys_filter(&vec![])
+        result.filter_map(|k| k)
     }
 
     pub fn penalty_by_word<'a>(
@@ -510,8 +485,7 @@ mod tests {
     #[ignore]
     fn every_combine_two_keys() {
         let k = Keyboard::new_from_layout("a,b,c,d,efg,hi");
-        k.every_combine_two_keys()
-            .iter()
+        k.every_combine_two_keys(None)
             .for_each(|k| println!("{}", k));
     }
 
@@ -525,10 +499,31 @@ mod tests {
         ];
         for d in data {
             let k = Keyboard::new_from_layout(d);
-            let actual_count = k.every_combine_two_keys().len();
+            let actual_count = k.every_combine_two_keys(None).into_iter().count();
             let expected = util::choose(k.keys.len() as u32, 2);
             assert_eq!(actual_count, expected as usize);
         }
+    }
+
+    #[test]
+    fn every_combine_two_keys_will_not_combine_prohibited_combinations() {
+        let k = Keyboard::new_from_layout("abc,def,ghi");
+        let prohibited = vec![Key::try_from("ae").unwrap(), Key::try_from("fhi").unwrap()];
+        let result = k
+            .every_combine_two_keys(Some(&prohibited))
+            .collect::<Vec<Keyboard>>();
+        assert_eq!(1, result.len());
+        assert_eq!("abcghi def", result[0].to_string());
+    }
+
+    #[test]
+    fn every_combine_two_keys_may_result_in_no_keyboards() {
+        let k = Keyboard::new_from_layout("abc,def");
+        let prohibited = vec![Key::try_from("ae").unwrap()];
+        let result = k
+            .every_combine_two_keys(Some(&prohibited))
+            .collect::<Vec<Keyboard>>();
+        assert_eq!(0, result.len());
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use keylayout::{
-    dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
-    tally::Tally,
+    dictionary::Dictionary, english, exhaustive, key::Key, keyboard::Keyboard,
+    partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, tally::Tally,
 };
 
 fn calculate_penalty_score(c: &mut Criterion) {
@@ -117,6 +117,42 @@ fn random_subsets(c: &mut Criterion) {
         })
     });
 }
+
+fn every_combine_two_keys(c: &mut Criterion) {
+    let d = Dictionary::load();
+    let prohibited = english::top_penalties(40, 0);
+    c.bench_function("EVERY COMBINE TWO KEYS", |b| {
+        b.iter(|| {
+            let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
+            let _result = start
+                .every_combine_two_keys(black_box(Some(&prohibited)))
+                .all(|k| k.key_count() >= 1);
+        })
+    });
+}
+
+fn dfs_perf(c: &mut Criterion) {
+    let d = Dictionary::load();
+    c.bench_function("DFS", |b| {
+        b.iter(|| {
+            let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
+            let penalty_goals =
+                PenaltyGoals::none(d.alphabet()).with_specific(10, Penalty::new(0.5));
+            let max_letters_per_key = 5;
+            let desired_keys = 10;
+            let solution =
+                exhaustive::dfs(&d, start, max_letters_per_key, desired_keys, &penalty_goals);
+            match solution {
+                None => {
+                    println!("No solution found")
+                }
+                Some(solution) => {
+                    println!("{}", solution);
+                }
+            }
+        })
+    });
+}
 criterion_group!(
     benches,
     // generate_big_subsets,
@@ -124,9 +160,11 @@ criterion_group!(
     // load_dictionary,
     // calculate_penalty_score,
     // spell_every_word,
+    every_combine_two_keys,
+    // dfs_perf,
     // distribute_keys,
     // partition_sum,
-    distribute_letters,
+    // distribute_letters,
     // random_subsets
 );
 criterion_main!(benches);
