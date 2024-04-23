@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt, ops::Add};
+use std::{cmp::Ordering, fmt};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy, Default)]
 pub struct Frequency(f32);
@@ -12,20 +12,8 @@ impl Ord for Frequency {
 impl Eq for Frequency {}
 
 impl Frequency {
-    fn validate(value: f32) -> Result<Frequency, &'static str> {
-        if value.is_nan() {
-            Err("Frequency values can not be NAN.")
-        } else if value.is_infinite() {
-            Err("Frequency values must be finite.")
-        } else if value.is_sign_negative() {
-            Err("Frequency values must be zero or positive.")
-        } else {
-            Ok(Frequency(value))
-        }
-    }
-
     pub fn new(value: f32) -> Frequency {
-        Frequency::validate(value).unwrap()
+        Frequency::try_from(value).unwrap()
     }
 
     pub fn to_f32(&self) -> f32 {
@@ -43,8 +31,15 @@ impl fmt::Display for Frequency {
 
 impl TryFrom<f32> for Frequency {
     type Error = &'static str;
+
     fn try_from(value: f32) -> Result<Self, Self::Error> {
-        Frequency::validate(value)
+        if !value.is_finite() {
+            Err("Frequency cannot be infinite or NAN.")
+        } else if value.is_sign_negative() {
+            Err("Frequency must be zero or positive.")
+        } else {
+            Ok(Frequency(value))
+        }
     }
 }
 
@@ -62,8 +57,8 @@ mod tests {
     }
 
     #[test]
-    fn try_from_when_out_of_range() {
-        let data = [-1.0, f32::INFINITY, f32::NAN, f32::NEG_INFINITY];
+    fn try_from_when_invalid() {
+        let data = [-0.0, -1.0, f32::INFINITY, f32::NAN, f32::NEG_INFINITY];
         for d in data {
             let actual = Frequency::try_from(d);
             assert!(actual.is_err())
@@ -72,7 +67,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn display_property() {
+    fn display() {
         let tests = [0.002, 0.0235, 0.0, 0.6, 0.0285, 0.132];
         tests.into_iter().for_each(|p| {
             let p = Frequency(p);
