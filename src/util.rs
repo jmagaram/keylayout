@@ -1,5 +1,6 @@
 use std::iter;
 
+/// Calculates the factorial of `n`
 pub fn factorial(n: u128) -> u128 {
     (1..=n).product()
 }
@@ -12,7 +13,10 @@ pub fn choose(n: u32, k: u32) -> u128 {
 }
 
 /// Returns the sequence of numbers with `count` bits set, starting from the
-/// smallest value. Based on this algorithm :
+/// smallest value. This is useful for generating combinations of items from a
+/// vec. For example, to calculate all unique combinations of 3 items,
+/// generate the sequence of numbers with exactly 3 bits set, and then use those
+/// bit positions to select items from the vec. Based on this algorithm :
 /// https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
 pub fn same_set_bits(count: u32) -> impl Iterator<Item = u64> {
     assert!(
