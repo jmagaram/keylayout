@@ -13,6 +13,7 @@ name = "perf"
 harness = false
 
 [dependencies]
+hashbrown = "0.14.3"
 humantime = "2.1.0"
 rand = "0.8.5"
 serde = "1.0.197"
