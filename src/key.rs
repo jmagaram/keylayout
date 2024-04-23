@@ -58,7 +58,7 @@ impl Key {
     }
 
     pub fn count_letters(&self) -> u32 {
-        self.into_iter().count() as u32 // fix!
+        util::set_bits(self.0).count() as u32
     }
 
     pub fn is_empty(&self) -> bool {
