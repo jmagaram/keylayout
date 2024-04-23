@@ -17,7 +17,7 @@ impl Keyboard {
     pub fn new_from_keys(keys: Vec<Key>) -> Keyboard {
         let mut letter_to_key_index: [Option<usize>; Letter::ALPHABET_SIZE] = Default::default();
         for (key_index, key) in keys.iter().enumerate() {
-            for letter in *key {
+            for letter in key.letters() {
                 debug_assert!(
                     letter_to_key_index[letter.to_usize_index()].is_none(),
                     "Some keys on the keyboard have duplicate letters."
@@ -33,6 +33,7 @@ impl Keyboard {
 
     pub fn new_every_letter_on_own_key(alphabet: Key) -> Keyboard {
         let keys = alphabet
+            .letters()
             .map(|r| Key::with_one_letter(r))
             .collect::<Vec<Key>>();
         Keyboard::new_from_keys(keys)
@@ -121,7 +122,7 @@ impl Keyboard {
         for evaluate in keys_to_evaluate {
             let rest = alphabet.except(evaluate);
             let mut keys = rest
-                .into_iter()
+                .letters()
                 .map(Key::with_one_letter)
                 .collect::<Vec<Key>>();
             keys.push(evaluate);
@@ -197,8 +198,8 @@ impl Keyboard {
             for b_key_index in a_key_index + 1..=(self.keys.len() - 1) {
                 let a_key = self.keys[a_key_index];
                 let b_key = self.keys[b_key_index];
-                for a_letter in a_key {
-                    for b_letter in b_key {
+                for a_letter in a_key.letters() {
+                    for b_letter in b_key.letters() {
                         if a_letter < b_letter {
                             let a_key_after = a_key.remove(a_letter).add(b_letter);
                             let b_key_after = b_key.remove(b_letter).add(a_letter);
@@ -312,7 +313,7 @@ impl Keyboard {
 
     pub fn fill_missing(&self, alphabet: Key) -> Keyboard {
         let add = alphabet
-            .into_iter()
+            .letters()
             .filter_map(|r| match self.find_key_for_letter(r) {
                 None => Some(Key::with_one_letter(r)),
                 Some(_) => None,

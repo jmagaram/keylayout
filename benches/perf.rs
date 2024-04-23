@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use keylayout::{
     dictionary::Dictionary, english, exhaustive, key::Key, keyboard::Keyboard,
-    partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, tally::Tally,
+    partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, tally::Tally, util,
 };
 
 fn calculate_penalty_score(c: &mut Criterion) {
@@ -131,6 +131,56 @@ fn every_combine_two_keys(c: &mut Criterion) {
     });
 }
 
+fn set_bits(c: &mut Criterion) {
+    c.bench_function("SET BITS ITERATOR", |b| {
+        b.iter(|| {
+            for i in [u32::MAX, 23, 76, 543_423, 0, 432, 12_345_731, 123_456_789] {
+                util::set_bits(black_box(i)).count();
+            }
+        })
+    });
+}
+
+fn count_letters_in_key(c: &mut Criterion) {
+    c.bench_function("COUNT LETTERS IN KEY", |b| {
+        b.iter(|| {
+            let data = [
+                "a",
+                "ab",
+                "abc",
+                "abcd",
+                "abcdefg",
+                "abcdefghijklmnopqrstuvwxyz'",
+                "abcdefghijklmno",
+            ];
+            for d in data {
+                let key = Key::new(black_box(d));
+                key.count_letters();
+            }
+        })
+    });
+}
+
+fn iterate_letters_in_key(c: &mut Criterion) {
+    c.bench_function("ITERATE LETTERS IN KEY", |b| {
+        b.iter(|| {
+            let data = [
+                "a",
+                "ab",
+                "abc",
+                "abcd",
+                "abcdefg",
+                "abcdefghijklmnopqrstuvwxyz'",
+                "abcdefghijklmno",
+            ];
+            for d in data {
+                // let _count = Key::new(black_box(d)).into_iter().count();
+                let _count = Key::new(black_box(d)).letters().count();
+            }
+        })
+    });
+}
+
 fn dfs_perf(c: &mut Criterion) {
     let d = Dictionary::load();
     c.bench_function("DFS", |b| {
@@ -164,14 +214,17 @@ criterion_group!(
     benches,
     // generate_big_subsets,
     // generate_small_subsets,
-    load_dictionary,
+    // load_dictionary,
     // calculate_penalty_score,
-    spell_every_word,
-    every_combine_two_keys,
-    dfs_perf,
+    // set_bits,
+    // count_letters_in_key,
+    iterate_letters_in_key,
+    // spell_every_word,
+    // every_combine_two_keys,
+    // dfs_perf,
     // distribute_keys,
     // partition_sum,
-    distribute_letters,
+    // distribute_letters,
     // random_subsets
 );
 criterion_main!(benches);

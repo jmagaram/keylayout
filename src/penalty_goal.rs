@@ -37,7 +37,7 @@ impl PenaltyGoals {
             "The minimum key count is 1."
         );
         assert!(
-            key_counts.clone().max().unwrap() as usize <= self.alphabet.count(),
+            key_counts.clone().max().unwrap() as usize <= self.alphabet.count_letters() as usize,
             "The maximum key count must be less than or equal to the size of the alphabet."
         );
         let mut result = self.clone();
@@ -70,10 +70,10 @@ impl PenaltyGoals {
             "The minimum key count is 1."
         );
         assert!(
-            key_counts.clone().max().unwrap() as usize <= self.alphabet.count(),
+            key_counts.clone().max().unwrap() as usize <= self.alphabet.count_letters() as usize,
             "The maximum key count must be less than or equal to the size of the alphabet."
         );
-        let alphabet_size = self.alphabet.count();
+        let alphabet_size = self.alphabet.count_letters() as usize;
         let partitions = key_counts.map(move |key_count| {
             let max = ((alphabet_size / (key_count as usize)) + 2).min(alphabet_size);
             Partitions {

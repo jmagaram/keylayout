@@ -84,6 +84,10 @@ impl Key {
         }
     }
 
+    pub fn letters(&self) -> impl Iterator<Item = Letter> {
+        util::set_bits(self.0).map(|bit| Letter::try_from(bit as u32).unwrap())
+    }
+
     pub fn min_letter(&self) -> Option<Letter> {
         match self.0.trailing_zeros() {
             32 => None,
@@ -97,7 +101,7 @@ impl Key {
             None
         } else {
             let index = rand::random::<usize>().rem_euclid(total_letters as usize);
-            self.into_iter().nth(index)
+            self.letters().nth(index)
         }
     }
 
@@ -159,7 +163,7 @@ impl Key {
             let result_boxed: Box<dyn Iterator<Item = Key>> = Box::new(result);
             result_boxed
         } else {
-            let letters = self.into_iter().collect::<Vec<Letter>>();
+            let letters = self.letters().collect::<Vec<Letter>>();
             let letters_count = letters.len();
             let max_exclusive = 1 << letters_count;
             assert!(
@@ -171,7 +175,7 @@ impl Key {
             let result = util::same_set_bits(size)
                 .take_while(move |i| *i < max_exclusive)
                 .map(move |i| {
-                    Key(i as u32).into_iter().fold(Key::EMPTY, |total, i| {
+                    Key(i as u32).letters().fold(Key::EMPTY, |total, i| {
                         total.add(letters[i.to_usize_index()])
                     })
                 });
@@ -294,26 +298,10 @@ impl TryFrom<&str> for Key {
 impl fmt::Display for Key {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut result = String::new();
-        for c in self.into_iter() {
+        for c in self.letters() {
             result.push(c.to_char());
         }
         write!(f, "{}", result)
-    }
-}
-
-// iter not into_iter?
-impl Iterator for Key {
-    type Item = Letter;
-
-    fn next(&mut self) -> Option<Letter> {
-        match self.0 {
-            0 => None,
-            _ => {
-                let trailing_zeros = self.0.trailing_zeros();
-                self.0 = self.0 ^ (1 << (trailing_zeros));
-                Letter::try_from(trailing_zeros).ok()
-            }
-        }
     }
 }
 
@@ -468,14 +456,10 @@ mod tests {
     }
 
     #[test]
-    fn into_iterator_test() {
+    fn letters_test() {
         let data = ["", "abc", "a", "xyz", "az'"];
         for d in data {
-            let k: Vec<String> = Key::try_from(d)
-                .unwrap()
-                .into_iter()
-                .map(|r| r.to_string())
-                .collect();
+            let k: Vec<String> = Key::new(d).letters().map(|r| r.to_string()).collect();
             let result = k.join("");
             assert_eq!(d, result);
         }
@@ -664,7 +648,7 @@ mod tests {
     fn subsets_of_size_test() {
         fn test(items: &str) {
             let key = Key::new(items);
-            let ones_count = key.into_iter().count() as u32; // fix
+            let ones_count = key.letters().count() as u32; // fix
 
             // subsets have correct number of items (no duplicates)
             (1..ones_count).for_each(|subset_size| {
@@ -788,7 +772,7 @@ mod tests {
             assert_eq!(every_letter.count_letters(), total_letters);
             let unique_letters = result
                 .into_iter()
-                .flat_map(|k| k.into_iter().map(|r| r))
+                .flat_map(|k| k.letters().map(|r| r))
                 .collect::<HashSet<Letter>>();
             assert_eq!(unique_letters.len(), total_letters as usize);
         }
@@ -912,7 +896,7 @@ mod tests {
                 .distribute(key_sizes)
                 .flat_map(|ks| ks)
                 .fold(Key::EMPTY, |total, i| total.union(i));
-            assert_eq!(all_letters.count(), letter_count as usize);
+            assert_eq!(all_letters.letters().count(), letter_count as usize);
         }
     }
 
