@@ -30,19 +30,19 @@ impl Key {
     }
 
     pub fn with_one_letter(r: Letter) -> Key {
-        Key(1 << r.to_u8())
+        Key(1 << r.to_u8_index())
     }
 
     pub fn add(&self, r: Letter) -> Key {
-        Key(self.0 | 1 << r.to_u8())
+        Key(self.0 | 1 << r.to_u8_index())
     }
 
     pub fn remove(&self, r: Letter) -> Key {
-        Key(self.0 & !(1 << r.to_u8()))
+        Key(self.0 & !(1 << r.to_u8_index()))
     }
 
     pub fn contains(&self, r: Letter) -> bool {
-        self.0 & (1 << r.to_u8()) != 0
+        self.0 & (1 << r.to_u8_index()) != 0
     }
 
     pub fn contains_all(&self, other: &Key) -> bool {
@@ -163,9 +163,9 @@ impl Key {
             let result = util::same_set_bits(size)
                 .take_while(move |i| *i < max_exclusive)
                 .map(move |i| {
-                    Key(i as u32)
-                        .into_iter()
-                        .fold(Key::EMPTY, |total, i| total.add(letters[i.to_usize()]))
+                    Key(i as u32).into_iter().fold(Key::EMPTY, |total, i| {
+                        total.add(letters[i.to_usize_index()])
+                    })
                 });
             let result_boxed: Box<dyn Iterator<Item = Key>> = Box::new(result);
             result_boxed

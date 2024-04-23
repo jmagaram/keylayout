@@ -19,10 +19,10 @@ impl Keyboard {
         for (key_index, key) in keys.iter().enumerate() {
             for letter in *key {
                 debug_assert!(
-                    letter_to_key_index[letter.to_usize()].is_none(),
+                    letter_to_key_index[letter.to_usize_index()].is_none(),
                     "Some keys on the keyboard have duplicate letters."
                 );
-                letter_to_key_index[letter.to_usize()] = Some(key_index);
+                letter_to_key_index[letter.to_usize_index()] = Some(key_index);
             }
         }
         Keyboard {
@@ -72,7 +72,7 @@ impl Keyboard {
     }
 
     fn find_key_index_for_letter(&self, letter: Letter) -> Option<usize> {
-        self.letter_to_key_index[letter.to_usize()]
+        self.letter_to_key_index[letter.to_usize_index()]
     }
 
     fn spell_serialized(&self, word: &Word) -> u128 {

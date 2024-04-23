@@ -69,7 +69,9 @@ impl TryFrom<(&str, f32)> for Word {
             let letters =
                 word.chars()
                     .fold(Ok(0u128), |total, i| match (total, Letter::try_from(i)) {
-                        (Ok(total), Ok(letter)) => Ok((total << 5) | (letter.to_u8() as u128 + 1)),
+                        (Ok(total), Ok(letter)) => {
+                            Ok((total << 5) | (letter.to_u8_index() as u128 + 1))
+                        }
                         _ => Err("ooops"),
                     })?;
             let frequency = Frequency::try_from(frequency)?;

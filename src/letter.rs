@@ -19,15 +19,11 @@ impl Letter {
         Letter::ALPHABET[self.0 as usize]
     }
 
-    pub fn to_u32(&self) -> u32 {
-        self.0 as u32
-    }
-
-    pub fn to_usize(&self) -> usize {
+    pub fn to_usize_index(&self) -> usize {
         self.0 as usize
     }
 
-    pub fn to_u8(&self) -> u8 {
+    pub fn to_u8_index(&self) -> u8 {
         self.0
     }
 }
@@ -60,7 +56,7 @@ impl TryFrom<u32> for Letter {
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value >= Letter::ALPHABET.len() as u32 {
-            Err("Letter only accepts values in the range 0 up to including the size of the alphabet.")
+            Err("Letter indexes must be >= 0 and < the size of the alphabet.")
         } else {
             Ok(Letter(value as u8))
         }
@@ -72,7 +68,7 @@ impl TryFrom<u128> for Letter {
 
     fn try_from(value: u128) -> Result<Self, Self::Error> {
         if value >= Letter::ALPHABET.len() as u128 {
-            Err("Letter only accepts values in the range 0 up to including the size of the alphabet.")
+            Err("Letter indexes must be >= 0 and < the size of the alphabet.")
         } else {
             Ok(Letter(value as u8))
         }
@@ -83,30 +79,6 @@ impl TryFrom<u128> for Letter {
 mod tests {
 
     use super::*;
-
-    #[test]
-    fn new_test() {
-        for c in Letter::ALPHABET {
-            let actual = Letter::new(c).to_string();
-            let expected = c.to_string();
-            assert_eq!(actual, expected);
-        }
-    }
-
-    #[test]
-    #[should_panic]
-    fn new_panic_on_invalid() {
-        Letter::new('5');
-    }
-
-    #[test]
-    fn display_is_the_character_from_alphabet_indexed() {
-        for c in Letter::ALPHABET {
-            let actual = c.to_string();
-            let expected = c.to_string();
-            assert_eq!(actual, expected);
-        }
-    }
 
     #[test]
     fn try_from_char_when_in_alphabet() {
@@ -130,6 +102,30 @@ mod tests {
                 Err(_) => (),
                 Ok(_) => panic!("Converted the invalid character '{}' into a Letter.", c),
             }
+        }
+    }
+
+    #[test]
+    fn new_for_valid_letters_in_alphabet() {
+        for c in Letter::ALPHABET {
+            let actual = Letter::new(c).to_string();
+            let expected = c.to_string();
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn new_panic_on_invalid_letter() {
+        Letter::new('5');
+    }
+
+    #[test]
+    fn display_is_the_character_from_alphabet_indexed() {
+        for c in Letter::ALPHABET {
+            let actual = c.to_string();
+            let expected = c.to_string();
+            assert_eq!(actual, expected);
         }
     }
 
@@ -168,36 +164,19 @@ mod tests {
     }
 
     #[test]
-    fn to_u8() {
+    fn to_u8_index() {
         for expected in Letter::ALPHABET {
             let letter = Letter::new(expected);
-            let actual = letter.to_u8();
+            let actual = letter.to_u8_index();
             let expected = letter.0;
             assert_eq!(expected, actual);
         }
     }
 
     #[test]
-    fn to_u32_returns_index_into_alphabet() {
+    fn to_usize_index_returns_zero_based_index_into_alphabet() {
         for c in Letter::ALPHABET {
-            let actual = Letter::new(c).to_u32();
-            let expected = Letter::ALPHABET
-                .iter()
-                .enumerate()
-                .find_map(|(inx, char)| match *char == c {
-                    true => Some(inx),
-                    false => None,
-                })
-                .map(|inx| inx as u32)
-                .unwrap();
-            assert_eq!(expected, actual);
-        }
-    }
-
-    #[test]
-    fn to_usize_returns_index_into_alphabet() {
-        for c in Letter::ALPHABET {
-            let actual = Letter::new(c).to_usize();
+            let actual = Letter::new(c).to_usize_index();
             let expected = Letter::ALPHABET
                 .iter()
                 .enumerate()
@@ -212,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn alphabet_size_constant() {
+    fn alphabet_size_is_number_of_letters() {
         assert_eq!(Letter::ALPHABET_SIZE, Letter::ALPHABET.len());
     }
 }
