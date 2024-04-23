@@ -14,6 +14,10 @@ impl Key {
     pub const EMPTY: Key = Key(0);
     const MAX_SIZE: u32 = Letter::ALPHABET_SIZE as u32;
 
+    pub fn new(letters: &str) -> Key {
+        Key::try_from(letters).unwrap()
+    }
+
     pub fn with_every_letter() -> Key {
         Key((1 << Letter::ALPHABET_SIZE) - 1)
     }
@@ -31,6 +35,10 @@ impl Key {
 
     pub fn with_one_letter(r: Letter) -> Key {
         Key(1 << r.to_u8_index())
+    }
+
+    pub fn with_letters(letters: impl Iterator<Item = Letter>) -> Key {
+        Key::from_iter(letters)
     }
 
     pub fn add(&self, r: Letter) -> Key {
@@ -401,7 +409,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn try_from_str_when_valid_test() {
+    fn try_from_str_when_valid() {
         for s in ["abc", "a", "abcdez\'", "xyz", ""] {
             let key: Key = s.try_into().unwrap();
             assert_eq!(key.to_string(), s.to_string());
@@ -409,7 +417,7 @@ mod tests {
     }
 
     #[test]
-    fn try_from_str_when_invalid_test() {
+    fn try_from_str_when_invalid() {
         for s in ["098", "a#4", "   "] {
             let key: Result<Key, _> = s.try_into();
             assert!(key.is_err());
@@ -417,16 +425,16 @@ mod tests {
     }
 
     #[test]
-    fn to_string_test() {
+    fn to_string_concatenates_letters() {
         let data = ["abc", "", "mnop'"];
         for s in data {
-            let actual = Key::try_from(s).unwrap().to_string();
+            let actual = Key::new(s).to_string();
             assert_eq!(s.to_string(), actual);
         }
     }
 
     #[test]
-    fn with_every_letter_test() {
+    fn with_every_letter_includes_every_letter() {
         let target = Key::with_every_letter();
         assert_eq!(
             target.to_string(),
@@ -435,8 +443,13 @@ mod tests {
     }
 
     #[test]
-    fn with_first_n_letters_test() {
-        let data = [(0, ""), (1, "a"), (27, "abcdefghijklmnopqrstuvwxyz'")];
+    fn with_first_n_letters_includes_first_n() {
+        let data = [
+            (0, ""),
+            (1, "a"),
+            (3, "abc"),
+            (27, "abcdefghijklmnopqrstuvwxyz'"),
+        ];
         for (count, expected) in data {
             let target = Key::with_first_n_letters(count);
             assert_eq!(expected, target.to_string())
@@ -493,9 +506,9 @@ mod tests {
             ("a", "abc", ""),
         ];
         for (start, other, expected) in data {
-            let start = Key::try_from(start).unwrap();
-            let except = Key::try_from(other).unwrap();
-            let expected = Key::try_from(expected).unwrap();
+            let start = Key::new(start);
+            let except = Key::new(other);
+            let expected = Key::new(expected);
             assert_eq!(start.except(except), expected);
         }
     }
@@ -511,9 +524,9 @@ mod tests {
             ("", 'a', ""),
         ];
         for (start, to_remove, expected) in data {
-            let start = Key::try_from(start).unwrap();
+            let start = Key::new(start);
             let except = Letter::new(to_remove);
-            let expected = Key::try_from(expected).unwrap();
+            let expected = Key::new(expected);
             assert_eq!(start.remove(except), expected);
         }
     }
@@ -528,7 +541,7 @@ mod tests {
             ("abcd", 'x', false),
         ];
         for (start, find, expected) in data {
-            let start = Key::try_from(start).unwrap();
+            let start = Key::new(start);
             let other = Letter::new(find);
             assert_eq!(start.contains(other), expected);
         }
@@ -551,8 +564,8 @@ mod tests {
             ("abc", "", true),
         ];
         for (start, other, expected) in data {
-            let start = Key::try_from(start).unwrap();
-            let other = Key::try_from(other).unwrap();
+            let start = Key::new(start);
+            let other = Key::new(other);
             assert_eq!(start.contains_all(&other), expected);
         }
     }
@@ -561,7 +574,7 @@ mod tests {
     fn count_letters_test() {
         let data = [(""), ("a"), ("abcde"), ("abcdefghijklmnopqrstuvwxyz'")];
         for start in data {
-            let start = Key::try_from(start).unwrap();
+            let start = Key::new(start);
             assert_eq!(start.count_letters() as usize, start.to_string().len());
         }
     }
@@ -584,9 +597,9 @@ mod tests {
             ("abc", "xyz", "abcxyz"),
         ];
         for (start, other, expected) in data {
-            let start = Key::try_from(start).unwrap();
-            let other = Key::try_from(other).unwrap();
-            let expected = Key::try_from(expected).unwrap();
+            let start = Key::new(start);
+            let other = Key::new(other);
+            let expected = Key::new(expected);
             assert_eq!(start.union(other), expected);
         }
     }
@@ -603,9 +616,9 @@ mod tests {
             ("abcd", "cdef", "cd"),
         ];
         for (start, other, expected) in data {
-            let start = Key::try_from(start).unwrap();
-            let other = Key::try_from(other).unwrap();
-            let expected = Key::try_from(expected).unwrap();
+            let start = Key::new(start);
+            let other = Key::new(other);
+            let expected = Key::new(expected);
             assert_eq!(start.intersect(other), expected);
         }
     }
@@ -614,7 +627,7 @@ mod tests {
     fn max_letter_test() {
         let data = [("a", 'a'), ("abc", 'c'), ("cba", 'c')];
         for (start, expected) in data {
-            let start = Key::try_from(start).unwrap();
+            let start = Key::new(start);
             let expected = Letter::new(expected);
             assert_eq!(start.max_letter(), Some(expected));
         }
@@ -625,7 +638,7 @@ mod tests {
     fn min_letter_test() {
         let data = [("a", 'a'), ("abc", 'a'), ("cba", 'a'), ("xyfwfg", 'f')];
         for (start, expected) in data {
-            let start = Key::try_from(start).unwrap();
+            let start = Key::new(start);
             let expected = Letter::new(expected);
             assert_eq!(start.min_letter(), Some(expected));
         }
@@ -650,7 +663,7 @@ mod tests {
     #[test]
     fn subsets_of_size_test() {
         fn test(items: &str) {
-            let key = Key::try_from(items).unwrap();
+            let key = Key::new(items);
             let ones_count = key.into_iter().count() as u32; // fix
 
             // subsets have correct number of items (no duplicates)
@@ -707,7 +720,7 @@ mod tests {
     fn random_letter_gets_every_letter_eventually() {
         let data = ["a", "abc", "abcdefghijklmnopqrtsuvwxyz'"];
         for d in data {
-            let target = Key::try_from(d).unwrap();
+            let target = Key::new(d);
             let found = Key::from_iter((1..=1000).map(move |_| target.random_letter().unwrap()));
             assert_eq!(target, found)
         }
@@ -717,7 +730,7 @@ mod tests {
     fn random_subset_gets_every_letter_eventually() {
         let data = ["", "a", "abc", "abcdefghijklmnopqrtsuvwxyz'"];
         for key in data {
-            let source = Key::try_from(key).unwrap();
+            let source = Key::new(key);
             let letter_count: u32 = key.len().try_into().unwrap();
             for min_size in 0..=letter_count {
                 for max_size in min_size..=letter_count {
