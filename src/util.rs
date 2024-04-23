@@ -88,11 +88,13 @@ mod tests {
             (0, vec![]),
             (1, vec![0]),
             (3, vec![0, 1]),
+            (8, vec![3]),
+            (2, vec![1]),
             (12, vec![2, 3]),
         ];
         for (n, expected) in data {
             let actual = set_bits(n).collect::<Vec<usize>>();
-            assert_eq!(expected, actual);
+            assert_eq!(expected, actual, "for number {}", n);
         }
     }
 
