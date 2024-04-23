@@ -1,4 +1,4 @@
-use hashbrown::HashMap;
+use hashbrown::HashMap; // much faster than built-in HashMap
 use std::hash::Hash;
 
 #[derive(Clone, Default, Debug)]
