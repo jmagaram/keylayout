@@ -164,14 +164,14 @@ criterion_group!(
     benches,
     // generate_big_subsets,
     // generate_small_subsets,
-    // load_dictionary,
+    load_dictionary,
     // calculate_penalty_score,
-    // spell_every_word,
-    // every_combine_two_keys,
+    spell_every_word,
+    every_combine_two_keys,
     dfs_perf,
     // distribute_keys,
     // partition_sum,
-    // distribute_letters,
+    distribute_letters,
     // random_subsets
 );
 criterion_main!(benches);
