@@ -67,6 +67,8 @@ impl Iterator for BitEnumerator {
     }
 }
 
+/// Returns an iterator of the specific bits set in a number, starting with the
+/// lowest significant bit.
 pub fn set_bits(n: u32) -> impl Iterator<Item = usize> {
     BitEnumerator {
         value: n,
