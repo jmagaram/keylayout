@@ -1,11 +1,12 @@
 use std::iter;
 
+pub fn factorial(n: u128) -> u128 {
+    (1..=n).product()
+}
+
 pub fn choose(n: u32, k: u32) -> u128 {
     let n = n as u128;
     let k = k as u128;
-    fn factorial(n: u128) -> u128 {
-        (1..=n).product()
-    }
     factorial(n) / factorial(n - k) / factorial(k)
 }
 
@@ -83,6 +84,14 @@ mod tests {
         for (n, expected) in data {
             let actual = set_bits(n).collect::<Vec<usize>>();
             assert_eq!(expected, actual);
+        }
+    }
+
+    #[test]
+    fn factorial_test() {
+        let data = [(5, 120), (4, 24), (3, 6), (2, 2), (1, 1), (0, 1)];
+        for (n, expected) in data {
+            assert_eq!(factorial(n), expected);
         }
     }
 
