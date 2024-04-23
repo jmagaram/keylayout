@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn to_char() {
         for expected in Letter::ALPHABET {
-            let actual: char = Letter::try_from(expected).unwrap().to_char();
+            let actual: char = Letter::new(expected).to_char();
             assert_eq!(expected, actual);
         }
     }
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn to_u8() {
         for expected in Letter::ALPHABET {
-            let letter = Letter::try_from(expected).unwrap();
+            let letter = Letter::new(expected);
             let actual = letter.to_u8();
             let expected = letter.0;
             assert_eq!(expected, actual);
@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn to_u32_returns_index_into_alphabet() {
         for c in Letter::ALPHABET {
-            let actual = Letter::try_from(c).unwrap().to_u32();
+            let actual = Letter::new(c).to_u32();
             let expected = Letter::ALPHABET
                 .iter()
                 .enumerate()
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn to_usize_returns_index_into_alphabet() {
         for c in Letter::ALPHABET {
-            let actual = Letter::try_from(c).unwrap().to_usize();
+            let actual = Letter::new(c).to_usize();
             let expected = Letter::ALPHABET
                 .iter()
                 .enumerate()

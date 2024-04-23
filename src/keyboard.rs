@@ -429,7 +429,7 @@ mod tests {
         ];
         for (layout, letter, expected_key_index) in data {
             let keyboard = Keyboard::new_from_layout(layout);
-            let letter_to_find = Letter::try_from(letter).unwrap();
+            let letter_to_find = Letter::new(letter);
             let actual = keyboard.find_key_index_for_letter(letter_to_find);
             assert_eq!(actual, expected_key_index);
         }

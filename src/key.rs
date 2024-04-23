@@ -400,19 +400,6 @@ mod tests {
 
     use super::*;
 
-    fn aa() -> Letter {
-        Letter::try_from('a').unwrap()
-    }
-    fn bb() -> Letter {
-        Letter::try_from('b').unwrap()
-    }
-    fn cc() -> Letter {
-        Letter::try_from('c').unwrap()
-    }
-    fn dd() -> Letter {
-        Letter::try_from('d').unwrap()
-    }
-
     #[test]
     fn try_from_str_when_valid_test() {
         for s in ["abc", "a", "abcdez\'", "xyz", ""] {
@@ -485,10 +472,10 @@ mod tests {
     fn add_test() {
         assert_eq!(
             Key::EMPTY
-                .add(aa())
-                .add(bb())
-                .add(cc())
-                .add(dd())
+                .add(Letter::new('a'))
+                .add(Letter::new('b'))
+                .add(Letter::new('c'))
+                .add(Letter::new('d'))
                 .to_string(),
             "abcd"
         );
@@ -525,7 +512,7 @@ mod tests {
         ];
         for (start, to_remove, expected) in data {
             let start = Key::try_from(start).unwrap();
-            let except = Letter::try_from(to_remove).unwrap();
+            let except = Letter::new(to_remove);
             let expected = Key::try_from(expected).unwrap();
             assert_eq!(start.remove(except), expected);
         }
@@ -542,7 +529,7 @@ mod tests {
         ];
         for (start, find, expected) in data {
             let start = Key::try_from(start).unwrap();
-            let other = Letter::try_from(find).unwrap();
+            let other = Letter::new(find);
             assert_eq!(start.contains(other), expected);
         }
     }
@@ -581,9 +568,9 @@ mod tests {
 
     #[test]
     fn with_one_letter_test() {
-        assert_eq!("a", Key::with_one_letter(aa()).to_string());
-        assert_eq!("b", Key::with_one_letter(bb()).to_string());
-        assert_eq!("c", Key::with_one_letter(cc()).to_string());
+        assert_eq!("a", Key::with_one_letter(Letter::new('a')).to_string());
+        assert_eq!("b", Key::with_one_letter(Letter::new('b')).to_string());
+        assert_eq!("c", Key::with_one_letter(Letter::new('c')).to_string());
     }
 
     #[test]
@@ -628,7 +615,7 @@ mod tests {
         let data = [("a", 'a'), ("abc", 'c'), ("cba", 'c')];
         for (start, expected) in data {
             let start = Key::try_from(start).unwrap();
-            let expected = Letter::try_from(expected).unwrap();
+            let expected = Letter::new(expected);
             assert_eq!(start.max_letter(), Some(expected));
         }
         assert!(Key::EMPTY.max_letter().is_none());
@@ -639,7 +626,7 @@ mod tests {
         let data = [("a", 'a'), ("abc", 'a'), ("cba", 'a'), ("xyfwfg", 'f')];
         for (start, expected) in data {
             let start = Key::try_from(start).unwrap();
-            let expected = Letter::try_from(expected).unwrap();
+            let expected = Letter::new(expected);
             assert_eq!(start.min_letter(), Some(expected));
         }
         assert!(Key::EMPTY.min_letter().is_none());
@@ -704,7 +691,7 @@ mod tests {
         let result = Key::from_iter(
             ['a', 'b', 'c', 'd', 'e', 'f']
                 .iter()
-                .map(|c| Letter::try_from(*c).unwrap()),
+                .map(|c| Letter::new(*c)),
         );
         assert_eq!("abcdef", result.to_string());
     }
