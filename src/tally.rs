@@ -12,7 +12,7 @@ where
         Tally(HashMap::new())
     }
 
-    pub fn increment_by(&mut self, item: T, n: u32) -> u32 {
+    fn increment_by(&mut self, item: T, n: u32) -> u32 {
         match self.0.get_mut(&item) {
             None => {
                 if n > 0 {
@@ -41,7 +41,7 @@ where
         }
     }
 
-    pub fn decrement_by(&mut self, item: T, n: u32) -> u32 {
+    fn decrement_by(&mut self, item: T, n: u32) -> u32 {
         match self.0.get_mut(&item) {
             None => {
                 if n > 0 {
