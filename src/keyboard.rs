@@ -1,14 +1,12 @@
 use std::{fmt, iter};
 
 use rand::Rng;
-use smallvec::SmallVec;
 
 use crate::{
     dictionary::Dictionary, key::Key, letter::Letter, partitions::Partitions, penalty::Penalty,
     solution::Solution, tally::Tally, util, word::Word,
 };
 
-// fix this!
 #[derive(Clone)]
 pub struct Keyboard {
     keys: Vec<Key>,
@@ -77,12 +75,13 @@ impl Keyboard {
         self.letter_to_key_index[letter.to_usize()]
     }
 
-    pub fn spell_serialized(&self, word: &Word) -> SmallVec<[u8; Word::MAX_WORD_LENGTH]> {
-        let mut result = SmallVec::<[u8; Word::MAX_WORD_LENGTH]>::new();
+    fn spell_serialized(&self, word: &Word) -> u128 {
+        let mut result: u128 = 0;
         for letter in word.letters() {
             match self.find_key_index_for_letter(*letter) {
                 Some(index) => {
-                    result.push(index as u8);
+                    result = result << 5;
+                    result = result | (index as u128 + 1);
                 }
                 None => panic!(
                     "Could not spell the word {} because the keyboard is missing the letter {}",
@@ -382,6 +381,30 @@ mod tests {
         let w = Word::try_from("word").unwrap();
         let actual = k.spell(&w);
         assert_eq!(actual, "vwx,mno,pqr,def");
+    }
+
+    #[test]
+    fn spell_serialized_test() {
+        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mno,pqr,stu,vwx,y'z");
+        let data = [
+            ("adg", "beh", true),
+            ("adgj", "behk", true),
+            ("a", "b", true),
+            ("a", "c", true),
+            ("a", "d", false),
+            ("abc", "cba", true),
+            ("abc", "cbaz", false),
+            ("z", "y", true),
+            ("zzm", "yzm", true),
+            ("jmr", "jma", false),
+            ("poad", "pobg", false),
+            ("poad", "rmaf", true),
+        ];
+        for (w1, w2, expect_are_same) in data {
+            let w1_spell = k.spell_serialized(&Word::try_from(w1).unwrap());
+            let w2_spell = k.spell_serialized(&Word::try_from(w2).unwrap());
+            assert_eq!(w1_spell == w2_spell, expect_are_same);
+        }
     }
 
     #[test]
