@@ -13,8 +13,7 @@ impl Dictionary {
         let mut words = words
             .iter()
             .map(|(w, f)| Word::new(w.as_str(), *f))
-            .collect::<Result<Vec<Word>, _>>()
-            .unwrap();
+            .collect::<Vec<Word>>();
         words.sort_by(|a, b| b.frequency().cmp(&a.frequency()));
         Dictionary::from_unique_sorted_words(words)
     }

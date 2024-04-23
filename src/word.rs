@@ -11,22 +11,10 @@ pub struct Word {
 }
 
 impl Word {
-    pub const MAX_WORD_LENGTH: usize = 25; // must fit in u128
+    pub const MAX_WORD_LENGTH: usize = 25;
 
-    // should panic!
-    pub fn new(word: &str, frequency: f32) -> Result<Word, &'static str> {
-        if word.len() == 0 || word.len() > Word::MAX_WORD_LENGTH {
-            Err("A Word must have 1..=25 letters.")
-        } else {
-            let letters =
-                word.chars()
-                    .fold(Ok(0u128), |total, i| match (total, Letter::try_from(i)) {
-                        (Ok(total), Ok(letter)) => Ok((total << 5) | (letter.to_u8() as u128 + 1)),
-                        _ => Err("ooops"),
-                    })?;
-            let frequency = Frequency::try_from(frequency)?;
-            Ok(Word { letters, frequency })
-        }
+    pub fn new(word: &str, frequency: f32) -> Word {
+        Word::try_from((word, frequency)).unwrap()
     }
 
     pub fn len(&self) -> u8 {
@@ -66,7 +54,27 @@ impl TryFrom<&str> for Word {
     type Error = &'static str;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Word::new(value, 0.0)
+        Word::try_from((value, 0.0))
+    }
+}
+
+impl TryFrom<(&str, f32)> for Word {
+    type Error = &'static str;
+
+    fn try_from(value: (&str, f32)) -> Result<Self, Self::Error> {
+        let (word, frequency) = value;
+        if word.len() == 0 || word.len() > Word::MAX_WORD_LENGTH {
+            Err("The Word has an invalid number of letters.")
+        } else {
+            let letters =
+                word.chars()
+                    .fold(Ok(0u128), |total, i| match (total, Letter::try_from(i)) {
+                        (Ok(total), Ok(letter)) => Ok((total << 5) | (letter.to_u8() as u128 + 1)),
+                        _ => Err("ooops"),
+                    })?;
+            let frequency = Frequency::try_from(frequency)?;
+            Ok(Word { letters, frequency })
+        }
     }
 }
 
@@ -120,7 +128,7 @@ mod tests {
             ("there's", 0.0),
         ];
         for (s, f) in data {
-            let word = Word::new(s, f).unwrap();
+            let word = Word::new(s, f);
             let letters_as_string = word
                 .letters()
                 .map(|r| Letter::to_string(&r))
@@ -132,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn new_when_invalid() {
+    fn try_from_tuple_when_invalid() {
         let data = [
             ("", 0.3),
             ("h4jf", 0.1),
@@ -144,15 +152,15 @@ mod tests {
             ("5436", f32::NEG_INFINITY),
         ];
         for (s, f) in data {
-            let word = Word::new(s, f);
+            let word = Word::try_from((s, f));
             assert!(word.is_err());
         }
     }
 
     #[test]
-    fn new_when_too_long() {
-        assert!(Word::new("abcdefghijklmnopqrstuvwxy", 0.5).is_ok());
-        assert!(Word::new("abcdefghijklmnopqrstuvwxyz", 0.5).is_err());
+    fn try_from_str_when_too_long() {
+        assert!(Word::try_from("abcdefghijklmnopqrstuvwxy").is_ok());
+        assert!(Word::try_from("abcdefghijklmnopqrstuvwxyz").is_err());
     }
 
     #[test]
@@ -166,7 +174,7 @@ mod tests {
                             total.push(i);
                             total
                         });
-                let word = Word::new(&word_string, 0.0).unwrap(); // annoying to unwrap!
+                let word = Word::new(&word_string, 0.0); // annoying to unwrap!
                 assert_eq!(
                     word.len(),
                     size as u8,
@@ -189,7 +197,7 @@ mod tests {
                             total.push(i);
                             total
                         });
-                let word = Word::new(&word_string, 0.0).unwrap(); // annoying to unwrap!
+                let word = Word::new(&word_string, 0.0);
                 let result = word.letters().count();
                 assert_eq!(
                     result, size,
@@ -224,8 +232,8 @@ mod tests {
         ];
         for (a, b, ordering) in data {
             for freq_same in [false, true] {
-                let a_word = Word::new(a, 0.2).unwrap();
-                let b_word = Word::new(b, if freq_same { 0.2 } else { 0.8 }).unwrap();
+                let a_word = Word::new(a, 0.2);
+                let b_word = Word::new(b, if freq_same { 0.2 } else { 0.8 });
                 assert_eq!(
                     a_word.cmp(&b_word),
                     ordering,
@@ -246,9 +254,9 @@ mod tests {
 
     #[test]
     fn hash_ignores_frequency() {
-        let a = Word::new("abc", 0.3).unwrap();
-        let b = Word::new("abc", 0.8).unwrap();
-        let c = Word::new("c", 0.3).unwrap();
+        let a = Word::new("abc", 0.3);
+        let b = Word::new("abc", 0.8);
+        let c = Word::new("c", 0.3);
         let mut set = HashSet::new();
         set.insert(a);
         set.insert(b);
