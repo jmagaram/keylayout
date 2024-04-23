@@ -29,11 +29,7 @@ impl Dictionary {
     }
 
     fn from_unique_sorted_words(words: Vec<Word>) -> Dictionary {
-        let alphabet = words
-            .iter()
-            .flat_map(|w| w.letters())
-            .map(|r| *r)
-            .collect::<Key>();
+        let alphabet = words.iter().flat_map(|w| w.letters()).collect::<Key>();
 
         Dictionary {
             words_highest_frequency_first: words,

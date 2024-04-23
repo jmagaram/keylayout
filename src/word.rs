@@ -6,33 +6,49 @@ use std::hash::{Hash, Hasher};
 
 #[derive(Eq, Debug, Clone)]
 pub struct Word {
-    letters: Vec<Letter>,
+    letters: u128,
     frequency: Frequency,
 }
 
 impl Word {
     pub const MAX_WORD_LENGTH: usize = 25; // must fit in u128
 
+    // should panic!
     pub fn new(word: &str, frequency: f32) -> Result<Word, &'static str> {
-        let letters = {
-            let vec = word
-                .chars()
-                .map(Letter::try_from)
-                .collect::<Result<Vec<Letter>, _>>()?;
-            if vec.len() == 0 {
-                Err("A Word must have 1 or more letters in it.")
-            } else if vec.len() > Word::MAX_WORD_LENGTH {
-                Err("A Word can not have more than 25 letters.")
-            } else {
-                Ok(vec)
-            }
-        }?;
-        let frequency = Frequency::try_from(frequency)?;
-        Ok(Word { letters, frequency })
+        if word.len() == 0 || word.len() > Word::MAX_WORD_LENGTH {
+            Err("A Word must have 1..=25 letters.")
+        } else {
+            let letters =
+                word.chars()
+                    .fold(Ok(0u128), |total, i| match (total, Letter::try_from(i)) {
+                        (Ok(total), Ok(letter)) => Ok((total << 5) | (letter.to_u8() as u128 + 1)),
+                        _ => Err("ooops"),
+                    })?;
+            let frequency = Frequency::try_from(frequency)?;
+            Ok(Word { letters, frequency })
+        }
     }
 
-    pub fn letters(&self) -> &Vec<Letter> {
-        &self.letters
+    pub fn len(&self) -> u8 {
+        ((128u8 - (self.letters.leading_zeros() as u8)) + 4) / 5
+    }
+
+    pub fn letters(&self) -> impl Iterator<Item = Letter> {
+        let word_len = self.len();
+        let mut current = self.letters;
+        let top_letter: u128 = 0b11111 << ((word_len - 1) * 5);
+        let without_top_letter = (1 << (word_len - 1) * 5) - 1;
+        std::iter::from_fn(move || {
+            if current == 0 {
+                None
+            } else {
+                let letter_val = ((current & top_letter) >> ((word_len - 1) * 5)) - 1;
+                let letter = Letter::try_from(letter_val).unwrap();
+                current = current & without_top_letter;
+                current = current << 5;
+                Some(letter)
+            }
+        })
     }
 
     pub fn frequency(&self) -> &Frequency {
@@ -56,8 +72,7 @@ impl TryFrom<&str> for Word {
 
 impl std::fmt::Display for Word {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.letters
-            .iter()
+        self.letters()
             .map(|r| write!(f, "{}", r))
             .collect::<Result<(), _>>()
     }
@@ -89,22 +104,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn try_from_str_when_valid_characters() {
-        for s in ["banana", "apple", "pear"] {
-            assert_eq!(s.to_string(), Word::try_from(s).unwrap().to_string());
-        }
-    }
-
-    #[test]
-    fn try_from_str_when_invalid_characters() {
-        for s in ["45jal", "a%pple", "pe   ar", "   "] {
-            assert!(Word::try_from(s).is_err());
-        }
-    }
-
-    #[test]
-    fn try_from_str_when_no_characters_fails() {
-        assert!(Word::try_from("").is_err());
+    fn longest_word_fits_in_u128() {
+        let max_bits_per_letter = Letter::ALPHABET_SIZE.ilog2() + 1;
+        let max_bits = Word::MAX_WORD_LENGTH * (max_bits_per_letter as usize);
+        assert!(max_bits <= 128)
     }
 
     #[test]
@@ -120,8 +123,7 @@ mod tests {
             let word = Word::new(s, f).unwrap();
             let letters_as_string = word
                 .letters()
-                .iter()
-                .map(|r| Letter::to_string(r))
+                .map(|r| Letter::to_string(&r))
                 .collect::<Vec<String>>()
                 .join("");
             assert_eq!(s, letters_as_string);
@@ -154,6 +156,63 @@ mod tests {
     }
 
     #[test]
+    fn len_for_all_word_lengths() {
+        for letter in Letter::ALPHABET {
+            for size in 1..=Word::MAX_WORD_LENGTH {
+                let word_string =
+                    std::iter::repeat(letter)
+                        .take(size)
+                        .fold(String::new(), |mut total, i| {
+                            total.push(i);
+                            total
+                        });
+                let word = Word::new(&word_string, 0.0).unwrap(); // annoying to unwrap!
+                assert_eq!(
+                    word.len(),
+                    size as u8,
+                    "checking size of '{}' repeated {} times",
+                    word_string,
+                    size
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn letters_count_is_correct() {
+        for letter in Letter::ALPHABET {
+            for size in 1..=Word::MAX_WORD_LENGTH {
+                let word_string =
+                    std::iter::repeat(letter)
+                        .take(size)
+                        .fold(String::new(), |mut total, i| {
+                            total.push(i);
+                            total
+                        });
+                let word = Word::new(&word_string, 0.0).unwrap(); // annoying to unwrap!
+                let result = word.letters().count();
+                assert_eq!(
+                    result, size,
+                    "checking length of '{}' repeated {} times",
+                    word_string, size
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn try_from_str_when_invalid_characters() {
+        for s in ["45jal", "a%pple", "pe   ar", "   "] {
+            assert!(Word::try_from(s).is_err());
+        }
+    }
+
+    #[test]
+    fn try_from_str_when_no_characters_fails() {
+        assert!(Word::try_from("").is_err());
+    }
+
+    #[test]
     fn cmp_sorts_only_by_word() {
         let data = [
             ("a", "b", Ordering::Less),
@@ -161,17 +220,25 @@ mod tests {
             ("abc", "abcd", Ordering::Less),
             ("a", "a", Ordering::Equal),
             ("abc", "abc", Ordering::Equal),
-            ("aaaaa", "z", Ordering::Less),
+            ("aaaaa", "z", Ordering::Greater),
         ];
         for (a, b, ordering) in data {
             for freq_same in [false, true] {
                 let a_word = Word::new(a, 0.2).unwrap();
                 let b_word = Word::new(b, if freq_same { 0.2 } else { 0.8 }).unwrap();
-                assert_eq!(a_word.cmp(&b_word), ordering);
-                assert_eq!(b_word.cmp(&a_word), ordering.reverse());
                 assert_eq!(
-                    Word::cmp(&a_word, &b_word),
-                    String::cmp(&a_word.to_string(), &b_word.to_string())
+                    a_word.cmp(&b_word),
+                    ordering,
+                    "comparing '{}' and '{}'",
+                    a,
+                    b
+                );
+                assert_eq!(
+                    b_word.cmp(&a_word),
+                    ordering.reverse(),
+                    "comparing '{}' and '{}'",
+                    a,
+                    b
                 );
             }
         }

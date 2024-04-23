@@ -60,7 +60,19 @@ impl TryFrom<u32> for Letter {
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value >= Letter::ALPHABET.len() as u32 {
-            Err("Letter only accepts u32 values in the range 0 up to including the size of the alphabet.")
+            Err("Letter only accepts values in the range 0 up to including the size of the alphabet.")
+        } else {
+            Ok(Letter(value as u8))
+        }
+    }
+}
+
+impl TryFrom<u128> for Letter {
+    type Error = &'static str;
+
+    fn try_from(value: u128) -> Result<Self, Self::Error> {
+        if value >= Letter::ALPHABET.len() as u128 {
+            Err("Letter only accepts values in the range 0 up to including the size of the alphabet.")
         } else {
             Ok(Letter(value as u8))
         }
@@ -118,6 +130,19 @@ mod tests {
                 Err(_) => (),
                 Ok(_) => panic!("Converted the invalid character '{}' into a Letter.", c),
             }
+        }
+    }
+
+    #[test]
+    fn try_from_u128_when_not_in_alphabet() {
+        assert!(Letter::try_from(Letter::ALPHABET.len() as u128).is_err());
+        assert!(Letter::try_from((Letter::ALPHABET.len() + 1) as u128).is_err());
+    }
+
+    #[test]
+    fn try_from_u128_when_in_alphabet() {
+        for i in 0..Letter::ALPHABET.len() - 1 {
+            assert!(Letter::try_from(i as u128).is_ok());
         }
     }
 

@@ -78,7 +78,7 @@ impl Keyboard {
     fn spell_serialized(&self, word: &Word) -> u128 {
         let mut result: u128 = 0;
         for letter in word.letters() {
-            match self.find_key_index_for_letter(*letter) {
+            match self.find_key_index_for_letter(letter) {
                 Some(index) => {
                     result = result << 5;
                     result = result | (index as u128 + 1);
@@ -101,8 +101,7 @@ impl Keyboard {
     pub fn spell(&self, word: &Word) -> String {
         let result = word
             .letters()
-            .iter()
-            .map(|letter| self.find_key_for_letter(*letter))
+            .map(|letter| self.find_key_for_letter(letter))
             .collect::<Option<Vec<Key>>>()
             .map(|keys| keys.iter().map(|k| k.to_string()).collect::<Vec<String>>())
             .map(|kk| kk.join(","));
