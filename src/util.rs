@@ -10,7 +10,9 @@ pub fn choose(n: u32, k: u32) -> u128 {
     factorial(n) / factorial(n - k) / factorial(k)
 }
 
-// https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
+/// Returns the sequence of numbers with `count` bits set, starting from the
+/// smallest value. Based on this algorithm :
+/// https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
 pub fn same_set_bits(count: u32) -> impl Iterator<Item = u64> {
     assert!(
         count >= 1 && count <= u32::BITS,
