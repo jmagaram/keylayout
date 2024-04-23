@@ -47,7 +47,7 @@ pub fn same_set_bits(count: u32) -> impl Iterator<Item = u64> {
 /// Returns an iterator of the specific bit indexes set in the number `n`,
 /// starting with the lowest significant bit.
 pub fn set_bits(n: u32) -> impl Iterator<Item = usize> {
-    (0..31)
+    (0..32)
         .take_while(move |b| 1 << b <= n)
         .filter_map(move |b| if 1 << b & n != 0 { Some(b) } else { None })
 }
@@ -66,11 +66,14 @@ mod tests {
             (8, vec![3]),
             (2, vec![1]),
             (12, vec![2, 3]),
-            (0b10101010101010, vec![1, 3, 5, 7, 9, 11, 13]),
             (
-                0b1010101010101010101010101010,
-                vec![1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27],
+                u32::MAX,
+                vec![
+                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+                    22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+                ],
             ),
+            (0b10101010101010, vec![1, 3, 5, 7, 9, 11, 13]),
         ];
         for (n, expected) in data {
             let actual = set_bits(n).collect::<Vec<usize>>();
