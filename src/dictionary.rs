@@ -1,7 +1,6 @@
 use std::{collections::HashMap, fs::File, io::BufReader};
 
 use crate::key::Key;
-
 use crate::word::Word;
 
 pub struct Dictionary {
@@ -23,6 +22,7 @@ impl Dictionary {
     pub fn load() -> Dictionary {
         let items = Dictionary::load_json()
             .iter()
+            .filter(|(k, _)| k.len() <= Word::MAX_WORD_LENGTH)
             .map(|(k, v)| (k.to_owned(), *v))
             .collect();
         Dictionary::new(&items)
@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn standard_dictionary_has_proper_count_of_words() {
         let d = Dictionary::load();
-        let expected = 307629;
+        let expected = 307629 - 4; // take away words longer than 25 characters
         assert_eq!(d.words_highest_frequency_first.len(), expected,);
     }
 
