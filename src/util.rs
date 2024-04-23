@@ -4,6 +4,7 @@ pub fn factorial(n: u128) -> u128 {
     (1..=n).product()
 }
 
+/// Counts the number of ways to choose `k` from `n`.
 pub fn choose(n: u32, k: u32) -> u128 {
     let n = n as u128;
     let k = k as u128;
