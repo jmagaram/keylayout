@@ -48,14 +48,6 @@ impl TryFrom<f32> for Frequency {
     }
 }
 
-impl Add for Frequency {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        Self(self.0 + other.0)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
