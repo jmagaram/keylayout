@@ -41,6 +41,19 @@ impl Key {
         Key::from_iter(letters)
     }
 
+    pub fn swap_random_letter(&self, other: &Key) -> Option<(Key, Key)> {
+        let mut rng = rand::thread_rng();
+        let self_letter_to_remove = self.random_letter()?;
+        let other_letter_to_remove = other.random_letter()?;
+        let new_self = self
+            .remove(self_letter_to_remove)
+            .add(other_letter_to_remove);
+        let new_other = other
+            .remove(other_letter_to_remove)
+            .add(self_letter_to_remove);
+        Some((new_self, new_other))
+    }
+
     pub fn add(&self, r: Letter) -> Key {
         Key(self.0 | 1 << r.to_u8_index())
     }

@@ -157,10 +157,7 @@ impl Keyboard {
                 .unwrap();
             let a_key = self.keys[from_index];
             let b_key = self.keys[to_index];
-            let a_letter_to_swap = a_key.random_letter().unwrap();
-            let b_letter_to_swap = b_key.random_letter().unwrap();
-            let new_a_key = a_key.remove(a_letter_to_swap).add(b_letter_to_swap);
-            let new_b_key = b_key.remove(b_letter_to_swap).add(a_letter_to_swap);
+            let (new_a_key, new_b_key) = a_key.swap_random_letter(&b_key).unwrap();
             let new_keys = self
                 .keys
                 .iter()
