@@ -127,7 +127,7 @@ fn random_keyboards(c: &mut Criterion) {
     let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
     c.bench_function("RANDOM KEYBOARDS", |b| {
         b.iter(|| {
-            Keyboard::random_with(dict.alphabet(), &partition, black_box(&prohibited))
+            Keyboard::random(dict.alphabet(), &partition, black_box(&prohibited))
                 .take(50)
                 .count();
         })
@@ -196,25 +196,6 @@ fn iterate_letters_in_key(c: &mut Criterion) {
     });
 }
 
-fn prohibit_keys(c: &mut Criterion) {
-    let d = Dictionary::load();
-    let partitions = Partitions {
-        sum: 27,
-        parts: 10,
-        min: 2,
-        max: 4,
-    };
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
-    c.bench_function("PROHIBIT KEYS", |b| {
-        b.iter(|| {
-            let _k = Keyboard::random(d.alphabet(), &partitions)
-                .take(1000)
-                .filter(|k| k.has_prohibited_keys(black_box(&prohibited)))
-                .count();
-        })
-    });
-}
-
 fn dfs_perf(c: &mut Criterion) {
     let d = Dictionary::load();
     let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
@@ -256,7 +237,8 @@ criterion_group!(
     // iterate_letters_in_key,
     // spell_every_word,
     // every_combine_two_keys,
-    prohibit_keys,
+    // prohibit_keys,
+    random_keyboards,
     // dfs_perf,
     // distribute_keys,
     // partition_sum,

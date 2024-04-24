@@ -129,23 +129,9 @@ impl Keyboard {
     }
 
     /// Returns an endless iteration of random keyboards given a specific
-    /// `alphabet` and key sizes defined by `layout`.
-    pub fn random(alphabet: Key, layout: &Partitions) -> impl Iterator<Item = Keyboard> {
-        let mut rng = rand::thread_rng();
-        let layout_options = layout.calculate();
-        iter::repeat_with(move || {
-            let layout_index = rng.gen_range(0..layout_options.len());
-            let layout = layout_options.get(layout_index).unwrap();
-            let keys = alphabet.random_subsets(layout).collect::<Vec<Key>>();
-            let keyboard = Keyboard::with_keys(keys);
-            keyboard
-        })
-    }
-
-    /// Returns an endless iteration of random keyboards given a specific
     /// alphabet, key sizes, and a prohibited list of letters that can not
     /// appear together on the same key.
-    pub fn random_with<'a>(
+    pub fn random<'a>(
         alphabet: Key,
         layout: &'a Partitions,
         prohibited: &'a Prohibited,
@@ -680,40 +666,6 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn random_keyboard_print_out() {
-        let partition = Partitions {
-            sum: 27,
-            parts: 10,
-            min: 2,
-            max: 5,
-        };
-        let dict = Dictionary::load();
-        let keyboards = Keyboard::random(dict.alphabet(), &partition);
-        for k in keyboards.take(50) {
-            println!("{}", k)
-        }
-    }
-
-    #[test]
-    #[ignore]
-    fn keyboards_without_prohibited_print_out() {
-        let partition = Partitions {
-            sum: 27,
-            parts: 10,
-            min: 2,
-            max: 5,
-        };
-        let dict = Dictionary::load();
-        let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 60);
-        let keyboards = Keyboard::random(dict.alphabet(), &partition)
-            .filter(|k| false == k.has_prohibited_keys(&prohibited));
-        for k in keyboards.take(50) {
-            println!("{}", k)
-        }
-    }
-
-    #[test]
-    #[ignore]
     fn display_penalty_for_specific_keyboard() {
         let dict = Dictionary::load();
         let layout = "ajxz' biky cglov dfpu emq h n r sw t";
@@ -725,7 +677,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn random_with_test() {
+    fn random_with_display() {
         let dict = Dictionary::load();
         let layout = Partitions {
             sum: 27,
@@ -734,7 +686,7 @@ mod tests {
             max: 4,
         };
         let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
-        for k in Keyboard::random_with(dict.alphabet(), &layout, &prohibited).take(20) {
+        for k in Keyboard::random(dict.alphabet(), &layout, &prohibited).take(20) {
             println!("{}", k);
         }
     }

@@ -108,8 +108,7 @@ pub fn find_best<'a>(
     };
     let mut best: Option<Solution> = None;
     let results = std::iter::repeat_with(move || {
-        let start = Keyboard::random(dict.alphabet(), &partition)
-            .filter(|k| false == k.has_prohibited_keys(&prohibited))
+        let start = Keyboard::random(dict.alphabet(), &partition, &prohibited)
             .map(|k| {
                 let penalty = k.penalty(&dict, Penalty::MAX);
                 k.to_solution(penalty, "".to_string())
@@ -148,8 +147,7 @@ pub fn evolve_one_random_keyboard() -> Option<Solution> {
         max: 4,
     };
     let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
-    let start = Keyboard::random(dict.alphabet(), &partition)
-        .filter(|k| false == k.has_prohibited_keys(&prohibited))
+    let start = Keyboard::random(dict.alphabet(), &partition, &prohibited)
         .filter(|k| k.penalty(&dict, start_penalty) < start_penalty)
         .take(1)
         .map(|k| {
@@ -184,13 +182,14 @@ mod tests {
     #[ignore]
     fn try_genetic() {
         let dict = Dictionary::load();
+        let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 10);
         let partition = Partitions {
             sum: 27,
             parts: 10,
             min: 2,
             max: 4,
         };
-        let start = Keyboard::random(dict.alphabet(), &partition)
+        let start = Keyboard::random(dict.alphabet(), &partition, &prohibited)
             .take(1)
             .map(|k| {
                 let penalty = k.penalty(&dict, Penalty::MAX);

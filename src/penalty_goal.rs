@@ -5,6 +5,7 @@ use std::{collections::BTreeMap, ops::RangeInclusive};
 
 use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
+    prohibited::Prohibited,
 };
 
 #[derive(Debug, Clone)]
@@ -84,12 +85,13 @@ impl PenaltyGoals {
             }
         });
         let mut result = self.clone();
+        let prohibited = Prohibited::new();
         for p in partitions {
             println!(
                 "Calculating random sample of size {} for keyboard with {} keys...",
                 sample_size, p.parts
             );
-            let mut penalties = Keyboard::random(self.alphabet, &p)
+            let mut penalties = Keyboard::random(self.alphabet, &p, &prohibited)
                 .take(sample_size)
                 .map(|k| k.penalty(&dictionary, Penalty::MAX))
                 .collect::<Vec<Penalty>>();
