@@ -1,6 +1,7 @@
 use dictionary::Dictionary;
 
 use penalty::Penalty;
+use prohibited::Prohibited;
 
 mod dictionary;
 mod exhaustive;
@@ -38,13 +39,20 @@ fn main() {
         exhaustive::run_dfs();
     }
 
-    let run_genetic_solver = move || {
-        for result in genetic::find_best(&dict, 10, Penalty::new(0.0001)) {
+    let genetic_solver = move || {
+        let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
+        let args = genetic::FindBestArgs {
+            dictionary: &dict,
+            die_threshold: Penalty::new(0.0001),
+            key_count: 10,
+            prohibited,
+        };
+        for result in genetic::find_best(args) {
             if let Some(solution) = result {
                 println!("{}", solution);
             }
         }
     };
 
-    run_genetic_solver();
+    genetic_solver();
 }

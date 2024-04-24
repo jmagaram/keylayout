@@ -1,11 +1,11 @@
-use std::{borrow::Borrow, fmt};
+use std::borrow::Borrow;
 
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     prohibited::Prohibited, solution::Solution,
 };
 
-pub struct Genetic<'a> {
+struct Genetic<'a> {
     best: Solution,
     dictionary: &'a Dictionary,
     current_generation: u32,
@@ -62,65 +62,39 @@ impl<'a> Iterator for Genetic<'a> {
 }
 
 pub struct FindBestArgs<'a> {
-    pub start: Solution,
     pub dictionary: &'a Dictionary,
     pub die_threshold: Penalty,
-}
-
-impl<'a> fmt::Display for FindBestArgs<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Words:{} Die:{} Start:{}",
-            self.dictionary.words().len(),
-            self.die_threshold,
-            self.start.penalty()
-        )
-    }
-}
-
-impl<'a> FindBestArgs<'a> {
-    pub fn start(&self) -> Genetic<'a> {
-        Genetic {
-            best: self.start.clone(),
-            dictionary: self.dictionary,
-            current_generation: 1,
-            die_threshold: self.die_threshold,
-            keyboards_seen: 0,
-        }
-    }
+    pub key_count: u32,
+    pub prohibited: Prohibited,
 }
 
 /// Tries to find the best keyboard using a genetic algorithm. Runs forever.
-pub fn find_best<'a>(
-    dict: &'a Dictionary,
-    key_count: u32,
-    die_threshold: Penalty,
-) -> impl Iterator<Item = Option<Solution>> + 'a {
-    let prohibited = Prohibited::new();
-    let alphabet_size = dict.alphabet().count_letters();
-    let key_size_max = (alphabet_size / key_count + 2).min(alphabet_size);
+pub fn find_best<'a>(args: FindBestArgs<'a>) -> impl Iterator<Item = Option<Solution>> + 'a {
+    let alphabet_size = args.dictionary.alphabet().count_letters();
+    let key_size_max = (alphabet_size / args.key_count + 2).min(alphabet_size);
     let partition = Partitions {
         sum: alphabet_size,
-        parts: key_count,
+        parts: args.key_count,
         min: 1,
         max: key_size_max,
     };
     let mut best: Option<Solution> = None;
     let results = std::iter::repeat_with(move || {
-        let start = Keyboard::random(dict.alphabet(), &partition, &prohibited)
+        let start = Keyboard::random(args.dictionary.alphabet(), &partition, &args.prohibited)
             .map(|k| {
-                let penalty = k.penalty(&dict, Penalty::MAX);
+                let penalty = k.penalty(args.dictionary, Penalty::MAX);
                 k.to_solution(penalty, "".to_string())
             })
             .next()
             .unwrap();
-        let args: FindBestArgs = FindBestArgs {
-            dictionary: &dict,
-            start,
-            die_threshold,
-        };
-        let solution = args.start().last();
+        let solution = Genetic {
+            best: start,
+            current_generation: 1,
+            keyboards_seen: 1,
+            die_threshold: args.die_threshold,
+            dictionary: args.dictionary,
+        }
+        .last();
         match (solution, &best) {
             (Some(solution), None) => best = Some(solution),
             (Some(solution), Some(current_best)) => {
@@ -133,40 +107,4 @@ pub fn find_best<'a>(
         best.clone()
     });
     results
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{keyboard::Keyboard, partitions::Partitions, penalty::Penalty};
-
-    use super::*;
-
-    #[test]
-    #[ignore]
-    fn try_genetic() {
-        let dict = Dictionary::load();
-        let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 10);
-        let partition = Partitions {
-            sum: 27,
-            parts: 10,
-            min: 2,
-            max: 4,
-        };
-        let start = Keyboard::random(dict.alphabet(), &partition, &prohibited)
-            .take(1)
-            .map(|k| {
-                let penalty = k.penalty(&dict, Penalty::MAX);
-                k.to_solution(penalty, "initial state".to_string())
-            })
-            .last()
-            .unwrap();
-        let args: FindBestArgs = FindBestArgs {
-            dictionary: &dict,
-            start,
-            die_threshold: Penalty::new(0.0001),
-        };
-        for s in args.start() {
-            println!("{}", s)
-        }
-    }
 }
