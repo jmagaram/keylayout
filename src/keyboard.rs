@@ -73,6 +73,28 @@ impl Keyboard {
         self.letter_to_key_index[letter.to_usize_index()]
     }
 
+    /// Returns the keys that need to be typed to enter a specific word. Each
+    /// key is described by the letters on that key, and each key is separated
+    /// by a comma. For example, to spell the word "the", the answer might be
+    /// "tmn,ehx,ehx".
+    pub fn spell(&self, word: &Word) -> String {
+        let result = word
+            .letters()
+            .map(|letter| self.find_key_for_letter(letter))
+            .collect::<Option<Vec<Key>>>()
+            .map(|keys| keys.iter().map(|k| k.to_string()).collect::<Vec<String>>())
+            .map(|kk| kk.join(","));
+        match result {
+            None => panic!(
+                "Could not spell the word {} because the keyboard is missing a necessary key.",
+                word
+            ),
+            Some(spelling) => spelling,
+        }
+    }
+
+    /// Converts the sequence of keys needed to be typed to enter a specific
+    /// word serialized as a u128.
     fn spell_serialized(&self, word: &Word) -> u128 {
         let mut result: u128 = 0;
         for letter in word.letters() {
@@ -96,40 +118,8 @@ impl Keyboard {
             .any(|k| other.iter().any(|o| k.contains_all(o)))
     }
 
-    pub fn spell(&self, word: &Word) -> String {
-        let result = word
-            .letters()
-            .map(|letter| self.find_key_for_letter(letter))
-            .collect::<Option<Vec<Key>>>()
-            .map(|keys| keys.iter().map(|k| k.to_string()).collect::<Vec<String>>())
-            .map(|kk| kk.join(","));
-        match result {
-            None => panic!(
-                "Could not spell the word {} because the keyboard is missing a necessary key.",
-                word
-            ),
-            Some(spelling) => spelling,
-        }
-    }
-
-    pub fn penalty_by_key_size(dictionary: &Dictionary, size: u32) -> Vec<(Key, Penalty)> {
-        let alphabet = dictionary.alphabet();
-        let keys_to_evaluate = alphabet.subsets_of_size(size);
-        let mut result: Vec<(Key, Penalty)> = vec![];
-        for evaluate in keys_to_evaluate {
-            let rest = alphabet.except(evaluate);
-            let mut keys = rest
-                .letters()
-                .map(Key::with_one_letter)
-                .collect::<Vec<Key>>();
-            keys.push(evaluate);
-            let keyboard = Keyboard::with_keys(keys);
-            let penalty = keyboard.penalty(&dictionary, Penalty::MAX);
-            result.push((evaluate, penalty));
-        }
-        result
-    }
-
+    /// Returns an endless iteration of random keyboards given a specific
+    /// `alphabet` and key sizes defined by `layout`.
     pub fn random(alphabet: Key, layout: &Partitions) -> impl Iterator<Item = Keyboard> {
         let mut rng = rand::thread_rng();
         let layout_options = layout.calculate();
@@ -151,6 +141,8 @@ impl Keyboard {
         }
     }
 
+    /// Randomly swaps 2 letters on the keyboard. May fail if the keyboard only
+    /// has 1 key.
     pub fn swap_random_letters(&self) -> Result<Keyboard, &'static str> {
         let total_keys = self.keys.len();
         if total_keys == 1 {
@@ -186,6 +178,8 @@ impl Keyboard {
         }
     }
 
+    /// Generates the sequence of all keyboards where every letter is swapped
+    /// with every other letter.
     pub fn every_swap(&self) -> Vec<Keyboard> {
         if self.keys.len() < 2 {
             panic!("Can not swap keys on a keyboard with less than 2 keys on it.")
@@ -580,19 +574,6 @@ mod tests {
         let keyboards = Keyboard::random(dict.alphabet(), &partition);
         for k in keyboards.take(50) {
             println!("{}", k)
-        }
-    }
-
-    #[test]
-    #[ignore]
-    fn output_penalty_by_key_size() {
-        use std::fs::File;
-        use std::io::prelude::*;
-        let key_size = 2;
-        let mut file = File::create("output.txt").unwrap();
-        let dict = Dictionary::load();
-        for (key, penalty) in Keyboard::penalty_by_key_size(&dict, key_size) {
-            writeln!(file, "{},{}", key, penalty.to_f32()).unwrap();
         }
     }
 
