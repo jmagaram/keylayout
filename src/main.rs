@@ -14,6 +14,7 @@ mod letter;
 mod partitions;
 mod penalty;
 mod penalty_goal;
+mod prohibited;
 mod solution;
 mod tally;
 mod util;

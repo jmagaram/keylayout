@@ -10,6 +10,7 @@ pub mod letter;
 pub mod partitions;
 pub mod penalty;
 pub mod penalty_goal;
+pub mod prohibited;
 pub mod solution;
 pub mod tally;
 pub mod util;
