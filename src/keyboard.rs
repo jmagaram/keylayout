@@ -290,10 +290,11 @@ impl Keyboard {
         penalty
     }
 
+    /// Given a specific keyboard, generates all possible keyboards resulting from taking `size` keys.
     pub fn subsets_of_keys<'a>(&'a self, size: usize) -> impl Iterator<Item = Keyboard> + 'a {
         assert!(
             size <= self.key_count(),
-            "Can not create subset keyboards with that many keys; too many."
+            "Can not create subset keyboards with that many keys; more than on the original keyboard."
         );
         let minimum: u64 = (1u64 << size) - 1;
         let maximum: u64 = minimum << (self.key_count() - size);
