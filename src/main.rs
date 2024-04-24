@@ -1,5 +1,4 @@
 use dictionary::Dictionary;
-
 use penalty::Penalty;
 use prohibited::Prohibited;
 
