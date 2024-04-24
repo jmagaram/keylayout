@@ -143,23 +143,49 @@ impl Keyboard {
     }
 
     /// Returns an endless iteration of random keyboards given a specific
-    /// `alphabet`, key sizes, and a prohibited list of letters that can not
+    /// alphabet, key sizes, and a prohibited list of letters that can not
     /// appear together on the same key.
     pub fn random_with<'a>(
         alphabet: Key,
         layout: &'a Partitions,
         prohibited: &'a Prohibited,
     ) -> impl Iterator<Item = Keyboard> + 'a {
+        assert!(
+            alphabet.count_letters() == layout.sum,
+            "The layout sum must be the exact same as the the number of letters in the alphabet."
+        );
         let mut rng = rand::thread_rng();
         let layout_options = layout.calculate();
         iter::repeat_with(move || {
             let layout_index = rng.gen_range(0..layout_options.len());
             let layout = layout_options.get(layout_index).unwrap();
-            let keys = alphabet.random_subsets(layout).collect::<Vec<Key>>();
-            let keyboard = Keyboard::with_keys(keys);
-            keyboard
+            let mut keys = vec![];
+            let mut remain = alphabet;
+            for key_size in layout {
+                let try_take = 5;
+                let key = std::iter::repeat_with(|| remain.random_subset(*key_size..=*key_size))
+                    .take(try_take)
+                    .find(|k| k.is_allowed(&prohibited));
+                match key {
+                    Some(key) => {
+                        keys.push(key);
+                        remain = remain.except(key);
+                    }
+                    None => {
+                        // This can occur if the first say 8 keys all satisfy
+                        // the prohibited key list, but there is no way to
+                        // satisfy the prohibited keys with the remaining
+                        // letters.
+                        break;
+                    }
+                }
+            }
+            match keys.len() == layout.len() {
+                true => Some(Keyboard::with_keys(keys)),
+                false => None,
+            }
         })
-        .filter(move |k| !k.has_prohibited_keys(&prohibited))
+        .filter_map(|k| k)
     }
 
     // pub fn random_with_key_sizes(alphabet: Key, prohibited: Prohibited, key_sizes: Tally<u8>) {}
@@ -695,5 +721,21 @@ mod tests {
         let penalty = keyboard.penalty(&dict, Penalty::MAX);
         let solution = keyboard.to_solution(penalty, "".to_string());
         println!("{}", solution);
+    }
+
+    #[test]
+    #[ignore]
+    fn random_with_test() {
+        let dict = Dictionary::load();
+        let layout = Partitions {
+            sum: 27,
+            parts: 10,
+            min: 2,
+            max: 4,
+        };
+        let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
+        for k in Keyboard::random_with(dict.alphabet(), &layout, &prohibited).take(20) {
+            println!("{}", k);
+        }
     }
 }
