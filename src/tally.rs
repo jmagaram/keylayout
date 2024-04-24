@@ -69,6 +69,9 @@ where
         self.decrement_by(item, 1)
     }
 
+    /// Generates all unique ways the items in the Tally can be distributed. For
+    /// example, if the tally shows 2A and 1B, the unique combinations are AAB,
+    /// ABA, and BAA.
     pub fn combinations(&self) -> Vec<Vec<T>>
     where
         T: Clone + Hash + Eq,
