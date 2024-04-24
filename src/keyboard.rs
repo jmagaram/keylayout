@@ -309,6 +309,8 @@ impl Keyboard {
             })
     }
 
+    /// Given a keyboard that lacks specific letters in the alphabet, fills in
+    /// additional keys with each letter on its own key.
     pub fn fill_missing(&self, alphabet: Key) -> Keyboard {
         let add = alphabet
             .letters()
