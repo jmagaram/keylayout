@@ -10,7 +10,7 @@ fn calculate_penalty_score(c: &mut Criterion) {
     c.bench_function("CALCULATE PENALTY", |b| {
         b.iter(|| {
             let keys = d.alphabet().random_subsets(&layout).collect::<Vec<Key>>();
-            let _keyboard = Keyboard::new_from_keys(keys).penalty(&d, black_box(Penalty::MAX));
+            let _keyboard = Keyboard::with_keys(keys).penalty(&d, black_box(Penalty::MAX));
             ()
         })
     });
@@ -20,7 +20,7 @@ fn spell_every_word(c: &mut Criterion) {
     let d = Dictionary::load();
     let layout = vec![3, 3, 3, 3, 3, 3, 3, 2, 2, 2];
     let keys = d.alphabet().random_subsets(&layout).collect::<Vec<Key>>();
-    let keyboard = Keyboard::new_from_keys(keys);
+    let keyboard = Keyboard::with_keys(keys);
     c.bench_function("SPELL EVERY WORD", |b| {
         b.iter(|| {
             d.words()
@@ -123,7 +123,7 @@ fn every_combine_two_keys(c: &mut Criterion) {
     let prohibited = english::top_penalties(40, 0);
     c.bench_function("EVERY COMBINE TWO KEYS", |b| {
         b.iter(|| {
-            let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
+            let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
             let _result = start
                 .every_combine_two_keys(black_box(Some(&prohibited)))
                 .all(|k| k.key_count() >= 1);
@@ -185,7 +185,7 @@ fn dfs_perf(c: &mut Criterion) {
     let d = Dictionary::load();
     c.bench_function("DFS", |b| {
         b.iter(|| {
-            let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
+            let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
             let penalty_goals =
                 PenaltyGoals::none(d.alphabet()).with_specific(10, Penalty::new(0.5));
             let max_letters_per_key = 5;
@@ -212,19 +212,19 @@ fn dfs_perf(c: &mut Criterion) {
 }
 criterion_group!(
     benches,
-    // generate_big_subsets,
-    // generate_small_subsets,
-    // load_dictionary,
-    // calculate_penalty_score,
-    // set_bits,
-    // count_letters_in_key,
+    generate_big_subsets,
+    generate_small_subsets,
+    load_dictionary,
+    calculate_penalty_score,
+    set_bits,
+    count_letters_in_key,
     iterate_letters_in_key,
-    // spell_every_word,
-    // every_combine_two_keys,
-    // dfs_perf,
-    // distribute_keys,
-    // partition_sum,
-    // distribute_letters,
-    // random_subsets
+    spell_every_word,
+    every_combine_two_keys,
+    dfs_perf,
+    distribute_keys,
+    partition_sum,
+    distribute_letters,
+    random_subsets
 );
 criterion_main!(benches);
