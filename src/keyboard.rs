@@ -40,7 +40,7 @@ impl Keyboard {
     }
 
     /// Generates a keyboard based on a sequence of letters delimited by spaces
-    /// or commands. For example "abc,def,ghi" or "abc def ghi".
+    /// or commas. For example "abc,def,ghi" or "abc def ghi".
     pub fn with_layout(s: &str) -> Keyboard {
         let keys = s
             .split([',', ' '])
@@ -51,11 +51,7 @@ impl Keyboard {
         Keyboard::with_keys(keys)
     }
 
-    pub fn with_penalty(self, penalty: Penalty) -> Solution {
-        Solution::new(self, penalty, "".to_string())
-    }
-
-    pub fn with_penalty_and_notes(self, penalty: Penalty, notes: String) -> Solution {
+    pub fn to_solution(self, penalty: Penalty, notes: String) -> Solution {
         Solution::new(self, penalty, notes)
     }
 
@@ -608,7 +604,7 @@ mod tests {
         let layout = &layout.replace(" ", ",");
         let keyboard = Keyboard::with_layout(layout);
         let penalty = keyboard.penalty(&dict, Penalty::MAX);
-        let solution = keyboard.with_penalty(penalty);
+        let solution = keyboard.to_solution(penalty, "".to_string());
         println!("{}", solution);
     }
 }

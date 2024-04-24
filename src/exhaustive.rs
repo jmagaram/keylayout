@@ -39,7 +39,7 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
         let best_penalty = best.as_ref().map(|b| b.penalty()).unwrap_or(Penalty::MAX);
         let penalty = k.penalty(&dictionary, best_penalty);
         if penalty < best_penalty {
-            let solution = k.with_penalty_and_notes(
+            let solution = k.to_solution(
                 penalty,
                 format!(
                     "{} keys, kbd {}, {}",
@@ -78,7 +78,7 @@ pub fn dfs(
     let penalty = keyboard.penalty(&dictionary, penalty_goal);
     if penalty <= penalty_goal {
         if keyboard.key_count() == desired_keys {
-            let solution = keyboard.with_penalty(penalty);
+            let solution = keyboard.to_solution(penalty, "".to_string());
             Some(solution)
         } else {
             keyboard

@@ -69,7 +69,7 @@ impl<'a> Iterator for Evolve<'a> {
             .scan(self.best.borrow(), |best, k| {
                 let penalty = k.penalty(&self.dictionary, best.penalty());
                 self.keyboards_seen = self.keyboards_seen + 1;
-                let solution = k.with_penalty_and_notes(
+                let solution = k.to_solution(
                     penalty,
                     format!(
                         "gen:{} kbds:{}",
@@ -112,7 +112,7 @@ pub fn find_best<'a>(
             .filter(|k| false == k.contains_on_any_key(&bad_pairs))
             .map(|k| {
                 let penalty = k.penalty(&dict, Penalty::MAX);
-                k.with_penalty(penalty)
+                k.to_solution(penalty, "".to_string())
             })
             .next()
             .unwrap();
@@ -154,7 +154,7 @@ pub fn evolve_one_random_keyboard() -> Option<Solution> {
         .take(1)
         .map(|k| {
             let penalty = k.penalty(&dict, Penalty::MAX);
-            k.with_penalty_and_notes(penalty, "initial state".to_string())
+            k.to_solution(penalty, "initial state".to_string())
         })
         .last()
         .unwrap();
@@ -194,7 +194,7 @@ mod tests {
             .take(1)
             .map(|k| {
                 let penalty = k.penalty(&dict, Penalty::MAX);
-                k.with_penalty_and_notes(penalty, "initial state".to_string())
+                k.to_solution(penalty, "initial state".to_string())
             })
             .last()
             .unwrap();
