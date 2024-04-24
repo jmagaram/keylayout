@@ -1,7 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use keylayout::{
     dictionary::Dictionary, english, exhaustive, key::Key, keyboard::Keyboard,
-    partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, tally::Tally, util,
+    partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited,
+    tally::Tally, util,
 };
 
 fn calculate_penalty_score(c: &mut Criterion) {
@@ -111,8 +112,6 @@ fn random_subsets(c: &mut Criterion) {
             for _ in 1..1000 {
                 let keys = key.random_subsets(black_box(&key_sizes));
                 let _keys_materialized = keys.collect::<Vec<Key>>();
-                // let kbd = Keyboard::new_from_keys(keys_materialized);
-                // println!("{}", kbd);
             }
         })
     });
@@ -120,12 +119,13 @@ fn random_subsets(c: &mut Criterion) {
 
 fn every_combine_two_keys(c: &mut Criterion) {
     let d = Dictionary::load();
-    let prohibited = english::top_penalties(40, 0);
+    let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
+    let mut prohibited = Prohibited::new();
+    prohibited.add_many(english::top_penalties(40, 0).into_iter());
     c.bench_function("EVERY COMBINE TWO KEYS", |b| {
         b.iter(|| {
-            let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
             let _result = start
-                .every_combine_two_keys(black_box(Some(&prohibited)))
+                .every_combine_two_keys(black_box(&prohibited))
                 .all(|k| k.key_count() >= 1);
         })
     });
@@ -174,30 +174,50 @@ fn iterate_letters_in_key(c: &mut Criterion) {
                 "abcdefghijklmno",
             ];
             for d in data {
-                // let _count = Key::new(black_box(d)).into_iter().count();
                 let _count = Key::new(black_box(d)).letters().count();
             }
         })
     });
 }
 
+fn prohibit_keys(c: &mut Criterion) {
+    let d = Dictionary::load();
+    let partitions = Partitions {
+        sum: 27,
+        parts: 10,
+        min: 2,
+        max: 4,
+    };
+    let mut prohibited = Prohibited::new();
+    prohibited.add_many(english::top_penalties(40, 0).into_iter());
+    c.bench_function("PROHIBIT KEYS", |b| {
+        b.iter(|| {
+            let _k = Keyboard::random(d.alphabet(), &partitions)
+                .take(1000)
+                .filter(|k| k.has_prohibited_keys(black_box(&prohibited)))
+                .count();
+        })
+    });
+}
+
 fn dfs_perf(c: &mut Criterion) {
     let d = Dictionary::load();
+    let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
+    let mut prohibited = Prohibited::new();
+    prohibited.add_many(english::top_penalties(20, 0).into_iter());
     c.bench_function("DFS", |b| {
         b.iter(|| {
-            let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
             let penalty_goals =
                 PenaltyGoals::none(d.alphabet()).with_specific(10, Penalty::new(0.5));
             let max_letters_per_key = 5;
             let desired_keys = 10;
-            let prohibited = english::top_penalties(10, 0);
             let solution = exhaustive::dfs(
-                &d,
-                start,
+                black_box(&d),
+                start.clone(),
                 max_letters_per_key,
                 desired_keys,
                 &penalty_goals,
-                Some(&prohibited),
+                &prohibited,
             );
             match solution {
                 None => {
@@ -210,21 +230,23 @@ fn dfs_perf(c: &mut Criterion) {
         })
     });
 }
+
 criterion_group!(
     benches,
-    generate_big_subsets,
-    generate_small_subsets,
-    load_dictionary,
-    calculate_penalty_score,
-    set_bits,
-    count_letters_in_key,
-    iterate_letters_in_key,
-    spell_every_word,
-    every_combine_two_keys,
-    dfs_perf,
-    distribute_keys,
-    partition_sum,
-    distribute_letters,
-    random_subsets
+    // generate_big_subsets,
+    // generate_small_subsets,
+    // load_dictionary,
+    // calculate_penalty_score,
+    // set_bits,
+    // count_letters_in_key,
+    // iterate_letters_in_key,
+    // spell_every_word,
+    // every_combine_two_keys,
+    prohibit_keys,
+    // dfs_perf,
+    // distribute_keys,
+    // partition_sum,
+    // distribute_letters,
+    // random_subsets
 );
 criterion_main!(benches);

@@ -1,6 +1,6 @@
 use crate::{
-    dictionary::Dictionary, english, key::Key, keyboard::Keyboard, partitions::Partitions,
-    penalty::Penalty, penalty_goal::PenaltyGoals, solution::Solution, tally::Tally,
+    dictionary::Dictionary, english, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
+    penalty_goal::PenaltyGoals, prohibited::Prohibited, solution::Solution, tally::Tally,
 };
 use humantime::{format_duration, FormattedDuration};
 use std::time::{Duration, Instant};
@@ -69,7 +69,7 @@ pub fn dfs(
     max_letters_per_key: u32,
     desired_keys: usize,
     penalty_goals: &PenaltyGoals,
-    prohibited: Option<&Vec<Key>>,
+    prohibited: &Prohibited,
 ) -> Option<Solution> {
     println!("{}", keyboard);
     let penalty_goal = penalty_goals
@@ -82,7 +82,7 @@ pub fn dfs(
             Some(solution)
         } else {
             keyboard
-                .every_combine_two_keys(prohibited)
+                .every_combine_two_keys(&prohibited)
                 .filter(move |k| k.max_key_size().unwrap() <= max_letters_per_key)
                 .map(move |k| {
                     dfs(
@@ -91,7 +91,7 @@ pub fn dfs(
                         max_letters_per_key,
                         desired_keys,
                         penalty_goals,
-                        prohibited,
+                        &prohibited,
                     )
                 })
                 .find_map(|k| k)
@@ -123,7 +123,8 @@ pub fn run_dfs() {
         .with_specific(12, Penalty::new(0.02109))
         .with_adjustment(12..=25, 0.7)
         .with_specific(10, Penalty::new(0.0246));
-    let prohibited = english::top_penalties(30, 0);
+    let mut prohibited = Prohibited::new();
+    prohibited.add_many(english::top_penalties(60, 0).into_iter());
     let max_letters_per_key = 4;
     let desired_keys = 10;
     let solution = dfs(
@@ -132,7 +133,7 @@ pub fn run_dfs() {
         max_letters_per_key,
         desired_keys,
         &penalty_goals,
-        Some(&prohibited),
+        &prohibited,
     );
     println!();
     println!("Penalty Goals:");
@@ -172,13 +173,15 @@ mod tests {
             .with_specific(10, Penalty::new(0.5));
         let max_letters_per_key = 5;
         let desired_keys = 10;
+        let mut prohibited = Prohibited::new();
+        prohibited.add_many(english::top_penalties(20, 0).into_iter());
         let solution = dfs(
             &d,
             start,
             max_letters_per_key,
             desired_keys,
             &penalty_goals,
-            None,
+            &prohibited,
         );
         match solution {
             None => {
