@@ -3,7 +3,6 @@ use dictionary::Dictionary;
 use penalty::Penalty;
 
 mod dictionary;
-mod english;
 mod evolution;
 mod exhaustive;
 mod frequency;
@@ -47,5 +46,5 @@ fn main() {
         }
     };
 
-    find_best_dfs();
+    run_genetic_solver();
 }

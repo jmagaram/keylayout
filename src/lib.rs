@@ -1,5 +1,4 @@
 pub mod dictionary;
-pub mod english;
 pub mod evolution;
 pub mod exhaustive;
 pub mod frequency;

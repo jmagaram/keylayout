@@ -1,7 +1,7 @@
 use std::{borrow::Borrow, fmt};
 
 use crate::{
-    dictionary::Dictionary, english, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
+    dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     prohibited::Prohibited, solution::Solution,
 };
 
@@ -97,8 +97,7 @@ pub fn find_best<'a>(
     key_count: u32,
     die_threshold: Penalty,
 ) -> impl Iterator<Item = Option<Solution>> + 'a {
-    let mut prohibited = Prohibited::new();
-    prohibited.add_many(english::top_penalties(60, 100).into_iter());
+    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 60);
     let alphabet_size = dict.alphabet().count_letters();
     let key_size_max = (alphabet_size / key_count + 2).min(alphabet_size);
     let partition = Partitions {
@@ -148,9 +147,9 @@ pub fn evolve_one_random_keyboard() -> Option<Solution> {
         min: 2,
         max: 4,
     };
-    let bad_pairs = english::top_penalties(bad_pairs, 0);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
     let start = Keyboard::random(dict.alphabet(), &partition)
-        .filter(|k| false == k.contains_on_any_key(&bad_pairs))
+        .filter(|k| false == k.has_prohibited_keys(&prohibited))
         .filter(|k| k.penalty(&dict, start_penalty) < start_penalty)
         .take(1)
         .map(|k| {

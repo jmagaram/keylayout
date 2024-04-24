@@ -1,8 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use keylayout::{
-    dictionary::Dictionary, english, exhaustive, key::Key, keyboard::Keyboard,
-    partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited,
-    tally::Tally, util,
+    dictionary::Dictionary, exhaustive, key::Key, keyboard::Keyboard, partitions::Partitions,
+    penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited, tally::Tally, util,
 };
 
 fn calculate_penalty_score(c: &mut Criterion) {
@@ -120,8 +119,7 @@ fn random_subsets(c: &mut Criterion) {
 fn every_combine_two_keys(c: &mut Criterion) {
     let d = Dictionary::load();
     let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
-    let mut prohibited = Prohibited::new();
-    prohibited.add_many(english::top_penalties(40, 0).into_iter());
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
     c.bench_function("EVERY COMBINE TWO KEYS", |b| {
         b.iter(|| {
             let _result = start
@@ -188,8 +186,7 @@ fn prohibit_keys(c: &mut Criterion) {
         min: 2,
         max: 4,
     };
-    let mut prohibited = Prohibited::new();
-    prohibited.add_many(english::top_penalties(40, 0).into_iter());
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
     c.bench_function("PROHIBIT KEYS", |b| {
         b.iter(|| {
             let _k = Keyboard::random(d.alphabet(), &partitions)
@@ -203,8 +200,7 @@ fn prohibit_keys(c: &mut Criterion) {
 fn dfs_perf(c: &mut Criterion) {
     let d = Dictionary::load();
     let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
-    let mut prohibited = Prohibited::new();
-    prohibited.add_many(english::top_penalties(20, 0).into_iter());
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 20);
     c.bench_function("DFS", |b| {
         b.iter(|| {
             let penalty_goals =

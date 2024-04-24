@@ -1,5 +1,5 @@
 use crate::{
-    dictionary::Dictionary, english, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
+    dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     penalty_goal::PenaltyGoals, prohibited::Prohibited, solution::Solution, tally::Tally,
 };
 use humantime::{format_duration, FormattedDuration};
@@ -123,8 +123,7 @@ pub fn run_dfs() {
         .with_specific(12, Penalty::new(0.02109))
         .with_adjustment(12..=25, 0.7)
         .with_specific(10, Penalty::new(0.0246));
-    let mut prohibited = Prohibited::new();
-    prohibited.add_many(english::top_penalties(60, 100).into_iter());
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
     let max_letters_per_key = 4;
     let desired_keys = 10;
     let solution = dfs(
@@ -173,8 +172,7 @@ mod tests {
             .with_specific(10, Penalty::new(0.5));
         let max_letters_per_key = 5;
         let desired_keys = 10;
-        let mut prohibited = Prohibited::new();
-        prohibited.add_many(english::top_penalties(20, 0).into_iter());
+        let prohibited = Prohibited::with_top_n_letter_pairs(&d, 20);
         let solution = dfs(
             &d,
             start,

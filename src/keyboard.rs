@@ -346,7 +346,7 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
-    use crate::{english, util};
+    use crate::util;
 
     use super::*;
 
@@ -640,8 +640,7 @@ mod tests {
             max: 5,
         };
         let dict = Dictionary::load();
-        let mut prohibited = Prohibited::new();
-        prohibited.add_many(english::top_penalties(60, 50).into_iter());
+        let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 60);
         let keyboards = Keyboard::random(dict.alphabet(), &partition)
             .filter(|k| false == k.has_prohibited_keys(&prohibited));
         for k in keyboards.take(50) {

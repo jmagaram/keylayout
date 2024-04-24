@@ -1,12 +1,45 @@
 use hashbrown::HashSet;
 
-use crate::key::Key;
+use crate::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty};
 
 pub struct Prohibited(HashSet<Key>);
 
 impl Prohibited {
     pub fn new() -> Prohibited {
         Prohibited(HashSet::new())
+    }
+
+    pub fn with_top_n_letter_pairs(dict: &Dictionary, top_n: usize) -> Prohibited {
+        if dict.words().len() > 307_000 {
+            let cache = "ai,st,ns,nt,io,fn,ds,ao,ey,eo,tw,bm,hw,nr,ae,bh,dt,ms,dr,rs,mw,fr,bw,dn,fs,mt,ei,hm,ft,rt,mn,lr,au,dm,ps,cs,ln,ls,lm,dl,gs,gn,lt,dg,iu,mp,ny,sy,gt,mr,et,ct,cw,bo,hn,er,sw,no,cm,ou,lp,as,hs,pt,hr,bt,dp,dk,bs,gl,my,cp,dw,bl,hl,fl,es,ch,cr,bp,fm,br,dy,cn,eh,de,cg,bc,ht,pr,is,ar,lw,el,hp,nw,eu,np,cd,bf,fw,bd,cf,fk,fh,ry,cl,ah,dh,op,or,bg,rv,pw,at,nv,rw,ac,kn,em,fp,ru,gr,ow,al,kt,km,oy,gm,ks,fg,ty,am,ad,ap,ep,bn,mo,gk,gh,ir,in,en,it,ce,kl,df,an,sv,mv,gp,hk,kr,kp,jm,di,wy,il,im,os,co,gw,ek,ot,eg,ci,fv,be,lo,lv,hy,ab,kv,do,tv,gy,dv,ef,ly,ip,ag,fy,bk,hi,ck,cv,bj,pv,ew,by,ay,kw,tx,bi,ho,cy,py,jp,su,af,iy,jt,fi,ak,dj,bv,js,jl,mu,rx,tu,nu,jr,nx,pu,sx,gi,go,cu,jn,vw,gj,gv,iv,aw,du,sz,dx,iw,lu,fo,av,dz,cj,fj,ex,hv,hu,hj,tz,ov,ax,lx,bu,ev,jw,px,ik,ky,gu,mx,cx,xy,ko,vy,uv,jk,fu,aj,bx,uw,ix,uy,jy,wx,ij,jv,gx,ox,jo,ej,ku,ux,vx,nz,mz,lz,hx,fx,kx,rz,bz,cz,ju,gz,hz,pz,jx,kz,qs,ez,fz,az,vz,yz,wz,gq,jz,dq,iz,nq,oz,e',cq,qr,aq,qt,mq,lq,pq,bq,iq,eq,uz,oq,a',fq,hq,kq,n',qw,qu,qv,xz,qy,jq,qx,r',l',qz,i',t',u',o',d',b',p',s',m',g',c',k',y',h',f',w',v',x',j',q',z'";
+            let mut result = Prohibited::new();
+            let pairs = cache.split(",").map(|pair| Key::new(pair)).take(top_n);
+            result.add_many(pairs);
+            result
+        } else {
+            let mut penalties = dict
+                .alphabet()
+                .subsets_of_size(2)
+                .map(|pair| {
+                    let k = Keyboard::with_keys(vec![pair]).fill_missing(dict.alphabet());
+                    let p = k.penalty(&dict, Penalty::MAX);
+                    (pair, p)
+                })
+                .collect::<Vec<(Key, Penalty)>>();
+            penalties.sort_by(|a, b| {
+                let (_a_key, a_penalty) = a;
+                let (_b_key, b_penalty) = b;
+                b_penalty.cmp(a_penalty)
+            });
+            let mut result = Prohibited::new();
+            result.add_many(
+                penalties
+                    .into_iter()
+                    .take(top_n)
+                    .map(|(pair, _penalty)| pair),
+            );
+            result
+        }
     }
 
     pub fn is_allowed(&self, other: Key) -> bool {
@@ -85,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn duplicates_are_removed_when_add_smaller_set_first() {
+    fn duplicates_removed_when_add_smaller_key_first() {
         let mut p = Prohibited::new();
         p.add(Key::new("ab"));
         p.add(Key::new("abc"));
@@ -94,7 +127,7 @@ mod tests {
     }
 
     #[test]
-    fn duplicates_are_removed_when_add_bigger_set_first() {
+    fn duplicates_are_removed_when_add_bigger_key_first() {
         let mut p = Prohibited::new();
         p.add(Key::new("abc"));
         p.add(Key::new("ab"));
