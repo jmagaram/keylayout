@@ -3,9 +3,9 @@ use dictionary::Dictionary;
 use penalty::Penalty;
 
 mod dictionary;
-mod evolution;
 mod exhaustive;
 mod frequency;
+mod genetic;
 mod key;
 mod keyboard;
 mod lazy_tree;
@@ -39,7 +39,7 @@ fn main() {
     }
 
     let run_genetic_solver = move || {
-        for result in evolution::find_best(&dict, 10, Penalty::new(0.0001)) {
+        for result in genetic::find_best(&dict, 10, Penalty::new(0.0001)) {
             if let Some(solution) = result {
                 println!("{}", solution);
             }

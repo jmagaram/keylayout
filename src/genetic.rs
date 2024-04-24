@@ -5,7 +5,7 @@ use crate::{
     prohibited::Prohibited, solution::Solution,
 };
 
-pub struct Evolve<'a> {
+pub struct Genetic<'a> {
     best: Solution,
     dictionary: &'a Dictionary,
     current_generation: u32,
@@ -13,37 +13,7 @@ pub struct Evolve<'a> {
     keyboards_seen: u32,
 }
 
-pub struct EvolveArgs<'a> {
-    pub start: Solution,
-    pub dictionary: &'a Dictionary,
-    pub die_threshold: Penalty,
-}
-
-impl<'a> fmt::Display for EvolveArgs<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Words:{} Die:{} Start:{}",
-            self.dictionary.words().len(),
-            self.die_threshold,
-            self.start.penalty()
-        )
-    }
-}
-
-impl<'a> EvolveArgs<'a> {
-    pub fn start(&self) -> Evolve<'a> {
-        Evolve {
-            best: self.start.clone(),
-            dictionary: self.dictionary,
-            current_generation: 1,
-            die_threshold: self.die_threshold,
-            keyboards_seen: 0,
-        }
-    }
-}
-
-impl<'a> Iterator for Evolve<'a> {
+impl<'a> Iterator for Genetic<'a> {
     type Item = Solution;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -78,7 +48,7 @@ impl<'a> Iterator for Evolve<'a> {
                 );
                 Some(solution)
             })
-            .min_by(|a, b| a.penalty().partial_cmp(&b.penalty()).unwrap())?;
+            .min_by(|a, b| a.penalty().cmp(&b.penalty()))?;
         let sufficient_progress = (self.best.penalty().to_f32() - best_child.penalty().to_f32())
             > self.die_threshold.to_f32();
         if sufficient_progress {
@@ -91,13 +61,43 @@ impl<'a> Iterator for Evolve<'a> {
     }
 }
 
+pub struct FindBestArgs<'a> {
+    pub start: Solution,
+    pub dictionary: &'a Dictionary,
+    pub die_threshold: Penalty,
+}
+
+impl<'a> fmt::Display for FindBestArgs<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Words:{} Die:{} Start:{}",
+            self.dictionary.words().len(),
+            self.die_threshold,
+            self.start.penalty()
+        )
+    }
+}
+
+impl<'a> FindBestArgs<'a> {
+    pub fn start(&self) -> Genetic<'a> {
+        Genetic {
+            best: self.start.clone(),
+            dictionary: self.dictionary,
+            current_generation: 1,
+            die_threshold: self.die_threshold,
+            keyboards_seen: 0,
+        }
+    }
+}
+
 /// Tries to find the best keyboard using a genetic algorithm. Runs forever.
 pub fn find_best<'a>(
     dict: &'a Dictionary,
     key_count: u32,
     die_threshold: Penalty,
 ) -> impl Iterator<Item = Option<Solution>> + 'a {
-    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 60);
+    let prohibited = Prohibited::new();
     let alphabet_size = dict.alphabet().count_letters();
     let key_size_max = (alphabet_size / key_count + 2).min(alphabet_size);
     let partition = Partitions {
@@ -115,7 +115,7 @@ pub fn find_best<'a>(
             })
             .next()
             .unwrap();
-        let args: EvolveArgs = EvolveArgs {
+        let args: FindBestArgs = FindBestArgs {
             dictionary: &dict,
             start,
             die_threshold,
@@ -133,43 +133,6 @@ pub fn find_best<'a>(
         best.clone()
     });
     results
-}
-
-pub fn evolve_one_random_keyboard() -> Option<Solution> {
-    let bad_pairs = 60;
-    let start_penalty = Penalty::new(0.035);
-    let die_threshold = 0.00005;
-    let dict = Dictionary::load();
-    let partition = Partitions {
-        sum: 27,
-        parts: 10,
-        min: 2,
-        max: 4,
-    };
-    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
-    let start = Keyboard::random(dict.alphabet(), &partition, &prohibited)
-        .filter(|k| k.penalty(&dict, start_penalty) < start_penalty)
-        .take(1)
-        .map(|k| {
-            let penalty = k.penalty(&dict, Penalty::MAX);
-            k.to_solution(penalty, "initial state".to_string())
-        })
-        .last()
-        .unwrap();
-    let args: EvolveArgs = EvolveArgs {
-        dictionary: &dict,
-        start,
-        die_threshold: Penalty::new(die_threshold),
-    };
-    println!("");
-    println!("{}", args);
-    println!("");
-    let mut last = None;
-    for s in args.start() {
-        println!("  {}", s);
-        last = Some(s);
-    }
-    last
 }
 
 #[cfg(test)]
@@ -197,7 +160,7 @@ mod tests {
             })
             .last()
             .unwrap();
-        let args: EvolveArgs = EvolveArgs {
+        let args: FindBestArgs = FindBestArgs {
             dictionary: &dict,
             start,
             die_threshold: Penalty::new(0.0001),

@@ -1,7 +1,7 @@
 pub mod dictionary;
-pub mod evolution;
 pub mod exhaustive;
 pub mod frequency;
+pub mod genetic;
 pub mod key;
 pub mod keyboard;
 pub mod lazy_tree;
