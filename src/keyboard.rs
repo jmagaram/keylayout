@@ -635,7 +635,6 @@ mod tests {
     fn display_penalty_for_specific_keyboard() {
         let dict = Dictionary::load();
         let layout = "ajxz' biky cglov dfpu emq h n r sw t";
-        let layout = &layout.replace(" ", ",");
         let keyboard = Keyboard::with_layout(layout);
         let penalty = keyboard.penalty(&dict, Penalty::MAX);
         let solution = keyboard.to_solution(penalty, "".to_string());
