@@ -5,7 +5,7 @@ use std::{
 
 use rand::Rng;
 
-use crate::{lazy_tree::Seed, letter::Letter, tally::Tally, util};
+use crate::{lazy_tree::Seed, letter::Letter, prohibited::Prohibited, tally::Tally, util};
 
 #[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy, Default, Hash)]
 pub struct Key(u32);
@@ -76,6 +76,14 @@ impl Key {
 
     pub fn is_empty(&self) -> bool {
         self.0 == 0
+    }
+
+    pub fn is_prohibited(&self, prohibited: &Prohibited) -> bool {
+        !prohibited.is_allowed(self.clone())
+    }
+
+    pub fn is_allowed(&self, prohibited: &Prohibited) -> bool {
+        prohibited.is_allowed(self.clone())
     }
 
     pub fn except(&self, other: Key) -> Key {
@@ -652,6 +660,19 @@ mod tests {
             assert_eq!(start.min_letter(), Some(expected));
         }
         assert!(Key::EMPTY.min_letter().is_none());
+    }
+
+    #[test]
+    fn is_allowed() {
+        let mut p = Prohibited::new();
+        p.add(Key::new("ae"));
+        p.add(Key::new("st"));
+
+        assert!(Key::new("aem").is_prohibited(&p));
+        assert!(false == Key::new("aem").is_allowed(&p));
+
+        assert!(false == Key::new("a").is_prohibited(&p));
+        assert!(Key::new("a").is_allowed(&p));
     }
 
     #[test]
