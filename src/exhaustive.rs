@@ -124,7 +124,7 @@ pub fn run_dfs() {
         .with_adjustment(12..=25, 0.7)
         .with_specific(10, Penalty::new(0.0246));
     let mut prohibited = Prohibited::new();
-    prohibited.add_many(english::top_penalties(60, 0).into_iter());
+    prohibited.add_many(english::top_penalties(60, 100).into_iter());
     let max_letters_per_key = 4;
     let desired_keys = 10;
     let solution = dfs(
