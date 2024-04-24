@@ -108,8 +108,8 @@ pub fn run_dfs() {
     let penalty_goals = PenaltyGoals::none(d.alphabet())
         // .with_specific(26, Penalty::new(0.00006))
         // .with_specific(25, Penalty::new(0.000174))
-        // .with_specific(24, Penalty::new(0.000385))
-        // .with_specific(23, Penalty::new(0.0007))
+        .with_specific(24, Penalty::new(0.000385))
+        .with_specific(23, Penalty::new(0.0007))
         .with_specific(22, Penalty::new(0.0012))
         .with_specific(21, Penalty::new(0.001985))
         .with_specific(20, Penalty::new(0.0003152))
@@ -121,8 +121,8 @@ pub fn run_dfs() {
         .with_specific(14, Penalty::new(0.013445))
         .with_specific(13, Penalty::new(0.016709))
         .with_specific(12, Penalty::new(0.02109))
-        .with_adjustment(12..=25, 0.8)
-        .with_specific(10, Penalty::new(0.0280));
+        .with_adjustment(12..=25, 0.7)
+        .with_specific(10, Penalty::new(0.0246));
     let prohibited = english::top_penalties(30, 0);
     let max_letters_per_key = 4;
     let desired_keys = 10;

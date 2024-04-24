@@ -46,5 +46,5 @@ fn main() {
         }
     };
 
-    run_genetic_solver();
+    find_best_dfs();
 }
