@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use keylayout::{
-    dictionary::Dictionary, exhaustive, key::Key, keyboard::Keyboard, partitions::Partitions,
-    penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited, tally::Tally, util,
+    dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
+    penalty_goal::PenaltyGoals, prohibited::Prohibited, tally::Tally, util,
 };
 
 fn calculate_penalty_score(c: &mut Criterion) {
@@ -191,36 +191,6 @@ fn iterate_letters_in_key(c: &mut Criterion) {
             ];
             for d in data {
                 let _count = Key::new(black_box(d)).letters().count();
-            }
-        })
-    });
-}
-
-fn dfs_perf(c: &mut Criterion) {
-    let d = Dictionary::load();
-    let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 20);
-    c.bench_function("DFS", |b| {
-        b.iter(|| {
-            let penalty_goals =
-                PenaltyGoals::none(d.alphabet()).with_specific(10, Penalty::new(0.5));
-            let max_letters_per_key = 5;
-            let desired_keys = 10;
-            let solution = exhaustive::dfs(
-                black_box(&d),
-                start.clone(),
-                max_letters_per_key,
-                desired_keys,
-                &penalty_goals,
-                &prohibited,
-            );
-            match solution {
-                None => {
-                    println!("No solution found")
-                }
-                Some(solution) => {
-                    println!("{}", solution);
-                }
             }
         })
     });

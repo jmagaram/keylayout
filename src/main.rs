@@ -2,8 +2,8 @@ use dictionary::Dictionary;
 use penalty::Penalty;
 use prohibited::Prohibited;
 
+mod dfs_pruning;
 mod dictionary;
-mod exhaustive;
 mod exhaustive_n_key;
 mod frequency;
 mod genetic;
@@ -22,7 +22,7 @@ mod word;
 
 fn main() {
     let dfs_pruning = || {
-        exhaustive::run_dfs();
+        dfs_pruning::solve();
     };
 
     let find_best_n_key = || {

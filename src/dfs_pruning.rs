@@ -53,7 +53,7 @@ pub fn dfs(
     }
 }
 
-pub fn run_dfs() {
+pub fn solve() {
     let start_time = Instant::now();
     let d = Dictionary::load();
     let start = Keyboard::with_every_letter_on_own_key(d.alphabet());

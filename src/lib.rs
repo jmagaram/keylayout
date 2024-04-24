@@ -1,5 +1,5 @@
+pub mod dfs_pruning;
 pub mod dictionary;
-pub mod exhaustive;
 pub mod exhaustive_n_key;
 pub mod frequency;
 pub mod genetic;
