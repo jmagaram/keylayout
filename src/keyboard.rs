@@ -142,6 +142,44 @@ impl Keyboard {
         })
     }
 
+    /// Returns an endless iteration of random keyboards given a specific
+    /// `alphabet`, key sizes, and a prohibited list of letters that can not
+    /// appear together on the same key.
+    pub fn random_with<'a>(
+        alphabet: Key,
+        layout: &'a Partitions,
+        prohibited: &'a Prohibited,
+    ) -> impl Iterator<Item = Keyboard> + 'a {
+        let mut rng = rand::thread_rng();
+        let layout_options = layout.calculate();
+        iter::repeat_with(move || {
+            let layout_index = rng.gen_range(0..layout_options.len());
+            let layout = layout_options.get(layout_index).unwrap();
+            let keys = alphabet.random_subsets(layout).collect::<Vec<Key>>();
+            let keyboard = Keyboard::with_keys(keys);
+            keyboard
+        })
+        .filter(move |k| !k.has_prohibited_keys(&prohibited))
+    }
+
+    // pub fn random_with_key_sizes(alphabet: Key, prohibited: Prohibited, key_sizes: Tally<u8>) {}
+
+    // pub fn every<'a>(alphabet: Key, layout: &'a Partitions) -> impl Iterator<Item = Keyboard> + 'a {
+    //     assert!(
+    //         alphabet.count_letters() == layout.sum,
+    //         "The layout must have the same number of letters as the alphabet."
+    //     );
+    //     let key_sizes = layout.calculate();
+    //     let alphabet = alphabet.clone();
+    //     key_sizes.into_iter().flat_map(move |s| {
+    //         let arrangements: Tally<u32> = Tally::from(s);
+    //         alphabet
+    //             .clone()
+    //             .distribute(arrangements)
+    //             .map(|keys| Keyboard::with_keys(keys))
+    //     })
+    // }
+
     pub fn swap_random_letters_n_times(&self, count: u32) -> Result<Keyboard, &'static str> {
         if count == 0 {
             Ok(self.clone())

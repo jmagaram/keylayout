@@ -116,6 +116,24 @@ fn random_subsets(c: &mut Criterion) {
     });
 }
 
+fn random_keyboards(c: &mut Criterion) {
+    let partition = Partitions {
+        sum: 27,
+        parts: 10,
+        min: 2,
+        max: 5,
+    };
+    let dict = Dictionary::load();
+    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
+    c.bench_function("RANDOM KEYBOARDS", |b| {
+        b.iter(|| {
+            Keyboard::random_with(dict.alphabet(), &partition, black_box(&prohibited))
+                .take(50)
+                .count();
+        })
+    });
+}
+
 fn every_combine_two_keys(c: &mut Criterion) {
     let d = Dictionary::load();
     let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
