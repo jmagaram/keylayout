@@ -156,6 +156,10 @@ impl Key {
         .into_iter()
     }
 
+    /// Generates all possible keys of size `size` that include the letters of
+    /// the source key. For example,the key "abcd" with size 2 generates "ab",
+    /// "ac", "ad", "bc", "bd", and "cd". This is essentially choosing unique
+    /// combinations of letters.
     pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Key> {
         assert!(
             size <= Key::MAX_SIZE,
