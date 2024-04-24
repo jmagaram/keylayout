@@ -59,6 +59,12 @@ impl Keyboard {
         self.keys.len()
     }
 
+    pub fn letters(&self) -> Key {
+        self.keys
+            .iter()
+            .fold(Key::EMPTY, |total, i| total.union(*i))
+    }
+
     pub fn max_key_size(&self) -> Option<u32> {
         self.keys.iter().map(|k| k.count_letters()).max()
     }
@@ -490,6 +496,17 @@ mod tests {
         for _i in 1..10 {
             k = k.swap_random_letters().unwrap();
             println!("{}", k)
+        }
+    }
+
+    #[test]
+    fn letters() {
+        let data = [("abc,def,ghi", "abcdefghi"), ("abc", "abc"), ("", "")];
+        for (keyboard, expected) in data {
+            let keyboard = Keyboard::with_layout(&keyboard);
+            let actual = keyboard.letters();
+            let expected = Key::new(expected);
+            assert_eq!(actual, expected)
         }
     }
 
