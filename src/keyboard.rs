@@ -238,7 +238,7 @@ impl Keyboard {
             .map(move |a_index| {
                 (a_index + 1..=self.keys.len() - 1).map(move |b_index| {
                     let combined_key = self.keys[a_index].union(self.keys[b_index]);
-                    if prohibited.is_allowed(combined_key) {
+                    if combined_key.is_allowed(prohibited) {
                         let new_keys: Vec<Key> = self
                             .keys
                             .iter()
