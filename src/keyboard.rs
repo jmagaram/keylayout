@@ -217,6 +217,9 @@ impl Keyboard {
         result
     }
 
+    /// Generates every keyboard that results by combining keys once. So if you
+    /// start with a 15 key keyboard, this returns all possible 14 key
+    /// keyboards.
     pub fn every_combine_two_keys<'a>(
         &'a self,
         prohibited: Option<&'a Vec<Key>>,
@@ -273,6 +276,9 @@ impl Keyboard {
         })
     }
 
+    /// Calculate the total penalty for a keyboard based on the `dictionary` and
+    /// a `to_beat` penalty. Calculation is short-circuited if the calculated
+    /// penalty exceeds the `to_beat` value.
     pub fn penalty(&self, dictionary: &Dictionary, to_beat: Penalty) -> Penalty {
         let mut penalty = Penalty::ZERO;
         for (_, word_penalty) in self.penalty_by_word(dictionary) {
