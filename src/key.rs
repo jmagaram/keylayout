@@ -135,9 +135,10 @@ impl Key {
         result_key
     }
 
-    /// Splits a key into a random number of other keys such that the letters on
-    /// all those keys match the letters on the source key. For example, the key
-    /// abcde could get split into c, abd, and e.
+    /// Splits a key into a random number of other keys according the specified
+    /// key sizes, such that the letters on all those keys match the letters on
+    /// the source key. For example, the key "abcdef" with group sizes [3,1,2]
+    /// could get split into cab, d, and ef.
     pub fn random_subsets(&self, groupings: &Vec<u32>) -> impl Iterator<Item = Key> {
         debug_assert!(
             !groupings.contains(&0),
