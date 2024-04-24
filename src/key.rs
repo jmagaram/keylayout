@@ -135,6 +135,9 @@ impl Key {
         result_key
     }
 
+    /// Splits a key into a random number of other keys such that the letters on
+    /// all those keys match the letters on the source key. For example, the key
+    /// abcde could get split into c, abd, and e.
     pub fn random_subsets(&self, groupings: &Vec<u32>) -> impl Iterator<Item = Key> {
         debug_assert!(
             !groupings.contains(&0),
@@ -757,7 +760,7 @@ mod tests {
     }
 
     #[test]
-    fn random_subsets() {
+    fn random_subsets_returns_keys_with_all_the_letters_of_source_key() {
         let key = Key::with_every_letter();
         let data = [
             vec![3, 3, 5, 4],
