@@ -7,7 +7,7 @@ use rand::Rng;
 
 use crate::{lazy_tree::Seed, letter::Letter, tally::Tally, util};
 
-#[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy, Default)]
+#[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy, Default, Hash)]
 pub struct Key(u32);
 
 impl Key {
