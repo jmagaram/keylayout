@@ -42,7 +42,7 @@ fn main() {
         let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
         let args = genetic::FindBestArgs {
             dictionary: &dict,
-            die_threshold: Penalty::new(0.0001),
+            die_threshold: Penalty::new(0.00001),
             key_count: 10,
             prohibited,
         };
