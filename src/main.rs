@@ -4,6 +4,7 @@ use prohibited::Prohibited;
 
 mod dictionary;
 mod exhaustive;
+mod exhaustive_n_key;
 mod frequency;
 mod genetic;
 mod key;
@@ -20,25 +21,17 @@ mod util;
 mod word;
 
 fn main() {
-    let dict = Dictionary::load();
-
-    fn best_n_key(key_count: u32) {
-        match exhaustive::best_n_key(key_count) {
-            None => {
-                println!("No solution found")
-            }
-            Some(best) => {
-                println!("Done searching for best {} key keyboard.", key_count);
-                println!("{}", best);
-            }
-        }
-    }
-
-    fn find_best_dfs() {
+    let dfs_pruning = || {
         exhaustive::run_dfs();
-    }
+    };
+
+    let find_best_n_key = || {
+        let dict = Dictionary::load();
+        exhaustive_n_key::find_best_n_key(10, &dict);
+    };
 
     let genetic_solver = move || {
+        let dict = Dictionary::load();
         let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
         let args = genetic::FindBestArgs {
             dictionary: &dict,
@@ -53,5 +46,5 @@ fn main() {
         }
     };
 
-    genetic_solver();
+    find_best_n_key();
 }
