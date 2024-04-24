@@ -2,7 +2,7 @@ use std::{borrow::Borrow, fmt};
 
 use crate::{
     dictionary::Dictionary, english, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
-    solution::Solution,
+    prohibited::Prohibited, solution::Solution,
 };
 
 pub struct Evolve<'a> {
@@ -91,13 +91,14 @@ impl<'a> Iterator for Evolve<'a> {
     }
 }
 
+/// Tries to find the best keyboard using a genetic algorithm. Runs forever.
 pub fn find_best<'a>(
     dict: &'a Dictionary,
     key_count: u32,
     die_threshold: Penalty,
 ) -> impl Iterator<Item = Option<Solution>> + 'a {
-    let bad_pairs_count = 50;
-    let bad_pairs = english::top_penalties(bad_pairs_count, 0);
+    let mut prohibited = Prohibited::new();
+    prohibited.add_many(english::top_penalties(60, 100).into_iter());
     let alphabet_size = dict.alphabet().count_letters();
     let key_size_max = (alphabet_size / key_count + 2).min(alphabet_size);
     let partition = Partitions {
@@ -109,7 +110,7 @@ pub fn find_best<'a>(
     let mut best: Option<Solution> = None;
     let results = std::iter::repeat_with(move || {
         let start = Keyboard::random(dict.alphabet(), &partition)
-            .filter(|k| false == k.contains_on_any_key(&bad_pairs))
+            .filter(|k| false == k.has_prohibited_keys(&prohibited))
             .map(|k| {
                 let penalty = k.penalty(&dict, Penalty::MAX);
                 k.to_solution(penalty, "".to_string())
