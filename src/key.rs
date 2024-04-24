@@ -192,6 +192,10 @@ impl Key {
         }
     }
 
+    /// Generates all unique ways the letters on the source key can be
+    /// distributed across other keys. For example, if the source key contains
+    /// a-z, and the `key_sizes` indicates 8 keys of size 3, and 3 keys of size
+    /// 2, every way of distributing those letters is generated.
     pub fn distribute(&self, key_sizes: Tally<u32>) -> impl Iterator<Item = Vec<Key>> + '_ {
         let results = key_sizes
             .combinations()
@@ -798,8 +802,8 @@ mod tests {
     #[test]
     #[ignore]
     fn distribute_key_and_print() {
-        let key = Key::with_first_n_letters(6);
-        let key_sizes = Tally::from([2, 2, 3, 3, 3, 1]);
+        let key = Key::with_first_n_letters(5);
+        let key_sizes = Tally::from([2, 3]);
         let results = key.distribute(key_sizes);
         for r in results {
             let k = Keyboard::new_from_keys(r);
