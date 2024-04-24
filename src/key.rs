@@ -806,7 +806,7 @@ mod tests {
         let key_sizes = Tally::from([2, 3]);
         let results = key.distribute(key_sizes);
         for r in results {
-            let k = Keyboard::new_from_keys(r);
+            let k = Keyboard::with_keys(r);
             println!("{}", k)
         }
     }
@@ -814,7 +814,7 @@ mod tests {
     fn format_keys(keys: &Vec<Vec<Key>>) -> String {
         let mut formatted = keys
             .iter()
-            .map(|k| Keyboard::new_from_keys(k.clone()).to_string())
+            .map(|k| Keyboard::with_keys(k.clone()).to_string())
             .collect::<Vec<String>>();
         formatted.sort();
         formatted.join(" : ")
@@ -879,7 +879,7 @@ mod tests {
             let key = Key::with_first_n_letters(letter_count);
             let key_sizes = Tally::from_iter(d);
             key.distribute(key_sizes)
-                .map(|ks| Keyboard::new_from_keys(ks).to_string())
+                .map(|ks| Keyboard::with_keys(ks).to_string())
                 .fold(HashSet::new(), |mut total, i| {
                     if total.contains(&i) {
                         panic!("There are duplicate results.");

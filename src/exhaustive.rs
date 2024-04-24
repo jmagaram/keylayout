@@ -32,7 +32,7 @@ pub fn best_n_key(count: u32) -> Option<Solution> {
         let arrangements: Tally<u32> = Tally::from(key_sizes);
         alphabet
             .distribute(arrangements)
-            .map(|keys| Keyboard::new_from_keys(keys))
+            .map(|keys| Keyboard::with_keys(keys))
     });
     let mut best: Option<Solution> = None;
     for (index, k) in keyboards.enumerate() {
@@ -104,7 +104,7 @@ pub fn dfs(
 pub fn run_dfs() {
     let start_time = Instant::now();
     let d = Dictionary::load();
-    let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
+    let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
     let penalty_goals = PenaltyGoals::none(d.alphabet())
         // .with_specific(26, Penalty::new(0.00006))
         // .with_specific(25, Penalty::new(0.000174))
@@ -165,7 +165,7 @@ mod tests {
     #[ignore]
     fn try_dfs() {
         let d = Dictionary::load();
-        let start = Keyboard::new_every_letter_on_own_key(d.alphabet());
+        let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
         let penalty_goals = PenaltyGoals::none(d.alphabet())
             .with_random_sampling(11..=26, 10, 0, &d)
             .with_adjustment(12..=26, 0.7)

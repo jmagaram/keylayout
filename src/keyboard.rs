@@ -14,7 +14,7 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new_from_keys(keys: Vec<Key>) -> Keyboard {
+    pub fn with_keys(keys: Vec<Key>) -> Keyboard {
         let mut letter_to_key_index: [Option<usize>; Letter::ALPHABET_SIZE] = Default::default();
         for (key_index, key) in keys.iter().enumerate() {
             for letter in key.letters() {
@@ -31,23 +31,24 @@ impl Keyboard {
         }
     }
 
-    pub fn new_every_letter_on_own_key(alphabet: Key) -> Keyboard {
+    pub fn with_every_letter_on_own_key(alphabet: Key) -> Keyboard {
         let keys = alphabet
             .letters()
             .map(|r| Key::with_one_letter(r))
             .collect::<Vec<Key>>();
-        Keyboard::new_from_keys(keys)
+        Keyboard::with_keys(keys)
     }
 
-    // abc,def,ghh
-    pub fn new_from_layout(s: &str) -> Keyboard {
+    /// Generates a keyboard based on a sequence of letters delimited by spaces
+    /// or commands. For example "abc,def,ghi" or "abc def ghi".
+    pub fn with_layout(s: &str) -> Keyboard {
         let keys = s
-            .split(",")
+            .split([',', ' '])
             .map(|letters| {
-                Key::try_from(letters).expect("Expected each key to be separated by a comma.")
+                Key::try_from(letters).expect("Expected each key to have valid letters and be separated by a single comma or space.")
             })
             .collect::<Vec<Key>>();
-        Keyboard::new_from_keys(keys)
+        Keyboard::with_keys(keys)
     }
 
     pub fn with_penalty(self, penalty: Penalty) -> Solution {
@@ -126,7 +127,7 @@ impl Keyboard {
                 .map(Key::with_one_letter)
                 .collect::<Vec<Key>>();
             keys.push(evaluate);
-            let keyboard = Keyboard::new_from_keys(keys);
+            let keyboard = Keyboard::with_keys(keys);
             let penalty = keyboard.penalty(&dictionary, Penalty::MAX);
             result.push((evaluate, penalty));
         }
@@ -140,7 +141,7 @@ impl Keyboard {
             let layout_index = rng.gen_range(0..layout_options.len());
             let layout = layout_options.get(layout_index).unwrap();
             let keys = alphabet.random_subsets(layout).collect::<Vec<Key>>();
-            let keyboard = Keyboard::new_from_keys(keys);
+            let keyboard = Keyboard::with_keys(keys);
             keyboard
         })
     }
@@ -185,7 +186,7 @@ impl Keyboard {
                     }
                 })
                 .collect();
-            Ok(Keyboard::new_from_keys(new_keys))
+            Ok(Keyboard::with_keys(new_keys))
         }
     }
 
@@ -216,7 +217,7 @@ impl Keyboard {
                                     }
                                 })
                                 .collect();
-                            let keyboard = Keyboard::new_from_keys(letters);
+                            let keyboard = Keyboard::with_keys(letters);
                             result.push(keyboard);
                         }
                     }
@@ -255,7 +256,7 @@ impl Keyboard {
                                 }
                             })
                             .collect();
-                        let new_keyboard = Keyboard::new_from_keys(new_keys);
+                        let new_keyboard = Keyboard::with_keys(new_keys);
                         Some(new_keyboard)
                     } else {
                         None
@@ -307,7 +308,7 @@ impl Keyboard {
                     total.push(self.keys[i]);
                     total
                 });
-                Keyboard::new_from_keys(keys)
+                Keyboard::with_keys(keys)
             })
     }
 
@@ -322,7 +323,7 @@ impl Keyboard {
             total.push(i);
             total
         });
-        Keyboard::new_from_keys(new_keys)
+        Keyboard::with_keys(new_keys)
     }
 }
 
@@ -348,7 +349,7 @@ mod tests {
 
     #[test]
     fn subsets_of_keys_when_one_key() {
-        let source = Keyboard::new_from_layout("abc");
+        let source = Keyboard::with_layout("abc");
         let result = source.subsets_of_keys(1).collect::<Vec<Keyboard>>();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].to_string(), "abc");
@@ -356,7 +357,7 @@ mod tests {
 
     #[test]
     fn subsets_of_keys_test() {
-        let source = Keyboard::new_from_layout("abc,def,ghi,pqr");
+        let source = Keyboard::with_layout("abc,def,ghi,pqr");
         let result = source.subsets_of_keys(2);
         assert_eq!(6, result.count());
     }
@@ -364,7 +365,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn subsets_of_keys_panic_if_too_many() {
-        let source = Keyboard::new_from_layout("abc,def,ghi,pqr");
+        let source = Keyboard::with_layout("abc,def,ghi,pqr");
         source.subsets_of_keys(5).count();
     }
 
@@ -372,12 +373,12 @@ mod tests {
     #[cfg(debug_assertions)]
     #[should_panic]
     fn new_panic_if_keys_with_duplicate_letters() {
-        Keyboard::new_from_layout("abc,def,ghi,axy");
+        Keyboard::with_layout("abc,def,ghi,axy");
     }
 
     #[test]
     fn spell_test() {
-        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mno,pqr,stu,vwx,yz'");
+        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,stu,vwx,yz'");
         let w = Word::try_from("word").unwrap();
         let actual = k.spell(&w);
         assert_eq!(actual, "vwx,mno,pqr,def");
@@ -385,7 +386,7 @@ mod tests {
 
     #[test]
     fn spell_serialized_test() {
-        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mno,pqr,stu,vwx,y'z");
+        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,stu,vwx,y'z");
         let data = [
             ("adg", "beh", true),
             ("adgj", "behk", true),
@@ -410,7 +411,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn spell_panic_if_required_letter_not_on_keyboard() {
-        let k = Keyboard::new_from_layout("abc,def,ghi");
+        let k = Keyboard::with_layout("abc,def,ghi");
         let w = Word::try_from("abcx").unwrap();
         k.spell(&w);
     }
@@ -429,7 +430,7 @@ mod tests {
             ("abc,def", 'x', None),
         ];
         for (layout, letter, expected_key_index) in data {
-            let keyboard = Keyboard::new_from_layout(layout);
+            let keyboard = Keyboard::with_layout(layout);
             let letter_to_find = Letter::new(letter);
             let actual = keyboard.find_key_index_for_letter(letter_to_find);
             assert_eq!(actual, expected_key_index);
@@ -440,7 +441,7 @@ mod tests {
     #[ignore]
     fn spell_print_each_dictionary_word_out() {
         let d = Dictionary::load();
-        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mnop,qrs,tuv,wxyz'");
+        let k = Keyboard::with_layout("abc,def,ghi,jkl,mnop,qrs,tuv,wxyz'");
         d.words().iter().take(20).for_each(|w| {
             let spelling = k.spell(&w);
             println!("{} : {}", w, spelling);
@@ -450,7 +451,7 @@ mod tests {
     #[test]
     fn penalty_score_is_correct() {
         let d = Dictionary::load();
-        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
+        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,st,uv,wx,yz'");
         let actual: f32 = k.penalty(&d, Penalty::MAX).to_f32(); // why into does not work
         assert!(actual >= 0.0802 && actual <= 0.0804); // 0.0803
     }
@@ -472,7 +473,7 @@ mod tests {
             ("abc,def", "x", false),
         ];
         for (keyboard, other, expected) in data {
-            let k = Keyboard::new_from_layout(keyboard);
+            let k = Keyboard::with_layout(keyboard);
             let contains = other
                 .split(",")
                 .map(|p| Key::try_from(p).unwrap())
@@ -489,7 +490,7 @@ mod tests {
     #[test]
     #[ignore]
     fn swap_random_letters() {
-        let mut k = Keyboard::new_from_layout("abc,def,ghi");
+        let mut k = Keyboard::with_layout("abc,def,ghi");
         for _i in 1..10 {
             k = k.swap_random_letters().unwrap();
             println!("{}", k)
@@ -499,7 +500,7 @@ mod tests {
     #[test]
     #[ignore]
     fn every_swap() {
-        let k = Keyboard::new_from_layout("abc,def,ghi,jkl,mno,pqr,stu,vw,xy,z'");
+        let k = Keyboard::with_layout("abc,def,ghi,jkl,mno,pqr,stu,vw,xy,z'");
         k.every_swap().iter().for_each(|k| println!("{}", k));
         println!("Total swaps: {}", k.every_swap().iter().count());
     }
@@ -507,7 +508,7 @@ mod tests {
     #[test]
     #[ignore]
     fn every_combine_two_keys() {
-        let k = Keyboard::new_from_layout("a,b,c,d,efg,hi");
+        let k = Keyboard::with_layout("a,b,c,d,efg,hi");
         k.every_combine_two_keys(None)
             .for_each(|k| println!("{}", k));
     }
@@ -521,7 +522,7 @@ mod tests {
             "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,'",
         ];
         for d in data {
-            let k = Keyboard::new_from_layout(d);
+            let k = Keyboard::with_layout(d);
             let actual_count = k.every_combine_two_keys(None).into_iter().count();
             let expected = util::choose(k.keys.len() as u32, 2);
             assert_eq!(actual_count, expected as usize);
@@ -530,7 +531,7 @@ mod tests {
 
     #[test]
     fn every_combine_two_keys_will_not_combine_prohibited_combinations() {
-        let k = Keyboard::new_from_layout("abc,def,ghi");
+        let k = Keyboard::with_layout("abc,def,ghi");
         let prohibited = vec![Key::try_from("ae").unwrap(), Key::try_from("fhi").unwrap()];
         let result = k
             .every_combine_two_keys(Some(&prohibited))
@@ -541,12 +542,19 @@ mod tests {
 
     #[test]
     fn every_combine_two_keys_may_result_in_no_keyboards() {
-        let k = Keyboard::new_from_layout("abc,def");
+        let k = Keyboard::with_layout("abc,def");
         let prohibited = vec![Key::try_from("ae").unwrap()];
         let result = k
             .every_combine_two_keys(Some(&prohibited))
             .collect::<Vec<Keyboard>>();
         assert_eq!(0, result.len());
+    }
+
+    #[test]
+    fn with_layout_can_split_on_comma_or_space() {
+        let a = Keyboard::with_layout("abc,def,ghi");
+        let b = Keyboard::with_layout("abc def ghi");
+        assert_eq!(a.to_string(), b.to_string());
     }
 
     #[test]
@@ -557,7 +565,7 @@ mod tests {
         let mut file = File::create("output.txt").unwrap();
         writeln!(file, "index, word, penalty").unwrap();
         let d = Dictionary::load();
-        let keyboard = Keyboard::new_from_layout("ot,gr,dh,su,im,bn,awz,cky',fjlx,epqv");
+        let keyboard = Keyboard::with_layout("ot,gr,dh,su,im,bn,awz,cky',fjlx,epqv");
         for (word_index, (word, penalty)) in keyboard.penalty_by_word(&d).enumerate() {
             writeln!(file, "{},{},{}", word_index + 1, word, penalty.to_f32()).unwrap();
         }
@@ -598,7 +606,7 @@ mod tests {
         let dict = Dictionary::load();
         let layout = "ajxz' biky cglov dfpu emq h n r sw t";
         let layout = &layout.replace(" ", ",");
-        let keyboard = Keyboard::new_from_layout(layout);
+        let keyboard = Keyboard::with_layout(layout);
         let penalty = keyboard.penalty(&dict, Penalty::MAX);
         let solution = keyboard.with_penalty(penalty);
         println!("{}", solution);
