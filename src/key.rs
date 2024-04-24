@@ -84,15 +84,15 @@ impl Key {
         }
     }
 
-    pub fn letters(&self) -> impl Iterator<Item = Letter> {
-        util::set_bits(self.0).map(|bit| Letter::try_from(bit as u32).unwrap())
-    }
-
     pub fn min_letter(&self) -> Option<Letter> {
         match self.0.trailing_zeros() {
             32 => None,
             n => Letter::try_from(n).ok(),
         }
+    }
+
+    pub fn letters(&self) -> impl Iterator<Item = Letter> {
+        util::set_bits(self.0).map(|bit| Letter::try_from(bit as u32).unwrap())
     }
 
     pub fn random_letter(&self) -> Option<Letter> {
