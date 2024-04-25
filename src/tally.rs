@@ -1,6 +1,8 @@
 use hashbrown::HashMap; // much faster than built-in HashMap
 use std::hash::Hash;
 
+use crate::util;
+
 #[derive(Clone, Default, Debug)]
 pub struct Tally<T>(HashMap<T, u32>);
 
@@ -95,6 +97,31 @@ where
     }
 }
 
+trait KeyLayout {
+    fn unique_keyboards(&self) -> u128;
+}
+
+impl KeyLayout for Tally<u8> {
+    fn unique_keyboards(&self) -> u128 {
+        let mut result = 1u128;
+        let mut remain: u32 = self
+            .0
+            .iter()
+            .map(|(key_size, key_count)| (*key_size as u32) * key_count)
+            .sum();
+        for (key_size, key_count) in self.0.iter() {
+            for _ in 1..=*key_count {
+                result = result * util::choose(remain, *key_size as u32);
+                remain = remain - (*key_size as u32);
+            }
+        }
+        for key_count in self.0.values() {
+            result = result / util::factorial(*key_count as u128);
+        }
+        result
+    }
+}
+
 impl<K, const N: usize> From<[K; N]> for Tally<K>
 where
     K: Hash + Eq + Clone,
@@ -152,11 +179,40 @@ where
     }
 }
 
+impl From<Vec<(u8, u32)>> for Tally<u8> {
+    fn from(value: Vec<(u8, u32)>) -> Self {
+        value
+            .iter()
+            .filter(|(_, v)| *v > 0)
+            .fold(Tally::new(), |mut total, (k, v)| {
+                total.increment_by(k.clone(), *v);
+                total
+            })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use std::collections::HashSet;
+
+    #[test]
+    fn calculate_count_of_unique_keyboards() {
+        let data = [
+            (vec![(3, 1)], 1),          // one key of size 3 => letters 3
+            (vec![(1, 1)], 1),          // one key of size 1 => letters 1
+            (vec![(3, 1), (2, 1)], 10), // one key of size 3 + one key of size 2 => letters 5
+            (vec![(2, 2)], 3),          // two keys of size 2 => letters 4
+            (vec![(2, 2), (99, 0)], 3), // two keys of size 2 => letters 4
+            (vec![(2, 2), (1, 1)], 15), // two keys of size 2 + one key of size 1 => letters 5
+            (vec![(4, 2), (3, 2), (2, 1), (1, 1)], 2144142000),
+        ];
+        for (tally_data, expected) in data {
+            let tally = Tally::<u8>::from(tally_data);
+            assert_eq!(expected, tally.unique_keyboards());
+        }
+    }
 
     #[test]
     fn from_iterator_of_items() {
