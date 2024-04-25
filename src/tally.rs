@@ -97,7 +97,7 @@ where
     }
 }
 
-trait KeyLayout {
+pub trait KeyLayout {
     fn unique_keyboards(&self) -> u128;
 }
 
