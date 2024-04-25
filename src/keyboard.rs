@@ -1,5 +1,6 @@
 use std::{fmt, iter};
 
+use hashbrown::HashMap;
 use rand::Rng;
 
 use crate::{
@@ -274,9 +275,98 @@ impl Keyboard {
         result
     }
 
+    /// Generates keyboards that result by combining pairs of keys. So if you
+    /// start with a 15 key keyboard, this returns 14 key keyboards. Combined
+    /// keys are only created as long as the new combined key follows other keys
+    /// of that size. This makes it possible to call this function recursively
+    /// and not generate duplicate keyboards.
+    // #[allow(dead_code)]
+    pub fn every_combine_two_keys_no_duplicates<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = Keyboard> + 'a {
+        let total_keys = self.keys.len();
+        let index_pairs = (0..=(total_keys - 2))
+            .flat_map(move |i| ((i + 1)..=(total_keys - 1)).map(move |j| (i, j)))
+            .collect::<Vec<(usize, usize)>>();
+        let key_size_to_last_index =
+            self.keys
+                .iter()
+                .enumerate()
+                .fold(HashMap::new(), |mut total, (key_index, key)| {
+                    let key_size = key.count_letters();
+                    total.insert(key_size, key_index);
+                    total
+                });
+        let can_combine = move |i_index: usize, j_index: usize| {
+            let i_key = self.keys[i_index];
+            let j_key = self.keys[j_index];
+            let i_size = i_key.count_letters();
+            let j_size = j_key.count_letters();
+            let combined_size = i_size + j_size;
+            let in_order = {
+                if combined_size & 1 == 1 {
+                    (i_size == (j_size + 1)) && i_key.max_letter() < j_key.min_letter()
+                } else {
+                    (i_size == j_size) && i_key.max_letter() < j_key.min_letter()
+                }
+            };
+            // let in_order = i_key.max_letter() < j_key.min_letter() && j_key_size <= i_key_size;
+            // let in_order = (i_key_size > j_key_size)
+            //     || ((i_key_size == j_key_size) && i_key.max_letter() < j_key.min_letter());
+            // let in_order = (i_key_size > j_key_size)
+            //     || ((i_key_size == j_key_size)
+            //         && std::iter::zip(i_key.letters(), j_key.letters())
+            //             .all(|(i_letter, j_letter)| i_letter < j_letter));
+            let last_of_same_key_size = match key_size_to_last_index.get(&combined_size) {
+                Some(index) => *index < i_index,
+                None => true,
+            };
+            let result = in_order && last_of_same_key_size;
+            if self.keys.len() <= 4 {
+                println!();
+                println!(
+                    "Combine {} {},{} in {:?}",
+                    result,
+                    i_index,
+                    j_index,
+                    self.keys
+                        .iter()
+                        .map(|k| k.to_string())
+                        .collect::<Vec<String>>()
+                );
+            }
+            result
+        };
+        let keyboards = index_pairs.into_iter().flat_map(move |(i, j)| {
+            if can_combine(i, j) {
+                let combined_key = self.keys[i].union(self.keys[j]);
+                let keys = self
+                    .keys
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, key)| {
+                        if index == i {
+                            Some(combined_key)
+                        } else if index == j {
+                            None
+                        } else {
+                            Some(*key)
+                        }
+                    })
+                    .collect::<Vec<Key>>();
+                let keyboard = Keyboard::with_keys(keys);
+                Some(keyboard)
+            } else {
+                None
+            }
+        });
+        keyboards
+    }
+
     /// Generates every keyboard that results by combining keys once. So if you
     /// start with a 15 key keyboard, this returns all possible 14 key
-    /// keyboards.
+    /// keyboards. Note that if this function is called more than once
+    /// recursively you will end up with duplicates.
     pub fn every_combine_two_keys<'a>(
         &'a self,
         prohibited: &'a Prohibited,
@@ -377,6 +467,46 @@ impl Keyboard {
             total
         });
         Keyboard::with_keys(new_keys)
+    }
+}
+
+struct KeyCombiner {
+    keyboard: Keyboard,
+    index: usize,
+}
+
+impl KeyCombiner {
+    fn next(&self) -> Vec<KeyCombiner> {
+        let can_combine = |a: Key, b: Key| -> bool { a.max_letter() < b.min_letter() };
+        let indexes = (self.index..=self.keyboard.key_count() - 2)
+            .flat_map(|i| (i + 1..=self.keyboard.key_count() - 1).map(move |j| (i, j)))
+            .filter(|(i, j)| {
+                let i_key = self.keyboard.keys[*i];
+                let j_key = self.keyboard.keys[*j];
+                can_combine(i_key, j_key)
+            });
+        let parts = indexes.map(|(i, j)| {
+            let items = self
+                .keyboard
+                .keys
+                .iter()
+                .enumerate()
+                .into_iter()
+                .flat_map(move |(index, item)| {
+                    if index == i {
+                        let combined_key = self.keyboard.keys[i].union(self.keyboard.keys[j]);
+                        Some(combined_key)
+                    } else if index == j {
+                        None
+                    } else {
+                        Some(item.clone())
+                    }
+                })
+                .collect::<Vec<Key>>();
+            let keyboard = Keyboard::with_keys(items);
+            KeyCombiner { keyboard, index: i }
+        });
+        parts.collect::<Vec<KeyCombiner>>()
     }
 }
 
@@ -688,6 +818,29 @@ mod tests {
         let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
         for k in Keyboard::random(dict.alphabet(), &layout, &prohibited).take(20) {
             println!("{}", k);
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn keycombiner_display() {
+        let alphabet = Key::new("abcde");
+        let start = Keyboard::with_every_letter_on_own_key(alphabet);
+        let combiner = KeyCombiner {
+            keyboard: start,
+            index: 0,
+        };
+        for k1 in combiner.next() {
+            println!("1> {} ", k1.keyboard,);
+            for k2 in k1.next() {
+                println!("2> {}", k2.keyboard);
+                for k3 in k2.next() {
+                    println!("3> {}", k3.keyboard);
+                    for k4 in k3.next() {
+                        println!("4> {}", k4.keyboard);
+                    }
+                }
+            }
         }
     }
 }
