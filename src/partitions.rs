@@ -1,3 +1,5 @@
+use crate::tally::{KeyLayout, Tally};
+
 #[derive(Debug)]
 pub struct Partitions {
     pub sum: u32,
@@ -30,6 +32,16 @@ impl Partitions {
             }
         }
         result
+    }
+
+    pub fn total_unique_keyboards(&self) -> u128 {
+        self.calculate()
+            .iter()
+            .map(|groups| {
+                let as_key_sizes = groups.iter().map(|key_size| *key_size as u8);
+                Tally::from_iter(as_key_sizes).unique_keyboards()
+            })
+            .sum()
     }
 
     pub fn calculate(&self) -> Vec<Vec<u32>> {
@@ -88,6 +100,19 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn total_unique_keyboards() {
+        // 5 letters in 2 groups
+        // Only groups are 2,3 and 1,4
+        let p = Partitions {
+            sum: 5,
+            min: 1,
+            max: 5,
+            parts: 2,
+        };
+        assert_eq!(p.total_unique_keyboards(), 15);
     }
 
     #[test]
