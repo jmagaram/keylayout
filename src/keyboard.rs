@@ -236,6 +236,14 @@ impl Keyboard {
         }
     }
 
+    pub fn every_smaller(&self) -> impl Iterator<Item = Keyboard> {
+        let explorer = KeyCombiner {
+            keyboard: self.clone(),
+            index: 0,
+        };
+        explorer.dfs().map(|k| k.keyboard)
+    }
+
     /// Generates the sequence of all keyboards where every letter is swapped
     /// with every other letter.
     pub fn every_swap(&self) -> Vec<Keyboard> {
@@ -567,6 +575,8 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
+    use hashbrown::HashSet;
+
     use crate::util;
 
     use super::*;
@@ -863,74 +873,60 @@ mod tests {
     }
 
     #[test]
-    fn keycombiner_when_zero_keys_return_empty() {
+    fn every_smaller_if_empty_return_self() {
         let start = Keyboard::with_keys(vec![]);
-        let combiner = KeyCombiner {
-            keyboard: start,
-            index: 0,
-        };
-        let result = combiner.next();
-        assert_eq!(0, result.len());
+        let result = start.every_smaller().collect::<Vec<Keyboard>>();
+        assert_eq!(1, result.len());
+        assert_eq!("".to_string(), result[0].to_string());
     }
 
     #[test]
-    fn keycombiner_when_one_key_return_empty() {
-        let alphabet = Key::new("abcdefg");
-        let start = Keyboard::with_keys(vec![alphabet]);
-        let combiner = KeyCombiner {
-            keyboard: start,
-            index: 0,
-        };
-        let result = combiner.next();
-        assert_eq!(0, result.len());
+    fn every_smaller_if_one_key_return_self() {
+        let start = Keyboard::with_keys(vec![Key::new("abc")]);
+        let result = start.every_smaller().collect::<Vec<Keyboard>>();
+        assert_eq!(1, result.len());
+        assert_eq!("abc".to_string(), result[0].to_string());
     }
 
     #[test]
-    fn keycombiner_calculates_next() {
-        let alphabet = Key::new("abcdefg");
-        let start = Keyboard::with_every_letter_on_own_key(alphabet);
-        let combiner = KeyCombiner {
-            keyboard: start,
-            index: 0,
-        };
-        let result = combiner.next();
-        assert_eq!(21, result.len());
+    fn every_smaller_returns_correct_number_of_keyboards() {
+        let data = [3, 4, 5, 7];
+        for keys in data {
+            let start = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(keys));
+            let expected: u128 = (1..=keys)
+                .map(|key_count| Partitions {
+                    sum: keys,
+                    parts: key_count,
+                    min: 1,
+                    max: keys,
+                })
+                .map(|p| p.total_unique_keyboards())
+                .sum();
+            let actual = start.every_smaller().count() as u128;
+            assert_eq!(expected, actual, "for keys {}", keys);
+        }
     }
 
     #[test]
-    #[ignore]
-    fn keycombiner_recursive() {
-        let alphabet = Key::new("abcdefg");
-        let start = Keyboard::with_every_letter_on_own_key(alphabet);
-        let combiner = KeyCombiner {
-            keyboard: start,
-            index: 0,
-        };
-        for i in combiner.dfs() {
-            println!("{}", i.keyboard)
+    fn every_smaller_returns_unique_keyboards() {
+        let data = [3, 4, 5, 7];
+        for keys in data {
+            let start = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(keys));
+            let mut tally = Tally::new();
+            start.every_smaller().for_each(move |k| {
+                let count = tally.increment(k.to_string());
+                assert_eq!(1, count)
+            });
         }
     }
 
     #[test]
     #[ignore]
-    fn keycombiner_display() {
-        let alphabet = Key::new("abcde");
-        let start = Keyboard::with_every_letter_on_own_key(alphabet);
-        let combiner = KeyCombiner {
-            keyboard: start,
-            index: 0,
-        };
-        for k1 in combiner.next() {
-            println!("1> {} ", k1.keyboard,);
-            for k2 in k1.next() {
-                println!("2> {}", k2.keyboard);
-                for k3 in k2.next() {
-                    println!("3> {}", k3.keyboard);
-                    for k4 in k3.next() {
-                        println!("4> {}", k4.keyboard);
-                    }
-                }
-            }
+    fn every_smaller_print() {
+        for k in
+            Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(3)).every_smaller()
+        {
+            println!("{}", k)
         }
     }
 }
