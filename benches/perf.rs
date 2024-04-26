@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use keylayout::{
-    dictionary::Dictionary, key::Key, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
-    penalty_goal::PenaltyGoals, prohibited::Prohibited, tally::Tally, util,
+    dictionary::Dictionary, exhaustive_n_key, key::Key, keyboard::Keyboard, partitions::Partitions,
+    penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited, tally::Tally, util,
 };
 
 fn calculate_penalty_score(c: &mut Criterion) {
@@ -143,19 +143,6 @@ fn best_n_key(c: &mut Criterion) {
     });
 }
 
-fn every_combine_two_keys(c: &mut Criterion) {
-    let d = Dictionary::load();
-    let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
-    c.bench_function("EVERY COMBINE TWO KEYS", |b| {
-        b.iter(|| {
-            let _result = start
-                .every_combine_two_keys(black_box(&prohibited))
-                .all(|k| k.key_count() >= 1);
-        })
-    });
-}
-
 fn set_bits(c: &mut Criterion) {
     c.bench_function("SET BITS ITERATOR", |b| {
         b.iter(|| {
@@ -215,7 +202,6 @@ criterion_group!(
     // count_letters_in_key,
     // iterate_letters_in_key,
     // spell_every_word,
-    // every_combine_two_keys,
     // prohibit_keys,
     // random_keyboards,
     best_n_key,

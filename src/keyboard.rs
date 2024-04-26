@@ -306,47 +306,6 @@ impl Keyboard {
         result
     }
 
-    /// Generates every keyboard that results by combining keys once. So if you
-    /// start with a 15 key keyboard, this returns all possible 14 key
-    /// keyboards. Note that if this function is called more than once
-    /// recursively you will end up with duplicates.
-    pub fn every_combine_two_keys<'a>(
-        &'a self,
-        prohibited: &'a Prohibited,
-    ) -> impl Iterator<Item = Keyboard> + 'a {
-        if self.keys.len() <= 1 {
-            panic!("It is not possible to combine keys on the keyboard since it only has {} keys right now.", self.keys.len());
-        }
-        let result = (0..=self.keys.len() - 2)
-            .map(move |a_index| {
-                (a_index + 1..=self.keys.len() - 1).map(move |b_index| {
-                    let combined_key = self.keys[a_index].union(self.keys[b_index]);
-                    if combined_key.is_allowed(prohibited) {
-                        let new_keys: Vec<Key> = self
-                            .keys
-                            .iter()
-                            .enumerate()
-                            .filter_map(|(index, k)| {
-                                if index == a_index {
-                                    Some(combined_key)
-                                } else if index == b_index {
-                                    None
-                                } else {
-                                    Some(*k)
-                                }
-                            })
-                            .collect();
-                        let new_keyboard = Keyboard::with_keys(new_keys);
-                        Some(new_keyboard)
-                    } else {
-                        None
-                    }
-                })
-            })
-            .flatten();
-        result.filter_map(|k| k)
-    }
-
     pub fn penalty_by_word<'a>(
         &'a self,
         dictionary: &'a Dictionary,
@@ -689,15 +648,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
-    fn every_combine_two_keys() {
-        let k = Keyboard::with_layout("a,b,c,d,efg,hi");
-        let prohibited = Prohibited::new();
-        k.every_combine_two_keys(&prohibited)
-            .for_each(|k| println!("{}", k));
-    }
-
-    #[test]
     fn has_prohibited_keys_true_if_any_prohibited() {
         let data = [
             ("abc,def,ghi", "de", true),
@@ -719,47 +669,6 @@ mod tests {
                 keyboard_layout, prohibited_items
             );
         }
-    }
-
-    #[test]
-    fn every_combine_two_keys_generates_correct_number_of_answers() {
-        let data = [
-            "a,b",
-            "a,b,c,d",
-            "a,b,c,d,e,f,g,h,i,j,k,l,m",
-            "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,'",
-        ];
-        for d in data {
-            let k = Keyboard::with_layout(d);
-            let prohibited = Prohibited::new();
-            let actual_count = k.every_combine_two_keys(&prohibited).into_iter().count();
-            let expected = util::choose(k.keys.len() as u32, 2);
-            assert_eq!(actual_count, expected as usize);
-        }
-    }
-
-    #[test]
-    fn every_combine_two_keys_will_not_combine_prohibited_combinations() {
-        let k = Keyboard::with_layout("abc,def,ghi");
-        let mut prohibited = Prohibited::new();
-        prohibited.add(Key::new("ae"));
-        prohibited.add(Key::new("fhi"));
-        let result = k
-            .every_combine_two_keys(&prohibited)
-            .collect::<Vec<Keyboard>>();
-        assert_eq!(1, result.len());
-        assert_eq!("abcghi def", result[0].to_string());
-    }
-
-    #[test]
-    fn every_combine_two_keys_may_result_in_no_keyboards() {
-        let k = Keyboard::with_layout("abc,def");
-        let mut prohibited = Prohibited::new();
-        prohibited.add(Key::new("ae"));
-        let result = k
-            .every_combine_two_keys(&prohibited)
-            .collect::<Vec<Keyboard>>();
-        assert_eq!(0, result.len());
     }
 
     #[test]
