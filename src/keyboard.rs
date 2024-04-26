@@ -442,12 +442,12 @@ impl KeyCombiner {
                 } else {
                     let children = self.next();
                     let current = std::iter::once(self);
-                    let grandchildren = children
+                    let descendents = children
                         .into_iter()
                         .filter(move |k| false == prune(&k.keyboard))
                         .flat_map(move |child| child.dfs_with(prune));
                     let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> =
-                        Box::new(current.chain(grandchildren));
+                        Box::new(current.chain(descendents));
                     boxed_result
                 }
             }
