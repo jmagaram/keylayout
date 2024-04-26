@@ -1,8 +1,4 @@
-use crate::dictionary;
-use crate::{
-    dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
-    solution::Solution, tally::Tally,
-};
+use crate::{dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, solution::Solution};
 use humantime::{format_duration, FormattedDuration};
 use std::time::Duration;
 use std::time::Instant;
@@ -18,24 +14,11 @@ impl DurationFormatter for Duration {
     }
 }
 
-/// Finds the best keyboard with `count` keys by exhaustively examining every keyboard.
-pub fn find_best_n_key(count: u32, dictionary: &Dictionary) -> Option<Solution> {
-    let alphabet = dictionary.alphabet();
+pub fn find_best_n_key(key_count: u32, dictionary: &Dictionary) -> Option<Solution> {
     let start_time = Instant::now();
-    let max = ((alphabet.count_letters() / count) + 4).min(alphabet.count_letters());
-    let key_sizes = Partitions {
-        sum: alphabet.count_letters(),
-        parts: count,
-        min: 1,
-        max,
-    }
-    .calculate();
-    let keyboards = key_sizes.iter().flat_map(|key_sizes| {
-        let arrangements: Tally<u32> = Tally::from(key_sizes);
-        alphabet
-            .distribute(arrangements)
-            .map(|keys| Keyboard::with_keys(keys))
-    });
+    let start = Keyboard::with_every_letter_on_own_key(dictionary.alphabet());
+    let prune = |k: &Keyboard| -> bool { k.key_count() < key_count as usize };
+    let keyboards = start.every_smaller_with(&prune).skip(1);
     let mut best: Option<Solution> = None;
     for (index, k) in keyboards.enumerate() {
         let best_penalty = best.as_ref().map(|b| b.penalty()).unwrap_or(Penalty::MAX);
@@ -45,7 +28,7 @@ pub fn find_best_n_key(count: u32, dictionary: &Dictionary) -> Option<Solution> 
                 penalty,
                 format!(
                     "{} keys, kbd {}, {}",
-                    count,
+                    key_count,
                     index.separate_with_underscores(),
                     start_time.elapsed().round_to_seconds()
                 ),
@@ -57,7 +40,7 @@ pub fn find_best_n_key(count: u32, dictionary: &Dictionary) -> Option<Solution> 
             println!(
                 "> seen {} keyboards with {} keys, {}",
                 index.separate_with_underscores(),
-                count,
+                key_count,
                 start_time.elapsed().round_to_seconds()
             );
         }
