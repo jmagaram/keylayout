@@ -769,7 +769,7 @@ mod tests {
 
     #[test]
     fn every_smaller_can_prune_root() {
-        let k = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(5));
+        let k = Keyboard::with_layout("a,b,c,d,e");
         let prune = |k: &Keyboard| k.key_count() == 5;
         let actual = k.every_smaller_with(&prune).count();
         assert_eq!(0, actual);
@@ -777,7 +777,7 @@ mod tests {
 
     #[test]
     fn every_smaller_can_prune_base_case_of_single_key() {
-        let k = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(5));
+        let k = Keyboard::with_layout("a,b,c,d,e");
         let prune = |k: &Keyboard| k.key_count() == 1;
         let base_case_count = k
             .every_smaller_with(&prune)
@@ -788,8 +788,7 @@ mod tests {
 
     #[test]
     fn every_smaller_can_prune() {
-        let letter_count = 4;
-        let k = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(letter_count));
+        let k = Keyboard::with_layout("a,b,c,d,e");
         let prune = |k: &Keyboard| k.max_key_size().map(|ks| ks > 2).unwrap_or(false);
         let count_big_keys = k
             .every_smaller_with(&prune)
@@ -801,11 +800,7 @@ mod tests {
     #[test]
     #[ignore]
     fn every_smaller_print() {
-        let letters = 4;
-        // let prune = |k: &Keyboard| k.max_key_size().map(|size| size > 3).unwrap_or(false);
-        for k in Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(letters))
-            .every_smaller()
-        {
+        for k in Keyboard::with_layout("a,b,c,d").every_smaller() {
             println!("{}", k)
         }
     }
