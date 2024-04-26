@@ -242,7 +242,7 @@ impl Keyboard {
     /// 14, 13, 12, ... size keyboards down to the case where every letter is on
     /// a single key. Duplicates do not occur.
     pub fn every_smaller(&self) -> impl Iterator<Item = Keyboard> {
-        let explorer = KeyCombiner {
+        let explorer = DfsExplorer {
             keyboard: self.clone(),
             index: 0,
         };
@@ -260,7 +260,7 @@ impl Keyboard {
     where
         F: (Fn(&Keyboard) -> bool) + 'a,
     {
-        let explorer = KeyCombiner {
+        let explorer = DfsExplorer {
             keyboard: self.clone(),
             index: 0,
         };
@@ -373,30 +373,30 @@ impl Keyboard {
 }
 
 #[derive(Clone)]
-struct KeyCombiner {
+struct DfsExplorer {
     keyboard: Keyboard,
     index: usize,
 }
 
-impl KeyCombiner {
-    pub fn dfs<'a>(self) -> Box<dyn Iterator<Item = KeyCombiner> + 'a> {
+impl DfsExplorer {
+    pub fn dfs<'a>(self) -> Box<dyn Iterator<Item = DfsExplorer> + 'a> {
         self.dfs_with(&|_k| false)
     }
 
-    pub fn dfs_with<'a, F>(self, prune: &'a F) -> Box<dyn Iterator<Item = KeyCombiner> + 'a>
+    pub fn dfs_with<'a, F>(self, prune: &'a F) -> Box<dyn Iterator<Item = DfsExplorer> + 'a>
     where
         F: (Fn(&Keyboard) -> bool) + 'a,
     {
         match prune(&self.keyboard) {
             true => {
                 let result = std::iter::empty();
-                let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(result);
+                let boxed_result: Box<dyn Iterator<Item = DfsExplorer>> = Box::new(result);
                 boxed_result
             }
             false => {
                 if self.keyboard.keys.len() == 1 {
                     let result = std::iter::once(self.clone());
-                    let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(result);
+                    let boxed_result: Box<dyn Iterator<Item = DfsExplorer>> = Box::new(result);
                     boxed_result
                 } else {
                     let children = self.next();
@@ -405,7 +405,7 @@ impl KeyCombiner {
                         .into_iter()
                         .filter(move |k| false == prune(&k.keyboard))
                         .flat_map(move |child| child.dfs_with(prune));
-                    let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> =
+                    let boxed_result: Box<dyn Iterator<Item = DfsExplorer>> =
                         Box::new(current.chain(descendents));
                     boxed_result
                 }
@@ -413,7 +413,7 @@ impl KeyCombiner {
         }
     }
 
-    pub fn next(&self) -> Vec<KeyCombiner> {
+    pub fn next(&self) -> Vec<DfsExplorer> {
         if self.keyboard.key_count() <= 1 {
             vec![]
         } else {
@@ -451,9 +451,9 @@ impl KeyCombiner {
                     })
                     .collect::<Vec<Key>>();
                 let keyboard = Keyboard::with_keys(items);
-                KeyCombiner { keyboard, index: i }
+                DfsExplorer { keyboard, index: i }
             });
-            parts.collect::<Vec<KeyCombiner>>()
+            parts.collect::<Vec<DfsExplorer>>()
         }
     }
 }
