@@ -80,7 +80,13 @@ impl ProgressStatistics {
 
 impl fmt::Display for ProgressStatistics {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Keyboards: {}", self.seen.separate_with_underscores())?;
+        let seen_per_second = ((self.seen as f32) / self.start_time.elapsed().as_secs_f32()) as i32;
+        writeln!(
+            f,
+            "Keyboards: {} ({}/sec)",
+            self.seen.separate_with_underscores(),
+            seen_per_second.separate_with_underscores()
+        )?;
         writeln!(
             f,
             "Recent: {}",
@@ -210,7 +216,7 @@ pub fn solve() {
         loop {
             let prune_result = rx.recv().unwrap();
             progress_stats.add(prune_result);
-            if progress_stats.seen.rem_euclid(100_000) == 0 {
+            if progress_stats.seen.rem_euclid(50_000) == 0 {
                 println!("{}", progress_stats);
             }
         }
