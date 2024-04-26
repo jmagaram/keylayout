@@ -74,6 +74,10 @@ impl Key {
         util::set_bits(self.0).count() as u32
     }
 
+    pub fn len(&self) -> u32 {
+        self.count_letters()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.0 == 0
     }
@@ -117,7 +121,7 @@ impl Key {
     }
 
     pub fn random_letter(&self) -> Option<Letter> {
-        let total_letters = self.count_letters();
+        let total_letters = self.len();
         if total_letters == 0 {
             None
         } else {
@@ -128,16 +132,16 @@ impl Key {
 
     pub fn random_subset(&self, size: RangeInclusive<u32>) -> Key {
         debug_assert!(
-            *size.start() <= self.count_letters(),
+            *size.start() <= self.len(),
             "Can not get a minimum of {} random letters from a Key with only {} letters in it.",
             size.start(),
-            self.count_letters()
+            self.len()
         );
         debug_assert!(
-            *size.end() <= self.count_letters(),
+            *size.end() <= self.len(),
             "Can not get a maximum of {} random letters from a Key with only {} letters in it.",
             size.end(),
-            self.count_letters()
+            self.len()
         );
         debug_assert!(
             *size.start() <= *size.end(),
@@ -385,7 +389,7 @@ impl<'a> Seed<'a, Key, Vec<Key>> for DistributeLetters {
             "Expected the list of key sizes to not be empty."
         );
         assert!(
-            self.letters.count_letters() > 0,
+            self.letters.len() > 0,
             "Expected the number of remaining letters to be 1 or more."
         );
         debug_assert!(
@@ -393,7 +397,7 @@ impl<'a> Seed<'a, Key, Vec<Key>> for DistributeLetters {
             "Every key size should be 1 or more."
         );
         debug_assert!(
-            self.key_sizes.iter().fold(0, |total, i| total + i) <= self.letters.count_letters(),
+            self.key_sizes.iter().fold(0, |total, i| total + i) <= self.letters.len(),
             "Expected the sum of all the key sizes <= the number of remaining letters."
         );
         let (current_key_size, remaining_key_sizes) = self

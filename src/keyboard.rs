@@ -132,7 +132,7 @@ impl Keyboard {
         prohibited: &'a Prohibited,
     ) -> impl Iterator<Item = Keyboard> + 'a {
         assert!(
-            alphabet.count_letters() == layout.sum,
+            alphabet.len() == layout.sum,
             "The layout sum must be the exact same as the the number of letters in the alphabet."
         );
         let mut rng = rand::thread_rng();

@@ -70,7 +70,7 @@ pub struct FindBestArgs<'a> {
 
 /// Tries to find the best keyboard using a genetic algorithm. Runs forever.
 pub fn find_best<'a>(args: FindBestArgs<'a>) -> impl Iterator<Item = Option<Solution>> + 'a {
-    let alphabet_size = args.dictionary.alphabet().count_letters();
+    let alphabet_size = args.dictionary.alphabet().len();
     let key_size_max = (alphabet_size / args.key_count + 2).min(alphabet_size);
     let partition = Partitions {
         sum: alphabet_size,

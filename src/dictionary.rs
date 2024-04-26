@@ -80,7 +80,7 @@ mod tests {
     #[test]
     fn standard_dictionary_has_proper_letter_set() {
         let d = Dictionary::load();
-        assert_eq!(d.alphabet.count_letters(), 27,);
+        assert_eq!(d.alphabet.len(), 27,);
     }
 
     #[test]
