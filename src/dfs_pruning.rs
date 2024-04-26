@@ -3,6 +3,7 @@ use crate::{
     prohibited::Prohibited,
 };
 use humantime::{format_duration, FormattedDuration};
+use rand::{thread_rng, Rng};
 use std::time::{Duration, Instant};
 
 trait DurationFormatter {
@@ -39,6 +40,10 @@ pub fn solve() {
         // .with_adjustment(12..=25, 0.8)
         .with(10, Penalty::new(0.0246));
     let prune = |k: &Keyboard| -> bool {
+        let mut rand = thread_rng();
+        if rand.gen_range(1..10_000) == 1 {
+            println!("evaluating... {}", k)
+        }
         let key_count = k.key_count() as u8;
         let penalty_exceeds_threshold = || {
             let penalty_to_beat = penalty_goals.get(key_count).unwrap_or(Penalty::MAX);
