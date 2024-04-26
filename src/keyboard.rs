@@ -549,46 +549,6 @@ impl KeyCombiner {
             parts.collect::<Vec<KeyCombiner>>()
         }
     }
-
-    // pub fn next_iterable<'a>(&'a self) -> impl Iterator<Item = KeyCombiner> + 'a {
-    //     let can_combine = |a: Key, b: Key| -> bool { a.max_letter() < b.min_letter() };
-    //     let indexes = (self.index as i32..=self.keyboard.key_count() as i32 - 2)
-    //         .flat_map(|i| (i + 1..=self.keyboard.key_count() as i32 - 1).map(move |j| (i, j)))
-    //         .filter_map(|(i, j)| {
-    //             if i < 0 {
-    //                 None
-    //             } else {
-    //                 Some((i as usize, j as usize))
-    //             }
-    //         })
-    //         .filter(move |(i, j)| {
-    //             let i_key = self.keyboard.keys[*i];
-    //             let j_key = self.keyboard.keys[*j];
-    //             can_combine(i_key, j_key)
-    //         });
-    //     let parts = indexes.map(move |(i, j)| {
-    //         let items = self
-    //             .keyboard
-    //             .keys
-    //             .iter()
-    //             .enumerate()
-    //             .into_iter()
-    //             .flat_map(move |(index, item)| {
-    //                 if index == i {
-    //                     let combined_key = self.keyboard.keys[i].union(self.keyboard.keys[j]);
-    //                     Some(combined_key)
-    //                 } else if index == j {
-    //                     None
-    //                 } else {
-    //                     Some(item.clone())
-    //                 }
-    //             })
-    //             .collect::<Vec<Key>>();
-    //         let keyboard = Keyboard::with_keys(items);
-    //         KeyCombiner { keyboard, index: i }
-    //     });
-    //     parts
-    // }
 }
 
 impl fmt::Display for Keyboard {
@@ -940,7 +900,7 @@ mod tests {
     #[test]
     #[ignore]
     fn keycombiner_recursive() {
-        let alphabet = Key::new("abcd");
+        let alphabet = Key::new("abcdefg");
         let start = Keyboard::with_every_letter_on_own_key(alphabet);
         let combiner = KeyCombiner {
             keyboard: start,
