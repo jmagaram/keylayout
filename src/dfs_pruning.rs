@@ -4,7 +4,6 @@ use crate::{
 };
 use core::fmt;
 use humantime::{format_duration, FormattedDuration};
-use rand::{thread_rng, Rng};
 use std::{
     sync::mpsc,
     thread,
