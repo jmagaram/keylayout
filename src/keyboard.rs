@@ -74,13 +74,13 @@ impl Keyboard {
         self.keys.iter().map(|k| k.count_letters()).max()
     }
 
-    fn find_key_for_letter(&self, letter: Letter) -> Option<Key> {
-        let key_index = self.find_key_index_for_letter(letter)?;
+    fn find_key(&self, letter: Letter) -> Option<Key> {
+        let key_index = self.find_key_index(letter)?;
         let key = self.keys.get(key_index)?;
         Some(*key)
     }
 
-    fn find_key_index_for_letter(&self, letter: Letter) -> Option<usize> {
+    fn find_key_index(&self, letter: Letter) -> Option<usize> {
         self.letter_to_key_index[letter.to_usize_index()]
     }
 
@@ -91,7 +91,7 @@ impl Keyboard {
     pub fn spell(&self, word: &Word) -> String {
         let result = word
             .letters()
-            .map(|letter| self.find_key_for_letter(letter))
+            .map(|letter| self.find_key(letter))
             .collect::<Option<Vec<Key>>>()
             .map(|keys| keys.iter().map(|k| k.to_string()).collect::<Vec<String>>())
             .map(|kk| kk.join(","));
@@ -109,7 +109,7 @@ impl Keyboard {
     fn spell_serialized(&self, word: &Word) -> u128 {
         let mut result: u128 = 0;
         for letter in word.letters() {
-            match self.find_key_index_for_letter(letter) {
+            match self.find_key_index(letter) {
                 Some(index) => {
                     result = result << 5;
                     result = result | (index as u128 + 1);
@@ -358,12 +358,10 @@ impl Keyboard {
     /// Given a keyboard that lacks specific letters in the alphabet, fills in
     /// additional keys with each letter on its own key.
     pub fn fill_missing(&self, alphabet: Key) -> Keyboard {
-        let add = alphabet
-            .letters()
-            .filter_map(|r| match self.find_key_for_letter(r) {
-                None => Some(Key::with_one_letter(r)),
-                Some(_) => None,
-            });
+        let add = alphabet.letters().filter_map(|r| match self.find_key(r) {
+            None => Some(Key::with_one_letter(r)),
+            Some(_) => None,
+        });
         let new_keys = add.fold(self.keys.clone(), |mut total, i| {
             total.push(i);
             total
@@ -563,7 +561,7 @@ mod tests {
         for (layout, letter, expected_key_index) in data {
             let keyboard = Keyboard::with_layout(layout);
             let letter_to_find = Letter::new(letter);
-            let actual = keyboard.find_key_index_for_letter(letter_to_find);
+            let actual = keyboard.find_key_index(letter_to_find);
             assert_eq!(actual, expected_key_index);
         }
     }

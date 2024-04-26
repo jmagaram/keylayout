@@ -44,7 +44,7 @@ pub fn solve() {
         if rand.gen_range(1..10_000) == 1 {
             println!("evaluating... {}", k)
         }
-        let key_count = k.key_count() as u8;
+        let key_count = k.len() as u8;
         let penalty_exceeds_threshold = || {
             let penalty_to_beat = penalty_goals.get(key_count).unwrap_or(Penalty::MAX);
             let actual_penalty = k.penalty(&d, penalty_to_beat);
