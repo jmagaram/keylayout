@@ -667,6 +667,16 @@ mod tests {
     }
 
     #[test]
+    fn every_smaller_goes_depth_first() {
+        let start = Keyboard::with_every_letter_on_own_key(Key::with_every_letter());
+        let first_10_key = start.every_smaller().find(|k| k.len() == 10);
+        match first_10_key {
+            Some(ten_key) => assert_eq!(10, ten_key.len()),
+            None => panic!("Could not get a 10 key"),
+        }
+    }
+
+    #[test]
     fn every_smaller_can_prune_root() {
         let k = Keyboard::with_layout("a,b,c,d,e");
         let prune = |k: &Keyboard| k.len() == 5;
