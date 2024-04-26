@@ -134,6 +134,15 @@ fn random_keyboards(c: &mut Criterion) {
     });
 }
 
+fn best_n_key(c: &mut Criterion) {
+    let d = Dictionary::load();
+    c.bench_function("BEST N KEY", |b| {
+        b.iter(|| {
+            exhaustive_n_key::find_best_n_key(black_box(26), &d);
+        })
+    });
+}
+
 fn every_combine_two_keys(c: &mut Criterion) {
     let d = Dictionary::load();
     let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
@@ -208,7 +217,8 @@ criterion_group!(
     // spell_every_word,
     // every_combine_two_keys,
     // prohibit_keys,
-    random_keyboards,
+    // random_keyboards,
+    best_n_key,
     // dfs_perf,
     // distribute_keys,
     // partition_sum,
