@@ -37,7 +37,7 @@ fn spell_every_word(c: &mut Criterion) {
 fn load_dictionary(c: &mut Criterion) {
     c.bench_function("LOAD DICTIONARY", |b| {
         b.iter(|| {
-            let _d = Dictionary::load().with_top_n_words(black_box(1000));
+            let _d = Dictionary::load().filter_top_n_words(black_box(1000));
         })
     });
 }

@@ -36,7 +36,7 @@ impl Dictionary {
         }
     }
 
-    pub fn with_top_n_words(&self, count: usize) -> Dictionary {
+    pub fn filter_top_n_words(&self, count: usize) -> Dictionary {
         let words = self
             .words()
             .into_iter()
