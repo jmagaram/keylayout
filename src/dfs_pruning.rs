@@ -16,6 +16,13 @@ impl DurationFormatter for Duration {
     }
 }
 
+enum PruneReason {
+    SomeKeyTooBig(u32),
+    ProhibitedLetters,
+    PenaltyTooBig(Penalty),
+    NotEnoughKeys(usize),
+}
+
 pub fn solve() {
     let start_time = Instant::now();
     let d = Dictionary::load();
@@ -39,25 +46,37 @@ pub fn solve() {
         .with(12, Penalty::new(0.02109))
         // .with_adjustment(12..=25, 0.8)
         .with(10, Penalty::new(0.0246));
-    let prune = |k: &Keyboard| -> bool {
-        let mut rand = thread_rng();
-        if rand.gen_range(1..10_000) == 1 {
-            println!("evaluating... {}", k)
-        }
-        let key_count = k.len() as u8;
-        let penalty_exceeds_threshold = || {
-            let penalty_to_beat = penalty_goals.get(key_count).unwrap_or(Penalty::MAX);
-            let actual_penalty = k.penalty(&d, penalty_to_beat);
-            actual_penalty > penalty_to_beat
-        };
-        let has_prohibited_keys = || k.has_prohibited_keys(&prohibited);
-        let some_key_too_big = || k.max_key_size().map_or(false, |size| size > max_key_size);
-        key_count < 10 || some_key_too_big() || has_prohibited_keys() || penalty_exceeds_threshold()
+    let prune_result = |k: &Keyboard| -> Result<(), PruneReason> {
+        Ok(())
+            .inspect(|_| {
+                println!("Evaluating {}", k);
+            })
+            .and_then(|_| match k.len() < 10 {
+                true => Err(PruneReason::NotEnoughKeys(k.len())),
+                false => Ok(()),
+            })
+            .and_then(|_| match k.max_key_size() {
+                Some(size) if size > max_key_size => Err(PruneReason::SomeKeyTooBig(size)),
+                _ => Ok(()),
+            })
+            .and_then(|_| match k.has_prohibited_keys(&prohibited) {
+                false => Ok(()),
+                true => Err(PruneReason::ProhibitedLetters),
+            })
+            .and_then(|_| {
+                let penalty_to_beat = penalty_goals.get(k.len() as u8).unwrap_or(Penalty::MAX);
+                let actual_penalty = k.penalty(&d, penalty_to_beat);
+                match actual_penalty > penalty_to_beat {
+                    true => Err(PruneReason::PenaltyTooBig(actual_penalty)),
+                    false => Ok(()),
+                }
+            })
     };
     let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
+    let prune = |k: &Keyboard| -> bool { prune_result(k).is_err() };
     let solutions = start
         .every_smaller_with(&prune)
-        .filter(|k| k.key_count() == 10)
+        .filter(|k| k.len() == 10)
         .map(|k| {
             let penalty = k.penalty(&d, Penalty::MAX);
             k.to_solution(penalty, "".to_string())
