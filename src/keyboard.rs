@@ -60,7 +60,7 @@ impl Keyboard {
         self.keys.iter().any(|k| !prohibited.is_allowed(*k))
     }
 
-    pub fn key_count(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.keys.len()
     }
 
@@ -339,11 +339,11 @@ impl Keyboard {
     /// Given a specific keyboard, generates all possible keyboards resulting from taking `size` keys.
     pub fn subsets_of_keys<'a>(&'a self, size: usize) -> impl Iterator<Item = Keyboard> + 'a {
         assert!(
-            size <= self.key_count(),
+            size <= self.len(),
             "Can not create subset keyboards with that many keys; more than on the original keyboard."
         );
         let minimum: u64 = (1u64 << size) - 1;
-        let maximum: u64 = minimum << (self.key_count() - size);
+        let maximum: u64 = minimum << (self.len() - size);
         util::same_set_bits(size as u32)
             .filter(move |n| *n <= maximum)
             .map(|n| {
@@ -414,12 +414,12 @@ impl DfsExplorer {
     }
 
     pub fn next(&self) -> Vec<DfsExplorer> {
-        if self.keyboard.key_count() <= 1 {
+        if self.keyboard.len() <= 1 {
             vec![]
         } else {
             let can_combine = |a: Key, b: Key| -> bool { a.max_letter() < b.min_letter() };
-            let indexes = (self.index as i32..=self.keyboard.key_count() as i32 - 2)
-                .flat_map(|i| (i + 1..=self.keyboard.key_count() as i32 - 1).map(move |j| (i, j)))
+            let indexes = (self.index as i32..=self.keyboard.len() as i32 - 2)
+                .flat_map(|i| (i + 1..=self.keyboard.len() as i32 - 1).map(move |j| (i, j)))
                 .filter_map(|(i, j)| {
                     if i < 0 {
                         None
@@ -770,7 +770,7 @@ mod tests {
     #[test]
     fn every_smaller_can_prune_root() {
         let k = Keyboard::with_layout("a,b,c,d,e");
-        let prune = |k: &Keyboard| k.key_count() == 5;
+        let prune = |k: &Keyboard| k.len() == 5;
         let actual = k.every_smaller_with(&prune).count();
         assert_eq!(0, actual);
     }
@@ -778,10 +778,10 @@ mod tests {
     #[test]
     fn every_smaller_can_prune_base_case_of_single_key() {
         let k = Keyboard::with_layout("a,b,c,d,e");
-        let prune = |k: &Keyboard| k.key_count() == 1;
+        let prune = |k: &Keyboard| k.len() == 1;
         let base_case_count = k
             .every_smaller_with(&prune)
-            .filter(|k| k.key_count() == 1)
+            .filter(|k| k.len() == 1)
             .count();
         assert_eq!(base_case_count, 0);
     }

@@ -17,7 +17,7 @@ impl DurationFormatter for Duration {
 pub fn find_best_n_key(key_count: u32, dictionary: &Dictionary) -> Option<Solution> {
     let start_time = Instant::now();
     let start = Keyboard::with_every_letter_on_own_key(dictionary.alphabet());
-    let prune = |k: &Keyboard| -> bool { k.key_count() < key_count as usize };
+    let prune = |k: &Keyboard| -> bool { k.len() < key_count as usize };
     let keyboards = start.every_smaller_with(&prune).skip(1);
     let mut best: Option<Solution> = None;
     for (index, k) in keyboards.enumerate() {
