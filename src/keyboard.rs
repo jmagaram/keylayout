@@ -236,6 +236,11 @@ impl Keyboard {
         }
     }
 
+    /// Generates every keyboard, including the current one, that results from
+    /// recursively combining keys in a depth-first manner. So if you start with
+    /// a 15 key keyboard, this returns the current keyboard plus all possible
+    /// 14, 13, 12, ... size keyboards down to the case where every letter is on
+    /// a single key. Duplicates do not occur.
     pub fn every_smaller(&self) -> impl Iterator<Item = Keyboard> {
         let explorer = KeyCombiner {
             keyboard: self.clone(),
