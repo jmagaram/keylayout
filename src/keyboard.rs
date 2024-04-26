@@ -363,6 +363,20 @@ impl Keyboard {
         keyboards
     }
 
+    // fn dfs_go<'a>(k: KeyCombiner) -> impl Iterator<Item = KeyCombiner> + 'a {
+    //     k.next_iterable().flat_map(|k| {
+    //         let results = k.next_iterable();
+    //         results
+    //     })
+    // }
+
+    // pub fn dfs_explorer<'a>(&'a self) {
+    //     let combiner = KeyCombiner {
+    //         keyboard: self.clone(),
+    //         index: 0,
+    //     };
+    // }
+
     /// Generates every keyboard that results by combining keys once. So if you
     /// start with a 15 key keyboard, this returns all possible 14 key
     /// keyboards. Note that if this function is called more than once
@@ -470,44 +484,116 @@ impl Keyboard {
     }
 }
 
+#[derive(Clone)]
 struct KeyCombiner {
     keyboard: Keyboard,
     index: usize,
 }
 
 impl KeyCombiner {
-    fn next(&self) -> Vec<KeyCombiner> {
-        let can_combine = |a: Key, b: Key| -> bool { a.max_letter() < b.min_letter() };
-        let indexes = (self.index..=self.keyboard.key_count() - 2)
-            .flat_map(|i| (i + 1..=self.keyboard.key_count() - 1).map(move |j| (i, j)))
-            .filter(|(i, j)| {
-                let i_key = self.keyboard.keys[*i];
-                let j_key = self.keyboard.keys[*j];
-                can_combine(i_key, j_key)
-            });
-        let parts = indexes.map(|(i, j)| {
-            let items = self
-                .keyboard
-                .keys
-                .iter()
-                .enumerate()
+    pub fn dfs<'a>(self) -> Box<dyn Iterator<Item = KeyCombiner> + 'a> {
+        if self.keyboard.keys.len() == 1 {
+            let result = std::iter::once(self.clone());
+            let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(result);
+            boxed_result
+        } else {
+            let children = self.next();
+            let current = std::iter::once(self);
+            let r = children
                 .into_iter()
-                .flat_map(move |(index, item)| {
-                    if index == i {
-                        let combined_key = self.keyboard.keys[i].union(self.keyboard.keys[j]);
-                        Some(combined_key)
-                    } else if index == j {
+                .flat_map(|child| {
+                    let result = child.dfs();
+                    result
+                })
+                .chain(current);
+            let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(r);
+            boxed_result
+        }
+    }
+
+    pub fn next(&self) -> Vec<KeyCombiner> {
+        if self.keyboard.key_count() <= 1 {
+            vec![]
+        } else {
+            let can_combine = |a: Key, b: Key| -> bool { a.max_letter() < b.min_letter() };
+            let indexes = (self.index as i32..=self.keyboard.key_count() as i32 - 2)
+                .flat_map(|i| (i + 1..=self.keyboard.key_count() as i32 - 1).map(move |j| (i, j)))
+                .filter_map(|(i, j)| {
+                    if i < 0 {
                         None
                     } else {
-                        Some(item.clone())
+                        Some((i as usize, j as usize))
                     }
                 })
-                .collect::<Vec<Key>>();
-            let keyboard = Keyboard::with_keys(items);
-            KeyCombiner { keyboard, index: i }
-        });
-        parts.collect::<Vec<KeyCombiner>>()
+                .filter(|(i, j)| {
+                    let i_key = self.keyboard.keys[*i];
+                    let j_key = self.keyboard.keys[*j];
+                    can_combine(i_key, j_key)
+                });
+            let parts = indexes.map(|(i, j)| {
+                let items = self
+                    .keyboard
+                    .keys
+                    .iter()
+                    .enumerate()
+                    .into_iter()
+                    .flat_map(move |(index, item)| {
+                        if index == i {
+                            let combined_key = self.keyboard.keys[i].union(self.keyboard.keys[j]);
+                            Some(combined_key)
+                        } else if index == j {
+                            None
+                        } else {
+                            Some(item.clone())
+                        }
+                    })
+                    .collect::<Vec<Key>>();
+                let keyboard = Keyboard::with_keys(items);
+                KeyCombiner { keyboard, index: i }
+            });
+            parts.collect::<Vec<KeyCombiner>>()
+        }
     }
+
+    // pub fn next_iterable<'a>(&'a self) -> impl Iterator<Item = KeyCombiner> + 'a {
+    //     let can_combine = |a: Key, b: Key| -> bool { a.max_letter() < b.min_letter() };
+    //     let indexes = (self.index as i32..=self.keyboard.key_count() as i32 - 2)
+    //         .flat_map(|i| (i + 1..=self.keyboard.key_count() as i32 - 1).map(move |j| (i, j)))
+    //         .filter_map(|(i, j)| {
+    //             if i < 0 {
+    //                 None
+    //             } else {
+    //                 Some((i as usize, j as usize))
+    //             }
+    //         })
+    //         .filter(move |(i, j)| {
+    //             let i_key = self.keyboard.keys[*i];
+    //             let j_key = self.keyboard.keys[*j];
+    //             can_combine(i_key, j_key)
+    //         });
+    //     let parts = indexes.map(move |(i, j)| {
+    //         let items = self
+    //             .keyboard
+    //             .keys
+    //             .iter()
+    //             .enumerate()
+    //             .into_iter()
+    //             .flat_map(move |(index, item)| {
+    //                 if index == i {
+    //                     let combined_key = self.keyboard.keys[i].union(self.keyboard.keys[j]);
+    //                     Some(combined_key)
+    //                 } else if index == j {
+    //                     None
+    //                 } else {
+    //                     Some(item.clone())
+    //                 }
+    //             })
+    //             .collect::<Vec<Key>>();
+    //         let keyboard = Keyboard::with_keys(items);
+    //         KeyCombiner { keyboard, index: i }
+    //     });
+    //     parts
+    // }
 }
 
 impl fmt::Display for Keyboard {
@@ -818,6 +904,58 @@ mod tests {
         let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
         for k in Keyboard::random(dict.alphabet(), &layout, &prohibited).take(20) {
             println!("{}", k);
+        }
+    }
+
+    #[test]
+    fn keycombiner_when_zero_keys_return_empty() {
+        let start = Keyboard::with_keys(vec![]);
+        let combiner = KeyCombiner {
+            keyboard: start,
+            index: 0,
+        };
+        let result = combiner.next();
+        assert_eq!(0, result.len());
+    }
+
+    #[test]
+    fn keycombiner_when_one_key_return_empty() {
+        let alphabet = Key::new("abcdefg");
+        let start = Keyboard::with_keys(vec![alphabet]);
+        let combiner = KeyCombiner {
+            keyboard: start,
+            index: 0,
+        };
+        let result = combiner.next();
+        assert_eq!(0, result.len());
+    }
+
+    #[test]
+    fn keycombiner_calculates_next() {
+        let alphabet = Key::new("abcdefg");
+        let start = Keyboard::with_every_letter_on_own_key(alphabet);
+        let combiner = KeyCombiner {
+            keyboard: start,
+            index: 0,
+        };
+        let result = combiner.next();
+        assert_eq!(21, result.len());
+    }
+
+    #[test]
+    #[ignore]
+    fn keycombiner_recursive() {
+        let alphabet = Key::new("abcd");
+        let start = Keyboard::with_every_letter_on_own_key(alphabet);
+        let combiner = KeyCombiner {
+            keyboard: start,
+            index: 0,
+        };
+        for i in combiner.dfs()
+        // .filter(|j| j.keyboard.key_count() <= 18)
+        {
+            println!("{}", i.keyboard)
+            // println!("");
         }
     }
 
