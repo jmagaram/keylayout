@@ -428,20 +428,29 @@ impl KeyCombiner {
     where
         F: (Fn(&Keyboard) -> bool) + 'a,
     {
-        if self.keyboard.keys.len() == 1 {
-            let result = std::iter::once(self.clone());
-            let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(result);
-            boxed_result
-        } else {
-            let children = self.next();
-            let current = std::iter::once(self);
-            let grandchildren = children
-                .into_iter()
-                .filter(move |k| false == prune(&k.keyboard))
-                .flat_map(move |child| child.dfs_with(prune));
-            let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> =
-                Box::new(current.chain(grandchildren));
-            boxed_result
+        match prune(&self.keyboard) {
+            true => {
+                let result = std::iter::empty();
+                let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(result);
+                boxed_result
+            }
+            false => {
+                if self.keyboard.keys.len() == 1 {
+                    let result = std::iter::once(self.clone());
+                    let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(result);
+                    boxed_result
+                } else {
+                    let children = self.next();
+                    let current = std::iter::once(self);
+                    let grandchildren = children
+                        .into_iter()
+                        .filter(move |k| false == prune(&k.keyboard))
+                        .flat_map(move |child| child.dfs_with(prune));
+                    let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> =
+                        Box::new(current.chain(grandchildren));
+                    boxed_result
+                }
+            }
         }
     }
 
@@ -850,12 +859,43 @@ mod tests {
     }
 
     #[test]
+    fn every_smaller_can_prune_root() {
+        let k = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(5));
+        let prune = |k: &Keyboard| k.key_count() == 5;
+        let actual = k.every_smaller_with(&prune).count();
+        assert_eq!(0, actual);
+    }
+
+    #[test]
+    fn every_smaller_can_prune_base_case_of_single_key() {
+        let k = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(5));
+        let prune = |k: &Keyboard| k.key_count() == 1;
+        let base_case_count = k
+            .every_smaller_with(&prune)
+            .filter(|k| k.key_count() == 1)
+            .count();
+        assert_eq!(base_case_count, 0);
+    }
+
+    #[test]
+    fn every_smaller_can_prune() {
+        let letter_count = 4;
+        let k = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(letter_count));
+        let prune = |k: &Keyboard| k.max_key_size().map(|ks| ks > 2).unwrap_or(false);
+        let count_big_keys = k
+            .every_smaller_with(&prune)
+            .filter(|k| k.max_key_size().map(|ks| ks > 2).unwrap_or(true))
+            .count();
+        assert_eq!(count_big_keys, 0);
+    }
+
+    #[test]
     #[ignore]
     fn every_smaller_print() {
-        let letters = 5;
-        let prune = |k: &Keyboard| k.max_key_size().map(|size| size > 3).unwrap_or(false);
+        let letters = 4;
+        // let prune = |k: &Keyboard| k.max_key_size().map(|size| size > 3).unwrap_or(false);
         for k in Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(letters))
-            .every_smaller_with(&prune)
+            .every_smaller()
         {
             println!("{}", k)
         }
