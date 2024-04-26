@@ -499,14 +499,9 @@ impl KeyCombiner {
         } else {
             let children = self.next();
             let current = std::iter::once(self);
-            let r = children
-                .into_iter()
-                .flat_map(|child| {
-                    let result = child.dfs();
-                    result
-                })
-                .chain(current);
-            let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(r);
+            let grandchildren = children.into_iter().flat_map(|child| child.dfs());
+            let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> =
+                Box::new(current.chain(grandchildren));
             boxed_result
         }
     }
@@ -951,11 +946,8 @@ mod tests {
             keyboard: start,
             index: 0,
         };
-        for i in combiner.dfs()
-        // .filter(|j| j.keyboard.key_count() <= 18)
-        {
+        for i in combiner.dfs() {
             println!("{}", i.keyboard)
-            // println!("");
         }
     }
 
