@@ -2,9 +2,14 @@ use crate::{
     dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, penalty_goal::PenaltyGoals,
     prohibited::Prohibited,
 };
+use core::fmt;
 use humantime::{format_duration, FormattedDuration};
-use rand::{thread_rng, Rng};
-use std::time::{Duration, Instant};
+use std::{
+    sync::mpsc,
+    thread,
+    time::{Duration, Instant},
+};
+use thousands::Separable;
 
 trait DurationFormatter {
     fn round_to_seconds(&self) -> FormattedDuration;
@@ -16,11 +21,23 @@ impl DurationFormatter for Duration {
     }
 }
 
+#[derive(Clone, Copy)]
 enum PruneReason {
     SomeKeyTooBig(u32),
     ProhibitedLetters,
     PenaltyTooBig(Penalty),
     NotEnoughKeys(usize),
+}
+
+impl fmt::Display for PruneReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PruneReason::SomeKeyTooBig(size) => write!(f, "Key too big: {}", size),
+            PruneReason::ProhibitedLetters => write!(f, "Prohibited letters"),
+            PruneReason::PenaltyTooBig(penalty) => write!(f, "Penalty exceeded: {}", penalty),
+            PruneReason::NotEnoughKeys(key_count) => write!(f, "Not enough keys: {}", key_count),
+        }
+    }
 }
 
 pub fn solve() {
@@ -48,9 +65,6 @@ pub fn solve() {
         .with(10, Penalty::new(0.0246));
     let prune_result = |k: &Keyboard| -> Result<(), PruneReason> {
         Ok(())
-            .inspect(|_| {
-                println!("Evaluating {}", k);
-            })
             .and_then(|_| match k.len() < 10 {
                 true => Err(PruneReason::NotEnoughKeys(k.len())),
                 false => Ok(()),
@@ -73,7 +87,12 @@ pub fn solve() {
             })
     };
     let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
-    let prune = |k: &Keyboard| -> bool { prune_result(k).is_err() };
+    let (tx, rx) = mpsc::channel::<Result<(), PruneReason>>();
+    let prune = |k: &Keyboard| -> bool {
+        let result = prune_result(k);
+        tx.send(result).unwrap();
+        result.is_err()
+    };
     let solutions = start
         .every_smaller_with(&prune)
         .filter(|k| k.len() == 10)
@@ -81,6 +100,20 @@ pub fn solve() {
             let penalty = k.penalty(&d, Penalty::MAX);
             k.to_solution(penalty, "".to_string())
         });
+    let _join_handle = thread::spawn(move || {
+        let mut evaluated: u128 = 0;
+        loop {
+            let _prune_result = rx.recv().unwrap();
+            evaluated = evaluated + 1;
+            if evaluated.rem_euclid(10_000) == 0 {
+                println!("Evaulated {}", evaluated.separate_with_underscores());
+            }
+            // match prune_result {
+            //     Ok(()) => {}
+            //     Err(prune_reason) => println!("{}", prune_reason),
+            // }
+        }
+    });
     for s in solutions {
         println!("{}", s);
     }
