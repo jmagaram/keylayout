@@ -330,25 +330,6 @@ impl Keyboard {
         penalty
     }
 
-    /// Given a specific keyboard, generates all possible keyboards resulting from taking `size` keys.
-    pub fn subsets_of_keys<'a>(&'a self, size: usize) -> impl Iterator<Item = Keyboard> + 'a {
-        assert!(
-            size <= self.len(),
-            "Can not create subset keyboards with that many keys; more than on the original keyboard."
-        );
-        let minimum: u64 = (1u64 << size) - 1;
-        let maximum: u64 = minimum << (self.len() - size);
-        util::same_set_bits(size as u32)
-            .filter(move |n| *n <= maximum)
-            .map(|n| {
-                let keys = util::set_bits(n as u32).fold(vec![], |mut total, i| {
-                    total.push(self.keys[i]);
-                    total
-                });
-                Keyboard::with_keys(keys)
-            })
-    }
-
     /// Given a keyboard that lacks specific letters in the alphabet, fills in
     /// additional keys with each letter on its own key.
     pub fn fill_missing(&self, alphabet: Key) -> Keyboard {
@@ -466,31 +447,7 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
-    use crate::util;
-
     use super::*;
-
-    #[test]
-    fn subsets_of_keys_when_one_key() {
-        let source = Keyboard::with_layout("abc");
-        let result = source.subsets_of_keys(1).collect::<Vec<Keyboard>>();
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].to_string(), "abc");
-    }
-
-    #[test]
-    fn subsets_of_keys_test() {
-        let source = Keyboard::with_layout("abc,def,ghi,pqr");
-        let result = source.subsets_of_keys(2);
-        assert_eq!(6, result.count());
-    }
-
-    #[test]
-    #[should_panic]
-    fn subsets_of_keys_panic_if_too_many() {
-        let source = Keyboard::with_layout("abc,def,ghi,pqr");
-        source.subsets_of_keys(5).count();
-    }
 
     #[test]
     #[cfg(debug_assertions)]
