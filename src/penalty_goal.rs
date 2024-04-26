@@ -22,7 +22,7 @@ impl PenaltyGoals {
         }
     }
 
-    pub fn with_specific(&self, key_count: u8, penalty: Penalty) -> PenaltyGoals {
+    pub fn with(&self, key_count: u8, penalty: Penalty) -> PenaltyGoals {
         let mut result = self.clone();
         result.goals.insert(key_count, penalty);
         result

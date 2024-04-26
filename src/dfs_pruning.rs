@@ -21,24 +21,23 @@ pub fn solve() {
     let prohibited = Prohibited::with_top_n_letter_pairs(&d, 50);
     let max_key_size = 4;
     let penalty_goals = PenaltyGoals::none(d.alphabet())
-        // .with_specific(26, Penalty::new(0.00006))
-        // .with_specific(25, Penalty::new(0.000174))
-        // .with_specific(24, Penalty::new(0.000385))
-        // .with_specific(23, Penalty::new(0.0007))
-        // .with_specific(22, Penalty::new(0.0012))
-        // .with_specific(21, Penalty::new(0.001985))
-        // .with_specific(20, Penalty::new(0.0003152))
-        // .with_specific(19, Penalty::new(0.0037))
-        // .with_specific(18, Penalty::new(0.004739))
-        // .with_specific(17, Penalty::new(0.005092))
-        // .with_specific(16, Penalty::new(0.00825))
-        // .with_specific(15, Penalty::new(0.009746))
-        // .with_specific(14, Penalty::new(0.013445))
-        // .with_specific(13, Penalty::new(0.016709))
-        // .with_specific(12, Penalty::new(0.02109))
-        // .with_adjustment(12..=25, 1.2)
-        // .with_specific(10, Penalty::new(0.0246));
-        .with_specific(10, Penalty::new(0.080));
+        .with(26, Penalty::new(0.00006))
+        .with(25, Penalty::new(0.000174))
+        .with(24, Penalty::new(0.000385))
+        .with(23, Penalty::new(0.0007))
+        .with(22, Penalty::new(0.0012))
+        .with(21, Penalty::new(0.001985))
+        .with(20, Penalty::new(0.0003152))
+        .with(19, Penalty::new(0.0037))
+        .with(18, Penalty::new(0.004739))
+        .with(17, Penalty::new(0.005092))
+        .with(16, Penalty::new(0.00825))
+        .with(15, Penalty::new(0.009746))
+        .with(14, Penalty::new(0.013445))
+        .with(13, Penalty::new(0.016709))
+        .with(12, Penalty::new(0.02109))
+        .with_adjustment(12..=25, 1.2)
+        .with(10, Penalty::new(0.0246));
     let prune = |k: &Keyboard| -> bool {
         let key_count = k.key_count() as u8;
         let penalty_exceeds_threshold = || {
