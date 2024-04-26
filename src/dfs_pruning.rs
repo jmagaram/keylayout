@@ -1,6 +1,6 @@
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, penalty_goal::PenaltyGoals,
-    prohibited::Prohibited, solution::Solution,
+    prohibited::Prohibited, solution::Solution, tally::Tally,
 };
 use core::fmt;
 use humantime::{format_duration, FormattedDuration};
@@ -24,21 +24,118 @@ impl DurationFormatter for Duration {
 
 #[derive(Clone)]
 enum PruneReason {
-    SomeKeyTooBig(u32),
+    SomeKeyTooBig(Keyboard, u32),
     ProhibitedLetters(Keyboard),
     PenaltyTooBig(Solution),
-    NotEnoughKeys(usize),
+    NotEnoughKeys(Keyboard, usize),
+}
+
+struct ProgressStatistics {
+    start_time: Instant,
+    seen: u128,
+    some_key_too_big: u128,
+    prohibited_letters: u128,
+    penalty_too_big: u128,
+    penalty_too_big_key_count: Tally<usize>,
+    not_enough_keys: u128,
+    recent_good: Option<Keyboard>,
+}
+
+impl ProgressStatistics {
+    pub fn new() -> ProgressStatistics {
+        ProgressStatistics {
+            start_time: Instant::now(),
+            seen: 0,
+            some_key_too_big: 0,
+            prohibited_letters: 0,
+            penalty_too_big: 0,
+            not_enough_keys: 0,
+            penalty_too_big_key_count: Tally::new(),
+            recent_good: None,
+        }
+    }
+
+    pub fn add(&mut self, r: Result<Keyboard, PruneReason>) {
+        self.seen = self.seen + 1;
+        match r {
+            Ok(k) => self.recent_good = Some(k),
+            Err(err) => match err {
+                PruneReason::ProhibitedLetters(_k) => {
+                    self.prohibited_letters = self.prohibited_letters + 1;
+                }
+                PruneReason::PenaltyTooBig(solution) => {
+                    self.penalty_too_big = self.penalty_too_big + 1;
+                    self.penalty_too_big_key_count
+                        .increment(solution.keyboard().len());
+                }
+                PruneReason::SomeKeyTooBig(_k, _size) => {
+                    self.some_key_too_big = self.some_key_too_big + 1;
+                }
+                PruneReason::NotEnoughKeys(_keyboard, _size) => {
+                    self.not_enough_keys = self.not_enough_keys + 1;
+                }
+            },
+        }
+    }
+}
+
+impl fmt::Display for ProgressStatistics {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Keyboards: {}", self.seen.separate_with_underscores())?;
+        writeln!(
+            f,
+            "Recent: {}",
+            self.recent_good
+                .clone()
+                .map_or("(none)".to_string(), |k| k.to_string())
+        )?;
+        writeln!(
+            f,
+            "Prohibited keys: {} ({:.0}%)",
+            self.prohibited_letters.separate_with_underscores(),
+            100.0 * (self.prohibited_letters as f32) / (self.seen as f32)
+        )?;
+        writeln!(
+            f,
+            "Penalty too big: {} ({:.0}%)",
+            self.penalty_too_big.separate_with_underscores(),
+            100.0 * (self.penalty_too_big as f32) / (self.seen as f32)
+        )?;
+        let m = (1usize..27).filter_map(|key_count| {
+            let count = self.penalty_too_big_key_count.count(&key_count);
+            match count == 0 {
+                true => None,
+                false => Some((key_count, count)),
+            }
+        });
+        m.map(|(key_count, prune_count)| {
+            writeln!(
+                f,
+                "  {} : {} ({:.0}%)",
+                key_count,
+                prune_count.separate_with_underscores(),
+                100.0 * (prune_count as f32) / (self.seen as f32)
+            )
+        })
+        .collect::<Result<(), _>>()?;
+        writeln!(
+            f,
+            "Elapsed: {}",
+            self.start_time.elapsed().round_to_seconds()
+        )?;
+        Ok(())
+    }
 }
 
 impl fmt::Display for PruneReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PruneReason::SomeKeyTooBig(size) => write!(f, "Key too big: {}", size),
+            PruneReason::SomeKeyTooBig(_, size) => write!(f, "Key too big: {}", size),
             PruneReason::ProhibitedLetters(k) => write!(f, "Prohibited letters: {}", k),
             PruneReason::PenaltyTooBig(solution) => {
                 write!(f, "Penalty exceeded: {} ", solution)
             }
-            PruneReason::NotEnoughKeys(key_count) => write!(f, "Not enough keys: {}", key_count),
+            PruneReason::NotEnoughKeys(_, key_count) => write!(f, "Not enough keys: {}", key_count),
         }
     }
 }
@@ -68,12 +165,15 @@ pub fn solve() {
         .with(10, Penalty::new(0.0246));
     let prune_result = |k: &Keyboard| -> Result<Keyboard, PruneReason> {
         Ok(k.clone())
-            .and_then(|k| match k.len() < 10 {
-                true => Err(PruneReason::NotEnoughKeys(k.len())),
-                false => Ok(k),
+            .and_then(|k| {
+                let len = &k.len();
+                match k.len() < 10 {
+                    true => Err(PruneReason::NotEnoughKeys(k, *len)),
+                    false => Ok(k),
+                }
             })
             .and_then(|k| match k.max_key_size() {
-                Some(size) if size > max_key_size => Err(PruneReason::SomeKeyTooBig(size)),
+                Some(size) if size > max_key_size => Err(PruneReason::SomeKeyTooBig(k, size)),
                 _ => Ok(k),
             })
             .and_then(|k| match k.has_prohibited_keys(&prohibited) {
@@ -107,27 +207,12 @@ pub fn solve() {
             k.to_solution(penalty, "".to_string())
         });
     let _join_handle = thread::spawn(move || {
-        let mut evaluated: u128 = 0;
+        let mut progress_stats = ProgressStatistics::new();
         loop {
             let prune_result = rx.recv().unwrap();
-            evaluated = evaluated + 1;
-            if evaluated.rem_euclid(10_000) == 0 {
-                println!("Evaluated {}", evaluated.separate_with_underscores());
-            }
-            match prune_result {
-                Ok(k) => {
-                    if thread_rng().gen_range(1..1_000) == 1 {
-                        println!("{}", k);
-                    }
-                }
-                Err(err) => match err {
-                    PruneReason::PenaltyTooBig(solution) => {
-                        if thread_rng().gen_range(1..10_000) == 1 {
-                            println!("{}", solution);
-                        }
-                    }
-                    _ => {}
-                },
+            progress_stats.add(prune_result);
+            if progress_stats.seen.rem_euclid(100_000) == 0 {
+                println!("{}", progress_stats);
             }
         }
     });
