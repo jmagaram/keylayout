@@ -18,12 +18,12 @@ impl DurationFormatter for Duration {
 pub fn solve() {
     let start_time = Instant::now();
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 50);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
     let max_key_size = 4;
     let penalty_goals = PenaltyGoals::none(d.alphabet())
-        .with(26, Penalty::new(0.00006))
-        .with(25, Penalty::new(0.000174))
-        .with(24, Penalty::new(0.000385))
+        // .with(26, Penalty::new(0.00006))
+        // .with(25, Penalty::new(0.000174))
+        // .with(24, Penalty::new(0.000385))
         .with(23, Penalty::new(0.0007))
         .with(22, Penalty::new(0.0012))
         .with(21, Penalty::new(0.001985))
@@ -36,7 +36,7 @@ pub fn solve() {
         .with(14, Penalty::new(0.013445))
         .with(13, Penalty::new(0.016709))
         .with(12, Penalty::new(0.02109))
-        .with_adjustment(12..=25, 1.2)
+        // .with_adjustment(12..=25, 0.8)
         .with(10, Penalty::new(0.0246));
     let prune = |k: &Keyboard| -> bool {
         let key_count = k.key_count() as u8;

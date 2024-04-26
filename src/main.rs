@@ -27,7 +27,7 @@ fn main() {
 
     let find_best_n_key = || {
         let dict = Dictionary::load();
-        exhaustive_n_key::find_best_n_key(10, &dict);
+        exhaustive_n_key::find_best_n_key(26, &dict);
     };
 
     let genetic_solver = move || {
@@ -46,5 +46,5 @@ fn main() {
         }
     };
 
-    find_best_n_key();
+    dfs_pruning();
 }
