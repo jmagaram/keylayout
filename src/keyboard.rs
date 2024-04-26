@@ -1,11 +1,10 @@
 use std::{fmt, iter};
 
-use hashbrown::HashMap;
 use rand::Rng;
 
 use crate::{
     dictionary::Dictionary, key::Key, letter::Letter, partitions::Partitions, penalty::Penalty,
-    prohibited::Prohibited, solution::Solution, tally::Tally, util, word::Word,
+    prohibited::Prohibited, solution::Solution, tally::Tally, word::Word,
 };
 
 #[derive(Clone)]
@@ -168,24 +167,6 @@ impl Keyboard {
         })
         .filter_map(|k| k)
     }
-
-    // pub fn random_with_key_sizes(alphabet: Key, prohibited: Prohibited, key_sizes: Tally<u8>) {}
-
-    // pub fn every<'a>(alphabet: Key, layout: &'a Partitions) -> impl Iterator<Item = Keyboard> + 'a {
-    //     assert!(
-    //         alphabet.count_letters() == layout.sum,
-    //         "The layout must have the same number of letters as the alphabet."
-    //     );
-    //     let key_sizes = layout.calculate();
-    //     let alphabet = alphabet.clone();
-    //     key_sizes.into_iter().flat_map(move |s| {
-    //         let arrangements: Tally<u32> = Tally::from(s);
-    //         alphabet
-    //             .clone()
-    //             .distribute(arrangements)
-    //             .map(|keys| Keyboard::with_keys(keys))
-    //     })
-    // }
 
     pub fn swap_random_letters_n_times(&self, count: u32) -> Result<Keyboard, &'static str> {
         if count == 0 {
