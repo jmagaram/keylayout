@@ -249,6 +249,24 @@ impl Keyboard {
         explorer.dfs().map(|k| k.keyboard)
     }
 
+    /// Generates every keyboard, including the current one, that results from
+    /// recursively combining keys in a depth-first manner. So if you start with
+    /// a 15 key keyboard, this returns the current keyboard plus all possible
+    /// 14, 13, 12, ... size keyboards down to the case where every letter is on
+    /// a single key. Duplicates do not occur. The `prune` function stops the
+    /// depth-first traversal, making it possible to stop searching based on
+    /// maximum key size or the penalty score.
+    pub fn every_smaller_with(
+        &self,
+        prune: fn(&Keyboard) -> bool,
+    ) -> impl Iterator<Item = Keyboard> {
+        let explorer = KeyCombiner {
+            keyboard: self.clone(),
+            index: 0,
+        };
+        explorer.dfs_with(prune).map(|k| k.keyboard)
+    }
+
     /// Generates the sequence of all keyboards where every letter is swapped
     /// with every other letter.
     pub fn every_swap(&self) -> Vec<Keyboard> {
@@ -403,6 +421,14 @@ struct KeyCombiner {
 
 impl KeyCombiner {
     pub fn dfs<'a>(self) -> Box<dyn Iterator<Item = KeyCombiner> + 'a> {
+        let every_keyboard = |_k: &Keyboard| true;
+        self.dfs_with(every_keyboard)
+    }
+
+    pub fn dfs_with<'a>(
+        self,
+        prune: fn(&Keyboard) -> bool,
+    ) -> Box<dyn Iterator<Item = KeyCombiner> + 'a> {
         if self.keyboard.keys.len() == 1 {
             let result = std::iter::once(self.clone());
             let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(result);
@@ -410,7 +436,10 @@ impl KeyCombiner {
         } else {
             let children = self.next();
             let current = std::iter::once(self);
-            let grandchildren = children.into_iter().flat_map(|child| child.dfs());
+            let grandchildren = children
+                .into_iter()
+                .filter(move |k| false == prune(&k.keyboard))
+                .flat_map(move |child| child.dfs_with(prune));
             let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> =
                 Box::new(current.chain(grandchildren));
             boxed_result
@@ -477,8 +506,6 @@ impl fmt::Display for Keyboard {
 
 #[cfg(test)]
 mod tests {
-
-    use hashbrown::HashSet;
 
     use crate::util;
 
@@ -826,8 +853,10 @@ mod tests {
     #[test]
     #[ignore]
     fn every_smaller_print() {
-        for k in
-            Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(3)).every_smaller()
+        let letters = 5;
+        let prune = |k: &Keyboard| k.max_key_size().map(|size| size > 3).unwrap_or(false);
+        for k in Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(letters))
+            .every_smaller_with(prune)
         {
             println!("{}", k)
         }
