@@ -256,10 +256,10 @@ impl Keyboard {
     /// a single key. Duplicates do not occur. The `prune` function stops the
     /// depth-first traversal, making it possible to stop searching based on
     /// maximum key size or the penalty score.
-    pub fn every_smaller_with(
-        &self,
-        prune: fn(&Keyboard) -> bool,
-    ) -> impl Iterator<Item = Keyboard> {
+    pub fn every_smaller_with<'a, F>(self, prune: &'a F) -> impl Iterator<Item = Keyboard> + 'a
+    where
+        F: (Fn(&Keyboard) -> bool) + 'a,
+    {
         let explorer = KeyCombiner {
             keyboard: self.clone(),
             index: 0,
@@ -421,14 +421,13 @@ struct KeyCombiner {
 
 impl KeyCombiner {
     pub fn dfs<'a>(self) -> Box<dyn Iterator<Item = KeyCombiner> + 'a> {
-        let every_keyboard = |_k: &Keyboard| true;
-        self.dfs_with(every_keyboard)
+        self.dfs_with(&|_k| false)
     }
 
-    pub fn dfs_with<'a>(
-        self,
-        prune: fn(&Keyboard) -> bool,
-    ) -> Box<dyn Iterator<Item = KeyCombiner> + 'a> {
+    pub fn dfs_with<'a, F>(self, prune: &'a F) -> Box<dyn Iterator<Item = KeyCombiner> + 'a>
+    where
+        F: (Fn(&Keyboard) -> bool) + 'a,
+    {
         if self.keyboard.keys.len() == 1 {
             let result = std::iter::once(self.clone());
             let boxed_result: Box<dyn Iterator<Item = KeyCombiner>> = Box::new(result);
@@ -856,7 +855,7 @@ mod tests {
         let letters = 5;
         let prune = |k: &Keyboard| k.max_key_size().map(|size| size > 3).unwrap_or(false);
         for k in Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(letters))
-            .every_smaller_with(prune)
+            .every_smaller_with(&prune)
         {
             println!("{}", k)
         }
