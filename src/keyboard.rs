@@ -335,32 +335,42 @@ impl Keyboard {
         Keyboard::with_keys(keys)
     }
 
-    pub fn build<'a>(
+    pub fn build<'a, F>(
         self,
         letters: Key,
         key_sizes: Vec<u32>,
-    ) -> impl Iterator<Item = Keyboard> + 'a {
-        if key_sizes.len() == 0 {
-            let result = std::iter::once(self.clone());
-            let result_boxed: Box<dyn Iterator<Item = Keyboard>> = Box::new(result);
-            result_boxed
+        prune: &'a F,
+    ) -> impl Iterator<Item = Keyboard> + 'a
+    where
+        F: (Fn(&Keyboard) -> bool) + 'a,
+    {
+        if prune(&self) {
+            let result = std::iter::empty();
+            let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(result);
+            result
         } else {
-            let (key_size, key_sizes) = key_sizes.split_first().unwrap();
-            let key_sizes = key_sizes.to_vec();
-            let min_letter = letters.min_letter().unwrap();
-            let remaining_letters = letters.remove(min_letter);
-            let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
-            let new_keys = other_letters_for_key.map(move |o| {
-                let new_key = o.add(min_letter);
-                let remaining_letters = letters.except(new_key);
-                (new_key, remaining_letters)
-            });
-            let keyboards = new_keys.flat_map(move |(new_key, letters)| {
-                let k = self.add_key(new_key);
-                k.build(letters, key_sizes.to_vec())
-            });
-            let keyboards_boxed: Box<dyn Iterator<Item = Keyboard>> = Box::new(keyboards);
-            keyboards_boxed
+            if key_sizes.len() == 0 {
+                let result = std::iter::once(self.clone());
+                let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(result);
+                result
+            } else {
+                let (key_size, key_sizes) = key_sizes.split_first().unwrap();
+                let key_sizes = key_sizes.to_vec();
+                let min_letter = letters.min_letter().unwrap();
+                let remaining_letters = letters.remove(min_letter);
+                let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
+                let new_keys = other_letters_for_key.map(move |o| {
+                    let new_key = o.add(min_letter);
+                    let remaining_letters = letters.except(new_key);
+                    (new_key, remaining_letters)
+                });
+                let keyboards = new_keys.flat_map(move |(new_key, letters)| {
+                    let k = self.add_key(new_key);
+                    k.build(letters, key_sizes.to_vec(), prune)
+                });
+                let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(keyboards);
+                result
+            }
         }
     }
 }
@@ -459,6 +469,8 @@ impl fmt::Display for Keyboard {
 
 #[cfg(test)]
 mod tests {
+
+    use crate::prohibited;
 
     use super::*;
 
@@ -741,9 +753,12 @@ mod tests {
     #[test]
     fn build() {
         let k = Keyboard::with_no_keys();
+        let mut prohibited = Prohibited::new();
+        prohibited.add_many([Key::new("cd")].into_iter());
         let alphabet = Key::with_first_n_letters(5);
+        let prune = |k: &Keyboard| k.has_prohibited_keys(&prohibited);
         let key_sizes = vec![3, 2];
-        for k in k.build(alphabet, key_sizes) {
+        for k in k.build(alphabet, key_sizes, &prune) {
             println!("{}", k)
         }
     }
