@@ -335,26 +335,35 @@ impl Keyboard {
         Keyboard::with_keys(keys)
     }
 
-    pub fn build_with<'a, F>(
+    /// Generates all possible keyboards in a depth-first manner, adding keys
+    /// one at a time. Any keyboard where the `prune` function returns false is
+    /// removed from the output, and prevents further depth-first building.
+    pub fn with_dfs_builder<'a, F>(
         self,
         letters: Key,
-        partitions: Partitions,
+        key_sizes: Partitions,
         prune: &'a F,
     ) -> impl Iterator<Item = Keyboard> + 'a
     where
         F: (Fn(&Keyboard) -> bool) + 'a,
     {
-        partitions
+        assert_eq!(
+            letters.len(),
+            key_sizes.sum,
+            "The total number of letters must equal the partition sum."
+        );
+        if letters.len() != key_sizes.sum {}
+        key_sizes
             .calculate()
             .into_iter()
             .map(|key_sizes| Tally::from(key_sizes))
             .flat_map(|t| t.combinations())
             .flat_map(move |key_sizes| {
-                Keyboard::build(self.clone(), letters, key_sizes.to_vec(), prune)
+                Keyboard::dfs_builder_utility(self.clone(), letters, key_sizes.to_vec(), prune)
             })
     }
 
-    pub fn build<'a, F>(
+    fn dfs_builder_utility<'a, F>(
         self,
         letters: Key,
         key_sizes: Vec<u32>,
@@ -385,7 +394,7 @@ impl Keyboard {
                 });
                 let keyboards = new_keys.flat_map(move |(new_key, letters)| {
                     let k = self.add_key(new_key);
-                    k.build(letters, key_sizes.to_vec(), prune)
+                    k.dfs_builder_utility(letters, key_sizes.to_vec(), prune)
                 });
                 let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(keyboards);
                 result
@@ -770,36 +779,57 @@ mod tests {
     }
 
     #[test]
-    fn build() {
-        let k = Keyboard::with_no_keys();
-        let mut prohibited = Prohibited::new();
-        prohibited.add_many([Key::new("cd")].into_iter());
-        let alphabet = Key::with_first_n_letters(5);
-        let prune = |k: &Keyboard| k.has_prohibited_keys(&prohibited);
-        let key_sizes = vec![3, 2];
-        for k in k.build(alphabet, key_sizes, &prune) {
-            println!("{}", k)
+    fn with_dfs_builder_creates_proper_number_of_keyboards() {
+        let empty = Keyboard::with_no_keys();
+        let key_sizes = Partitions {
+            sum: 8,
+            min: 1,
+            max: 8,
+            parts: 3,
+        };
+        let expected = key_sizes.total_unique_keyboards();
+        let alphabet = Key::with_first_n_letters(8);
+        let prune = |_k: &Keyboard| false;
+        let actual = empty.with_dfs_builder(alphabet, key_sizes, &prune).count();
+        assert_eq!(expected, actual as u128);
+    }
+
+    #[test]
+    fn with_dfs_builder_creates_unique_keyboards() {
+        let empty = Keyboard::with_no_keys();
+        let key_sizes = Partitions {
+            sum: 8,
+            min: 1,
+            max: 8,
+            parts: 3,
+        };
+        let mut tally = Tally::new();
+        let alphabet = Key::with_first_n_letters(8);
+        let prune = |_k: &Keyboard| false;
+        for k in empty.with_dfs_builder(alphabet, key_sizes, &prune) {
+            let count = tally.increment(k.to_string());
+            assert!(count < 2);
         }
     }
 
     #[test]
-    fn build_with() {
-        let k = Keyboard::with_no_keys();
-        let partitions = Partitions {
+    fn with_dfs_builder_print() {
+        let empty = Keyboard::with_no_keys();
+        let key_sizes = Partitions {
             sum: 5,
             min: 1,
             max: 5,
             parts: 3,
         };
         let mut prohibited = Prohibited::new();
-        // prohibited.add_many([Key::new("cd")].into_iter());
+        prohibited.add_many([Key::new("cd")].into_iter());
         let alphabet = Key::with_first_n_letters(5);
         let prune = |k: &Keyboard| k.has_prohibited_keys(&prohibited);
-        let key_sizes = vec![3, 2];
-        for k in k.build_with(alphabet, partitions, &prune) {
+        for k in empty.with_dfs_builder(alphabet, key_sizes, &prune) {
             println!("{}", k)
         }
     }
+
     #[test]
     #[ignore]
     fn every_smaller_print() {
