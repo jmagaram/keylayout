@@ -51,13 +51,33 @@ impl KeyboardInProcess {
         KeyboardInProcess(items)
     }
 
+    pub fn smallest_letters(&self, of_size: usize, before_index: usize) -> Option<Letter> {
+        self.0
+            .iter()
+            .enumerate()
+            .filter_map(|(index, k)| {
+                if k.max_size == of_size && index < before_index && k.key.len() > 0 {
+                    Some(k.key.min_letter().unwrap())
+                } else {
+                    None
+                }
+            })
+            .last()
+    }
+
     pub fn slot_indexes(&self, letter: Letter) -> Vec<usize> {
         self.0
             .iter()
             .enumerate()
-            .filter_map(|(index, s)| match s.has_space(letter) {
-                true => Some(index),
-                false => None,
+            .filter_map(|(index, s)| {
+                match s.has_space(letter)
+                    && self
+                        .smallest_letters(s.max_size, index)
+                        .map_or(true, |s| s < letter)
+                {
+                    true => Some(index),
+                    false => None,
+                }
             })
             .collect::<Vec<usize>>()
     }
@@ -92,7 +112,7 @@ impl KeyboardInProcess {
     ) -> Option<Solution> {
         *count = *count + 1;
         let k = self.as_keyboard();
-        if count.rem_euclid(1_000) == 0 {
+        if count.rem_euclid(100) == 0 {
             println!("{} {}", count, k);
         }
         let has_prohibited = k.has_prohibited_keys(prohibited);
