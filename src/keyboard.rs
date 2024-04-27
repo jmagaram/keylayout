@@ -339,7 +339,6 @@ impl Keyboard {
     /// one at a time. Any keyboard where the `prune` function returns false is
     /// removed from the output, and prevents further depth-first building.
     pub fn with_dfs_builder<'a, F>(
-        self,
         letters: Key,
         key_sizes: Partitions,
         prune: &'a F,
@@ -359,7 +358,12 @@ impl Keyboard {
             .map(|key_sizes| Tally::from(key_sizes))
             .flat_map(|t| t.combinations())
             .flat_map(move |key_sizes| {
-                Keyboard::dfs_builder_utility(self.clone(), letters, key_sizes.to_vec(), prune)
+                Keyboard::dfs_builder_utility(
+                    Keyboard::with_no_keys(),
+                    letters,
+                    key_sizes.to_vec(),
+                    prune,
+                )
             })
     }
 
@@ -780,7 +784,6 @@ mod tests {
 
     #[test]
     fn with_dfs_builder_creates_proper_number_of_keyboards() {
-        let empty = Keyboard::with_no_keys();
         let key_sizes = Partitions {
             sum: 8,
             min: 1,
@@ -790,13 +793,12 @@ mod tests {
         let expected = key_sizes.total_unique_keyboards();
         let alphabet = Key::with_first_n_letters(8);
         let prune = |_k: &Keyboard| false;
-        let actual = empty.with_dfs_builder(alphabet, key_sizes, &prune).count();
+        let actual = Keyboard::with_dfs_builder(alphabet, key_sizes, &prune).count();
         assert_eq!(expected, actual as u128);
     }
 
     #[test]
     fn with_dfs_builder_creates_unique_keyboards() {
-        let empty = Keyboard::with_no_keys();
         let key_sizes = Partitions {
             sum: 8,
             min: 1,
@@ -806,7 +808,7 @@ mod tests {
         let mut tally = Tally::new();
         let alphabet = Key::with_first_n_letters(8);
         let prune = |_k: &Keyboard| false;
-        for k in empty.with_dfs_builder(alphabet, key_sizes, &prune) {
+        for k in Keyboard::with_dfs_builder(alphabet, key_sizes, &prune) {
             let count = tally.increment(k.to_string());
             assert!(count < 2);
         }
@@ -814,7 +816,6 @@ mod tests {
 
     #[test]
     fn with_dfs_builder_print() {
-        let empty = Keyboard::with_no_keys();
         let key_sizes = Partitions {
             sum: 5,
             min: 1,
@@ -825,7 +826,7 @@ mod tests {
         prohibited.add_many([Key::new("cd")].into_iter());
         let alphabet = Key::with_first_n_letters(5);
         let prune = |k: &Keyboard| k.has_prohibited_keys(&prohibited);
-        for k in empty.with_dfs_builder(alphabet, key_sizes, &prune) {
+        for k in Keyboard::with_dfs_builder(alphabet, key_sizes, &prune) {
             println!("{}", k)
         }
     }
