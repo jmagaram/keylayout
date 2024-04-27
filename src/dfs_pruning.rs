@@ -1,10 +1,11 @@
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, penalty_goal::PenaltyGoals,
-    prohibited::Prohibited, solution::Solution, tally::Tally,
+    prohibited::Prohibited,
 };
 use core::fmt;
+use hashbrown::HashMap;
 use humantime::{format_duration, FormattedDuration};
-use rand::{thread_rng, Rng};
+
 use std::{
     sync::mpsc,
     thread,
@@ -22,73 +23,113 @@ impl DurationFormatter for Duration {
     }
 }
 
-#[derive(Clone)]
-enum PruneReason {
-    SomeKeyTooBig(Keyboard, u32),
-    ProhibitedLetters(Keyboard),
-    PenaltyTooBig(Solution),
-    NotEnoughKeys(Keyboard, usize),
+#[derive(Clone, Copy)]
+enum PruneKind {
+    MaxKeySizeExceeded,
+    ProhibitedLetters,
+    Penalty(Penalty),
+    KeyboardTooSmall,
 }
 
-struct ProgressStatistics {
-    start_time: Instant,
-    seen: u128,
-    ok: u128,
-    some_key_too_big: u128,
-    prohibited_letters: u128,
-    penalty_too_big: u128,
-    penalty_too_big_key_count: Tally<usize>,
-    not_enough_keys: u128,
+#[derive(Clone, Copy)]
+struct Prune {
+    kind: PruneKind,
+    key_count: usize,
 }
 
-impl ProgressStatistics {
-    pub fn new() -> ProgressStatistics {
-        ProgressStatistics {
-            start_time: Instant::now(),
-            seen: 0,
+struct KeyCountTotals {
+    ok: u32,
+    prohibited_letters: u32,
+    max_key_size: u32,
+    keyboard_too_small: u32,
+    penalty: u32,
+}
+
+impl KeyCountTotals {
+    pub fn new() -> KeyCountTotals {
+        KeyCountTotals {
+            keyboard_too_small: 0,
+            max_key_size: 0,
             ok: 0,
-            some_key_too_big: 0,
+            penalty: 0,
             prohibited_letters: 0,
-            penalty_too_big: 0,
-            not_enough_keys: 0,
-            penalty_too_big_key_count: Tally::new(),
+        }
+    }
+}
+
+struct Statistics {
+    start_time: Instant,
+    seen: u32,
+    by_key_count: HashMap<usize, KeyCountTotals>,
+    recent_ok: Option<Keyboard>,
+}
+
+impl Statistics {
+    pub fn new() -> Statistics {
+        Statistics {
+            start_time: Instant::now(),
+            by_key_count: HashMap::new(),
+            recent_ok: None,
+            seen: 0,
         }
     }
 
-    pub fn add(&mut self, r: Result<Keyboard, PruneReason>) {
+    pub fn max_key_size_exceeded_total(&self) -> u32 {
+        self.by_key_count.values().map(|v| v.max_key_size).sum()
+    }
+
+    pub fn prohibited_total(&self) -> u32 {
+        self.by_key_count
+            .values()
+            .map(|v| v.prohibited_letters)
+            .sum()
+    }
+
+    pub fn penalty_total(&self) -> u32 {
+        self.by_key_count.values().map(|v| v.penalty).sum()
+    }
+
+    pub fn add(&mut self, r: Result<Keyboard, Prune>) {
         self.seen = self.seen + 1;
+        let key_count = match r {
+            Ok(ref k) => k.len(),
+            Err(e) => e.key_count,
+        };
+        if !self.by_key_count.contains_key(&key_count) {
+            self.by_key_count.insert(key_count, KeyCountTotals::new());
+        }
+        let stat = self.by_key_count.get_mut(&key_count).unwrap();
         match r {
-            Ok(_k) => {
-                self.ok = self.ok + 1;
+            Ok(ref k) => {
+                self.recent_ok = Some(k.clone());
+                stat.ok = stat.ok + 1;
             }
-            Err(err) => match err {
-                PruneReason::ProhibitedLetters(_k) => {
-                    self.prohibited_letters = self.prohibited_letters + 1;
+            Err(p) => match p.kind {
+                PruneKind::MaxKeySizeExceeded => {
+                    stat.max_key_size = stat.max_key_size + 1;
                 }
-                PruneReason::PenaltyTooBig(solution) => {
-                    self.penalty_too_big = self.penalty_too_big + 1;
-                    self.penalty_too_big_key_count
-                        .increment(solution.keyboard().len());
+                PruneKind::Penalty(_penalty) => {
+                    stat.penalty = stat.penalty + 1;
                 }
-                PruneReason::SomeKeyTooBig(_k, _size) => {
-                    self.some_key_too_big = self.some_key_too_big + 1;
+                PruneKind::KeyboardTooSmall => {
+                    stat.keyboard_too_small = stat.keyboard_too_small + 1;
                 }
-                PruneReason::NotEnoughKeys(_keyboard, _size) => {
-                    self.not_enough_keys = self.not_enough_keys + 1;
+                PruneKind::ProhibitedLetters => {
+                    stat.prohibited_letters = stat.prohibited_letters + 1;
                 }
             },
         }
     }
 }
 
-impl fmt::Display for ProgressStatistics {
+impl fmt::Display for Statistics {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let seen_per_second = ((self.seen as f32) / self.start_time.elapsed().as_secs_f32()) as i32;
         fn write_num(
             f: &mut fmt::Formatter<'_>,
             caption: &str,
-            num: u128,
-            total: u128,
+            num: u32,
+            total: u32,
         ) -> Result<(), std::fmt::Error> {
             writeln!(
                 f,
@@ -106,19 +147,29 @@ impl fmt::Display for ProgressStatistics {
         )?;
         writeln!(
             f,
+            "Recent:       {}",
+            self.recent_ok
+                .clone()
+                .map_or("(none)".to_string(), |k| k.to_string())
+        )?;
+        writeln!(
+            f,
             "Elapsed:      {}",
             self.start_time.elapsed().round_to_seconds()
         )?;
-        write_num(f, "Key too big: ", self.some_key_too_big, self.seen)?;
-        write_num(f, "Prohibited:  ", self.prohibited_letters, self.seen)?;
-        write_num(f, "Penalty:     ", self.penalty_too_big, self.seen)?;
+        write_num(
+            f,
+            "Key too big: ",
+            self.max_key_size_exceeded_total(),
+            self.seen,
+        )?;
+        write_num(f, "Prohibited:  ", self.prohibited_total(), self.seen)?;
+        write_num(f, "Penalty:     ", self.penalty_total(), self.seen)?;
         (1usize..27)
             .filter_map(|key_count| {
-                let count = self.penalty_too_big_key_count.count(&key_count);
-                match count == 0 {
-                    true => None,
-                    false => Some((key_count, count)),
-                }
+                self.by_key_count
+                    .get(&key_count)
+                    .map(|i| (key_count, i.penalty))
             })
             .map(|(key_count, prune_count)| {
                 writeln!(
@@ -134,23 +185,10 @@ impl fmt::Display for ProgressStatistics {
     }
 }
 
-impl fmt::Display for PruneReason {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            PruneReason::SomeKeyTooBig(_, size) => write!(f, "Key too big: {}", size),
-            PruneReason::ProhibitedLetters(k) => write!(f, "Prohibited letters: {}", k),
-            PruneReason::PenaltyTooBig(solution) => {
-                write!(f, "Penalty exceeded: {} ", solution)
-            }
-            PruneReason::NotEnoughKeys(_, key_count) => write!(f, "Not enough keys: {}", key_count),
-        }
-    }
-}
-
 pub fn solve() {
     let start_time = Instant::now();
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 30);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 45);
     let max_key_size = 4;
     let penalty_goals = PenaltyGoals::none(d.alphabet())
         .with(26, Penalty::new(0.00006))
@@ -168,38 +206,45 @@ pub fn solve() {
         .with(14, Penalty::new(0.013027))
         .with(13, Penalty::new(0.016709))
         .with(12, Penalty::new(0.02109))
-        .with_adjustment(12..=18, 1.2)
+        .with_adjustment(11..=23, 0.85)
         .with(10, Penalty::new(0.0246));
-    let prune_result = |k: &Keyboard| -> Result<Keyboard, PruneReason> {
+    let prune_result = |k: &Keyboard| -> Result<Keyboard, Prune> {
         Ok(k.clone())
-            .and_then(|k| {
-                let len = &k.len();
-                match k.len() < 10 {
-                    true => Err(PruneReason::NotEnoughKeys(k, *len)),
-                    false => Ok(k),
-                }
+            .and_then(|k| match k.len() < 10 {
+                true => Err(Prune {
+                    kind: PruneKind::KeyboardTooSmall,
+                    key_count: k.len(),
+                }),
+                false => Ok(k),
             })
             .and_then(|k| match k.max_key_size() {
-                Some(size) if size > max_key_size => Err(PruneReason::SomeKeyTooBig(k, size)),
+                Some(size) if size > max_key_size => Err(Prune {
+                    kind: PruneKind::MaxKeySizeExceeded,
+                    key_count: k.len(),
+                }),
                 _ => Ok(k),
             })
             .and_then(|k| match k.has_prohibited_keys(&prohibited) {
                 false => Ok(k),
-                true => Err(PruneReason::ProhibitedLetters(k)),
+                true => Err(Prune {
+                    kind: PruneKind::ProhibitedLetters,
+                    key_count: k.len(),
+                }),
             })
             .and_then(|k| {
                 let penalty_to_beat = penalty_goals.get(k.len() as u8).unwrap_or(Penalty::MAX);
                 let actual_penalty = k.penalty(&d, penalty_to_beat);
                 match actual_penalty > penalty_to_beat {
-                    true => Err(PruneReason::PenaltyTooBig(
-                        k.to_solution(actual_penalty, "".to_string()),
-                    )),
+                    true => Err(Prune {
+                        kind: PruneKind::Penalty(actual_penalty),
+                        key_count: k.len(),
+                    }),
                     false => Ok(k),
                 }
             })
     };
     let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
-    let (tx, rx) = mpsc::channel::<Result<Keyboard, PruneReason>>();
+    let (tx, rx) = mpsc::channel::<Result<Keyboard, Prune>>();
     let prune = |k: &Keyboard| -> bool {
         let result = prune_result(k);
         let should_prune = result.is_err();
@@ -214,17 +259,22 @@ pub fn solve() {
             k.to_solution(penalty, "".to_string())
         });
     let _join_handle = thread::spawn(move || {
-        let mut progress_stats = ProgressStatistics::new();
+        let mut progress_stats = Statistics::new();
         loop {
-            let prune_result = rx.recv().unwrap();
-            progress_stats.add(prune_result);
-            if progress_stats.seen.rem_euclid(5_000) == 0 {
-                println!("{}", progress_stats);
+            let prune_result = rx.recv();
+            match prune_result {
+                Ok(prune_result) => {
+                    progress_stats.add(prune_result);
+                    if progress_stats.seen.rem_euclid(1_000) == 0 {
+                        println!("{}", progress_stats);
+                    }
+                }
+                Err(_err) => {}
             }
         }
     });
     for s in solutions {
         println!("{}", s);
     }
-    println!("Elapsed time: {}", start_time.elapsed().round_to_seconds());
+    println!("=== DONE ===");
 }

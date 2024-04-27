@@ -3,6 +3,7 @@ use std::{collections::HashMap, fs::File, io::BufReader};
 use crate::key::Key;
 use crate::word::Word;
 
+#[derive(Clone)]
 pub struct Dictionary {
     words_highest_frequency_first: Vec<Word>,
     alphabet: Key,
