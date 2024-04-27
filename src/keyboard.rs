@@ -830,12 +830,4 @@ mod tests {
             println!("{}", k)
         }
     }
-
-    #[test]
-    #[ignore]
-    fn every_smaller_print() {
-        for k in Keyboard::with_layout("a,b,c,d").every_smaller() {
-            println!("{}", k)
-        }
-    }
 }
