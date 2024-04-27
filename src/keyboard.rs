@@ -372,15 +372,8 @@ impl DfsExplorer {
             vec![]
         } else {
             let can_combine = |a: Key, b: Key| -> bool { a.max_letter() < b.min_letter() };
-            let indexes = (self.index as i32..=self.keyboard.len() as i32 - 2)
-                .flat_map(|i| (i + 1..=self.keyboard.len() as i32 - 1).map(move |j| (i, j)))
-                .filter_map(|(i, j)| {
-                    if i < 0 {
-                        None
-                    } else {
-                        Some((i as usize, j as usize))
-                    }
-                })
+            let indexes = (self.index..=self.keyboard.len() - 2)
+                .flat_map(|i| (i + 1..=self.keyboard.len() - 1).map(move |j| (i, j)))
                 .filter(|(i, j)| {
                     let i_key = self.keyboard.keys[*i];
                     let j_key = self.keyboard.keys[*j];
