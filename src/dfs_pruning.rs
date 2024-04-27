@@ -4,6 +4,7 @@ use crate::{
 };
 use core::fmt;
 use humantime::{format_duration, FormattedDuration};
+use rand::{thread_rng, Rng};
 use std::{
     sync::mpsc,
     thread,
@@ -149,7 +150,7 @@ impl fmt::Display for PruneReason {
 pub fn solve() {
     let start_time = Instant::now();
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 30);
     let max_key_size = 4;
     let penalty_goals = PenaltyGoals::none(d.alphabet())
         .with(26, Penalty::new(0.00006))
@@ -167,7 +168,7 @@ pub fn solve() {
         .with(14, Penalty::new(0.013027))
         .with(13, Penalty::new(0.016709))
         .with(12, Penalty::new(0.02109))
-        // .with_adjustment(16..=18, 6.0)
+        .with_adjustment(12..=18, 1.2)
         .with(10, Penalty::new(0.0246));
     let prune_result = |k: &Keyboard| -> Result<Keyboard, PruneReason> {
         Ok(k.clone())
@@ -217,7 +218,7 @@ pub fn solve() {
         loop {
             let prune_result = rx.recv().unwrap();
             progress_stats.add(prune_result);
-            if progress_stats.seen.rem_euclid(1_000) == 0 {
+            if progress_stats.seen.rem_euclid(5_000) == 0 {
                 println!("{}", progress_stats);
             }
         }
