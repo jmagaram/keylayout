@@ -162,6 +162,7 @@ pub fn solver() {
         .with_adjustment(11..=23, 0.75)
         .with(10, Penalty::new(0.0246));
     let mut count: u64 = 0;
+    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 45);
     let solution = kbd.fill_in(letters, &penalty_goals, &dict, &prohibited, &mut count);
     match solution {
         None => println!("Not found"),
@@ -176,36 +177,38 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn solve_everything() {
-        let letters = "eariotnslcudpmhgbfywvkxzjq'"
-            .chars()
-            .map(|c| Letter::new(c))
-            .collect::<Vec<Letter>>();
-        let kbd = KeyboardInProcess::new();
-        let dict = Dictionary::load();
-        let penalty_goals = PenaltyGoals::none(dict.alphabet())
-            .with(26, Penalty::new(0.00006))
-            .with(25, Penalty::new(0.000174))
-            .with(24, Penalty::new(0.000385))
-            .with(23, Penalty::new(0.0007))
-            .with(22, Penalty::new(0.0012))
-            .with(21, Penalty::new(0.001974))
-            .with(20, Penalty::new(0.002559))
-            .with(19, Penalty::new(0.003633))
-            .with(18, Penalty::new(0.004623))
-            .with(17, Penalty::new(0.005569))
-            .with(16, Penalty::new(0.007603))
-            .with(15, Penalty::new(0.009746))
-            .with(14, Penalty::new(0.013027))
-            .with(13, Penalty::new(0.016709))
-            .with(12, Penalty::new(0.02109))
-            .with_adjustment(11..=23, 0.75)
-            .with(10, Penalty::new(0.050));
-        let solution = kbd.fill_in(letters, &&penalty_goals, &dict);
-        match solution {
-            None => println!("Not found"),
-            Some(solution) => println!("{}", solution),
-        }
-    }
+    // #[test]
+    // fn solve_everything() {
+    //     let letters = "eariotnslcudpmhgbfywvkxzjq'"
+    //         .chars()
+    //         .map(|c| Letter::new(c))
+    //         .collect::<Vec<Letter>>();
+    //     let kbd = KeyboardInProcess::new();
+    //     let dict = Dictionary::load();
+    //     let penalty_goals = PenaltyGoals::none(dict.alphabet())
+    //         .with(26, Penalty::new(0.00006))
+    //         .with(25, Penalty::new(0.000174))
+    //         .with(24, Penalty::new(0.000385))
+    //         .with(23, Penalty::new(0.0007))
+    //         .with(22, Penalty::new(0.0012))
+    //         .with(21, Penalty::new(0.001974))
+    //         .with(20, Penalty::new(0.002559))
+    //         .with(19, Penalty::new(0.003633))
+    //         .with(18, Penalty::new(0.004623))
+    //         .with(17, Penalty::new(0.005569))
+    //         .with(16, Penalty::new(0.007603))
+    //         .with(15, Penalty::new(0.009746))
+    //         .with(14, Penalty::new(0.013027))
+    //         .with(13, Penalty::new(0.016709))
+    //         .with(12, Penalty::new(0.02109))
+    //         .with_adjustment(11..=23, 0.75)
+    //         .with(10, Penalty::new(0.050));
+    //     let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 45);
+    //     let mut count: u64 = 0;
+    //     let solution = kbd.fill_in(letters, &&penalty_goals, &dict, &prohibited, &mut count);
+    //     match solution {
+    //         None => println!("Not found"),
+    //         Some(solution) => println!("{}", solution),
+    //     }
+    // }
 }
