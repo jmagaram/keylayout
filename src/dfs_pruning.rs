@@ -185,8 +185,10 @@ impl fmt::Display for Statistics {
     }
 }
 
+// This algorithm is broken. It keeps combining keys until you get down to 10.
+// But at the 11 key stages, you'll probably have a bunch of 2 and 3 keys, and
+// these can't really be combined.
 pub fn solve() {
-    let start_time = Instant::now();
     let d = Dictionary::load();
     let prohibited = Prohibited::with_top_n_letter_pairs(&d, 45);
     let max_key_size = 4;
