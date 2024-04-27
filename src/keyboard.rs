@@ -31,7 +31,7 @@ impl Keyboard {
         }
     }
 
-    pub fn with_no_keys() -> Keyboard {
+    pub fn empty() -> Keyboard {
         Keyboard::with_keys(vec![])
     }
 
@@ -358,12 +358,7 @@ impl Keyboard {
             .map(|key_sizes| Tally::from(key_sizes))
             .flat_map(|t| t.combinations())
             .flat_map(move |key_sizes| {
-                Keyboard::dfs_builder_utility(
-                    Keyboard::with_no_keys(),
-                    letters,
-                    key_sizes.to_vec(),
-                    prune,
-                )
+                Keyboard::dfs_builder_utility(Keyboard::empty(), letters, key_sizes.to_vec(), prune)
             })
     }
 
