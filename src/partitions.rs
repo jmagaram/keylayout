@@ -1,6 +1,6 @@
 use crate::tally::{KeyLayout, Tally};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Partitions {
     pub sum: u32,
     pub parts: u32,

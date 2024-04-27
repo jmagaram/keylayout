@@ -335,6 +335,39 @@ impl Keyboard {
         Keyboard::with_keys(keys)
     }
 
+    pub fn build_with<'a, F>(
+        self,
+        letters: Key,
+        partitions: Partitions,
+        prune: &'a F,
+    ) -> impl Iterator<Item = Keyboard> + 'a
+    where
+        F: (Fn(&Keyboard) -> bool) + 'a,
+    {
+        let m = partitions
+            .calculate()
+            .into_iter()
+            .map(|key_sizes| Tally::from(key_sizes))
+            .flat_map(|t| t.combinations())
+            .flat_map(move |key_sizes| {
+                Keyboard::build(self.clone(), letters, key_sizes.to_vec(), prune)
+            });
+        // .collect::<Vec<Keyboard>>();
+        // for i in m {}
+        m
+        // let r: Box<dyn Iterator<Item = Keyboard>> = Box::new(m);
+        // let q = partitions
+        //     .calculate()
+        //     .iter()
+        //     .map(|key_sizes| Tally::from(key_sizes))
+        //     .flat_map(|t| t.combinations())
+        //     .collect::<Vec<Vec<u32>>>();
+        // let x = q.iter().flat_map(move |key_sizes| {
+        //     Keyboard::build(self.clone(), letters, key_sizes.to_vec(), prune)
+        // });
+        // x
+    }
+
     pub fn build<'a, F>(
         self,
         letters: Key,
@@ -763,6 +796,24 @@ mod tests {
         }
     }
 
+    #[test]
+    fn build_with() {
+        let k = Keyboard::with_no_keys();
+        let partitions = Partitions {
+            sum: 5,
+            min: 1,
+            max: 5,
+            parts: 3,
+        };
+        let mut prohibited = Prohibited::new();
+        // prohibited.add_many([Key::new("cd")].into_iter());
+        let alphabet = Key::with_first_n_letters(5);
+        let prune = |k: &Keyboard| k.has_prohibited_keys(&prohibited);
+        let key_sizes = vec![3, 2];
+        for k in k.build_with(alphabet, partitions, &prune) {
+            println!("{}", k)
+        }
+    }
     #[test]
     #[ignore]
     fn every_smaller_print() {
