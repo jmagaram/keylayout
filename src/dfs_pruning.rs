@@ -1,6 +1,6 @@
 use crate::{
-    dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty,
-    penalty_goal::PenaltyGoals, prohibited::Prohibited, solution::Solution, tally::Tally,
+    dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, penalty_goal::PenaltyGoals,
+    prohibited::Prohibited, solution::Solution, tally::Tally,
 };
 use core::fmt;
 use humantime::{format_duration, FormattedDuration};
