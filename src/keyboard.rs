@@ -31,6 +31,10 @@ impl Keyboard {
         }
     }
 
+    pub fn with_no_keys() -> Keyboard {
+        Keyboard::with_keys(vec![])
+    }
+
     pub fn with_every_letter_on_own_key(alphabet: Key) -> Keyboard {
         let keys = alphabet
             .letters()
@@ -323,6 +327,41 @@ impl Keyboard {
             total
         });
         Keyboard::with_keys(new_keys)
+    }
+
+    pub fn add_key(&self, key: Key) -> Keyboard {
+        let mut keys = self.keys.clone();
+        keys.push(key);
+        Keyboard::with_keys(keys)
+    }
+
+    pub fn build<'a>(
+        self,
+        letters: Key,
+        key_sizes: Vec<u32>,
+    ) -> impl Iterator<Item = Keyboard> + 'a {
+        if key_sizes.len() == 0 {
+            let result = std::iter::once(self.clone());
+            let result_boxed: Box<dyn Iterator<Item = Keyboard>> = Box::new(result);
+            result_boxed
+        } else {
+            let (key_size, key_sizes) = key_sizes.split_first().unwrap();
+            let key_sizes = key_sizes.to_vec();
+            let min_letter = letters.min_letter().unwrap();
+            let remaining_letters = letters.remove(min_letter);
+            let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
+            let new_keys = other_letters_for_key.map(move |o| {
+                let new_key = o.add(min_letter);
+                let remaining_letters = letters.except(new_key);
+                (new_key, remaining_letters)
+            });
+            let keyboards = new_keys.flat_map(move |(new_key, letters)| {
+                let k = self.add_key(new_key);
+                k.build(letters, key_sizes.to_vec())
+            });
+            let keyboards_boxed: Box<dyn Iterator<Item = Keyboard>> = Box::new(keyboards);
+            keyboards_boxed
+        }
     }
 }
 
@@ -697,6 +736,16 @@ mod tests {
             .filter(|k| k.max_key_size().map(|ks| ks > 2).unwrap_or(true))
             .count();
         assert_eq!(count_big_keys, 0);
+    }
+
+    #[test]
+    fn build() {
+        let k = Keyboard::with_no_keys();
+        let alphabet = Key::with_first_n_letters(5);
+        let key_sizes = vec![3, 2];
+        for k in k.build(alphabet, key_sizes) {
+            println!("{}", k)
+        }
     }
 
     #[test]
