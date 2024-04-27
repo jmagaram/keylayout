@@ -91,9 +91,10 @@ impl KeyboardInProcess {
         count: &mut u64,
     ) -> Option<Solution> {
         *count = *count + 1;
-        // println!("{}", count);
         let k = self.as_keyboard();
-        println!("{} {}", count, k);
+        if count.rem_euclid(1_000) == 0 {
+            println!("{} {}", count, k);
+        }
         let has_prohibited = k.has_prohibited_keys(prohibited);
         if has_prohibited {
             None
