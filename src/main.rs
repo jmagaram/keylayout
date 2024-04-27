@@ -6,7 +6,6 @@ use prohibited::Prohibited;
 mod dfs_pruning;
 mod dictionary;
 mod exhaustive_n_key;
-mod fill_in;
 mod frequency;
 mod genetic;
 mod key;
@@ -48,6 +47,5 @@ fn main() {
         }
     };
 
-    // dfs_pruning();
-    fill_in::solver();
+    dfs_pruning();
 }
