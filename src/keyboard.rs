@@ -344,28 +344,14 @@ impl Keyboard {
     where
         F: (Fn(&Keyboard) -> bool) + 'a,
     {
-        let m = partitions
+        partitions
             .calculate()
             .into_iter()
             .map(|key_sizes| Tally::from(key_sizes))
             .flat_map(|t| t.combinations())
             .flat_map(move |key_sizes| {
                 Keyboard::build(self.clone(), letters, key_sizes.to_vec(), prune)
-            });
-        // .collect::<Vec<Keyboard>>();
-        // for i in m {}
-        m
-        // let r: Box<dyn Iterator<Item = Keyboard>> = Box::new(m);
-        // let q = partitions
-        //     .calculate()
-        //     .iter()
-        //     .map(|key_sizes| Tally::from(key_sizes))
-        //     .flat_map(|t| t.combinations())
-        //     .collect::<Vec<Vec<u32>>>();
-        // let x = q.iter().flat_map(move |key_sizes| {
-        //     Keyboard::build(self.clone(), letters, key_sizes.to_vec(), prune)
-        // });
-        // x
+            })
     }
 
     pub fn build<'a, F>(
