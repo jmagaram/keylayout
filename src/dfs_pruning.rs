@@ -44,17 +44,22 @@ pub mod keyboard_status {
             prohibited: &Prohibited,
             goals: &PenaltyGoals,
         ) -> KeyboardStatus {
-            if k.len() < 2 {
+            if k.len() == 0 {
                 KeyboardStatus::Ok(k.clone().to_solution(Penalty::ZERO, "".to_string()))
             } else {
                 match k.has_prohibited_keys(prohibited) {
                     true => KeyboardStatus::HasProhibitedLetters(k.clone()),
                     false => {
-                        let penalty_goal = goals.get(27 - k.len() as u8).unwrap_or(Penalty::MAX);
+                        // 27 - number of letters on keyboard
+                        // af bq
+                        // 27 + 2 - 4 = 25
+                        let penalty_goal = goals
+                            .get(27 + k.len() as u8 - k.letters().count_letters() as u8)
+                            .unwrap_or(Penalty::MAX);
                         let k_filled = k.fill_missing(dictionary.alphabet());
                         let penalty = k_filled.penalty(&dictionary, penalty_goal);
-                        let solution = k.clone().to_solution(penalty, "".to_string());
                         if penalty <= penalty_goal {
+                            let solution = k.clone().to_solution(penalty, "".to_string());
                             KeyboardStatus::Ok(solution)
                         } else {
                             KeyboardStatus::PenaltyExceeded(k.clone())
@@ -186,7 +191,7 @@ pub mod statistics {
                     let pruned = letters + penalty;
                     let pruned_pct = pct(pruned);
                     let format = |n: u32, pct: f32| {
-                        let result = format!("{} ({:.0})%", n.separate_with_underscores(), pct);
+                        let result = format!("{} ({:.1}%)", n.separate_with_underscores(), pct);
                         format!("{:<18}", result)
                     };
                     writeln!(
@@ -217,11 +222,11 @@ pub mod statistics {
 
 pub fn solve() {
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 10);
     let (tx, rx) = mpsc::channel::<KeyboardStatus>();
     let goals = PenaltyGoals::none(d.alphabet())
-        .with(26, Penalty::new(0.00006))
-        .with(25, Penalty::new(0.000174))
+        .with(26, Penalty::new(0.00006)) // 1 key with 2 letters
+        .with(25, Penalty::new(0.000174)) // 1 key with 3 letters
         .with(24, Penalty::new(0.000385))
         .with(23, Penalty::new(0.0007))
         .with(22, Penalty::new(0.0012))
@@ -235,8 +240,10 @@ pub fn solve() {
         .with(14, Penalty::new(0.013027))
         .with(13, Penalty::new(0.016709))
         .with(12, Penalty::new(0.02109))
+        .with(11, Penalty::new(1.02109))
         .with_adjustment(11..=26, 5.0)
         .with(10, Penalty::new(0.0246));
+    // .with(10, Penalty::MAX);
     let prune = |k: &Keyboard| -> bool {
         let result = keyboard_status::KeyboardStatus::evaluate(k, &d, &prohibited, &goals);
         let result_is_ok = result.is_ok();
@@ -244,9 +251,13 @@ pub fn solve() {
         tx.send(result).unwrap();
         should_prune
     };
+
+    // investigate the penalty scores, 10 or 27
+    // only gettng to 10 if parts is 11
+    // stopped at 0 doing nothing if ...? didn't prune anything
     let key_sizes = Partitions {
         sum: 27,
-        parts: 10,
+        parts: 11,
         min: 2,
         max: 3,
     };
