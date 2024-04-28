@@ -378,36 +378,31 @@ impl Keyboard {
         F: (Fn(&Keyboard) -> G) + 'a,
         G: Pruneable + Sized + 'a,
     {
-        let p = prune(&self);
-        if p.should_prune() {
-            let result = std::iter::once(p);
+        let current = prune(&self);
+        let current_take = if self.len() == 0 { 0 } else { 1 };
+        if current.should_prune() || key_sizes.len() == 0 {
+            let result = std::iter::once(current).take(current_take);
             let result: Box<dyn Iterator<Item = G>> = Box::new(result);
             result
         } else {
-            if key_sizes.len() == 0 {
-                let result = std::iter::once(p);
-                let result: Box<dyn Iterator<Item = G>> = Box::new(result);
-                result
-            } else {
-                let (key_size, key_sizes) = key_sizes.split_first().unwrap();
-                let key_sizes = key_sizes.to_vec();
-                let min_letter = letters.min_letter().unwrap();
-                let remaining_letters = letters.remove(min_letter);
-                let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
-                let new_keys = other_letters_for_key.map(move |o| {
-                    let new_key = o.add(min_letter);
-                    let remaining_letters = letters.except(new_key);
-                    (new_key, remaining_letters)
-                });
-                let keyboards = new_keys.flat_map(move |(new_key, letters)| {
-                    let k = self.add_key(new_key);
-                    let descendents = k.dfs_util(letters, key_sizes.to_vec(), prune);
-                    descendents
-                });
-                let current = std::iter::once(p);
-                let result: Box<dyn Iterator<Item = G>> = Box::new(current.chain(keyboards));
-                result
-            }
+            let (key_size, key_sizes) = key_sizes.split_first().unwrap();
+            let key_sizes = key_sizes.to_vec();
+            let min_letter = letters.min_letter().unwrap();
+            let remaining_letters = letters.remove(min_letter);
+            let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
+            let new_keys = other_letters_for_key.map(move |o| {
+                let new_key = o.add(min_letter);
+                let remaining_letters = letters.except(new_key);
+                (new_key, remaining_letters)
+            });
+            let keyboards = new_keys.flat_map(move |(new_key, letters)| {
+                let k = self.add_key(new_key);
+                let descendents = k.dfs_util(letters, key_sizes.to_vec(), prune);
+                descendents
+            });
+            let current = std::iter::once(current).take(current_take);
+            let result: Box<dyn Iterator<Item = G>> = Box::new(current.chain(keyboards));
+            result
         }
     }
 
