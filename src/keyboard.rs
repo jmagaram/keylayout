@@ -306,41 +306,6 @@ impl Keyboard {
     }
 
     /// Generates all possible keyboards in a depth-first manner, adding keys
-    /// one at a time. Any keyboard where the `prune` function returns false is
-    /// removed from the output, and prevents further depth-first building.
-    pub fn with_dfs_builder<'a, F, G>(
-        letters: Key,
-        key_sizes: Partitions,
-        prune: &'a F,
-        inspect: &'a G,
-    ) -> impl Iterator<Item = Keyboard> + 'a
-    where
-        F: (Fn(&Keyboard) -> bool) + 'a,
-        G: (Fn(&Keyboard)) + 'a,
-    {
-        assert_eq!(
-            letters.len(),
-            key_sizes.sum,
-            "The total number of letters must equal the partition sum."
-        );
-        if letters.len() != key_sizes.sum {}
-        key_sizes
-            .calculate()
-            .into_iter()
-            .map(|key_sizes| Tally::from(key_sizes))
-            .flat_map(|t| t.combinations())
-            .flat_map(move |key_sizes| {
-                Keyboard::dfs_builder_utility(
-                    Keyboard::empty(),
-                    letters,
-                    key_sizes.to_vec(),
-                    prune,
-                    inspect,
-                )
-            })
-    }
-
-    /// Generates all possible keyboards in a depth-first manner, adding keys
     /// one at a time. Each keyboard is first mapped to a `Prunable` using the
     /// `prune` function. If the keyboard should be pruned, it is returned in
     /// the results and no further depth-first traversal happens in that branch.
@@ -368,11 +333,11 @@ impl Keyboard {
             .map(|key_sizes| Tally::from(key_sizes))
             .flat_map(|t| t.combinations())
             .flat_map(move |key_sizes| {
-                Keyboard::dfs_util(Keyboard::empty(), letters, key_sizes.to_vec(), prune)
+                Keyboard::with_dfs_util(Keyboard::empty(), letters, key_sizes.to_vec(), prune)
             })
     }
 
-    fn dfs_util<'a, F, G>(
+    fn with_dfs_util<'a, F, G>(
         self,
         letters: Key,
         key_sizes: Vec<u32>,
@@ -401,54 +366,12 @@ impl Keyboard {
             });
             let keyboards = new_keys.flat_map(move |(new_key, letters)| {
                 let k = self.add_key(new_key);
-                let descendents = k.dfs_util(letters, key_sizes.to_vec(), prune);
+                let descendents = k.with_dfs_util(letters, key_sizes.to_vec(), prune);
                 descendents
             });
             let current = std::iter::once(current).take(current_take);
             let result: Box<dyn Iterator<Item = G>> = Box::new(current.chain(keyboards));
             result
-        }
-    }
-
-    fn dfs_builder_utility<'a, F, G>(
-        self,
-        letters: Key,
-        key_sizes: Vec<u32>,
-        prune: &'a F,
-        inspect: &'a G,
-    ) -> impl Iterator<Item = Keyboard> + 'a
-    where
-        F: (Fn(&Keyboard) -> bool) + 'a,
-        G: (Fn(&Keyboard)) + 'a,
-    {
-        if prune(&self) {
-            let result = std::iter::empty();
-            let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(result);
-            result
-        } else {
-            inspect(&self);
-            if key_sizes.len() == 0 {
-                let result = std::iter::once(self.clone());
-                let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(result);
-                result
-            } else {
-                let (key_size, key_sizes) = key_sizes.split_first().unwrap();
-                let key_sizes = key_sizes.to_vec();
-                let min_letter = letters.min_letter().unwrap();
-                let remaining_letters = letters.remove(min_letter);
-                let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
-                let new_keys = other_letters_for_key.map(move |o| {
-                    let new_key = o.add(min_letter);
-                    let remaining_letters = letters.except(new_key);
-                    (new_key, remaining_letters)
-                });
-                let keyboards = new_keys.flat_map(move |(new_key, letters)| {
-                    let k = self.add_key(new_key);
-                    k.dfs_builder_utility(letters, key_sizes.to_vec(), prune, inspect)
-                });
-                let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(keyboards);
-                result
-            }
         }
     }
 }
@@ -663,58 +586,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn with_dfs_builder_creates_proper_number_of_keyboards() {
-        let key_sizes = Partitions {
-            sum: 8,
-            min: 1,
-            max: 8,
-            parts: 3,
-        };
-        let expected = key_sizes.total_unique_keyboards();
-        let alphabet = Key::with_first_n_letters(8);
-        let prune = |_k: &Keyboard| false;
-        let inspect = |_k: &Keyboard| {};
-        let actual = Keyboard::with_dfs_builder(alphabet, key_sizes, &prune, &inspect).count();
-        assert_eq!(expected, actual as u128);
-    }
-
-    #[test]
-    fn with_dfs_builder_creates_unique_keyboards() {
-        let key_sizes = Partitions {
-            sum: 8,
-            min: 1,
-            max: 8,
-            parts: 3,
-        };
-        let mut tally = Tally::new();
-        let alphabet = Key::with_first_n_letters(8);
-        let prune = |_k: &Keyboard| false;
-        let inspect = |_k: &Keyboard| {};
-        for k in Keyboard::with_dfs_builder(alphabet, key_sizes, &prune, &inspect) {
-            let count = tally.increment(k.to_string());
-            assert!(count < 2);
-        }
-    }
-
-    #[test]
-    fn with_dfs_builder_print() {
-        let key_sizes = Partitions {
-            sum: 5,
-            min: 1,
-            max: 5,
-            parts: 3,
-        };
-        let mut prohibited = Prohibited::new();
-        prohibited.add_many([Key::new("cd")].into_iter());
-        let alphabet = Key::with_first_n_letters(5);
-        let prune = |k: &Keyboard| k.has_prohibited_keys(&prohibited);
-        let inspect = |_k: &Keyboard| {};
-        for k in Keyboard::with_dfs_builder(alphabet, key_sizes, &prune, &inspect) {
-            println!("{}", k)
-        }
-    }
-
     mod dfs_builder {
         use super::{Prohibited, Pruneable, Tally};
         use crate::keyboard::{
@@ -763,7 +634,7 @@ mod tests {
         }
 
         #[test]
-        fn with_dfs_builder_creates_proper_number_of_keyboards() {
+        fn with_dfs_creates_proper_number_of_keyboards() {
             let data = [(8, 3), (4, 2), (7, 3), (1, 1), (2, 2), (6, 3)];
             for (letter_count, key_count) in data {
                 let key_sizes = Partitions {
@@ -783,7 +654,7 @@ mod tests {
         }
 
         #[test]
-        fn with_dfs_builder_creates_unique_intermediate_keyboards() {
+        fn with_dfs_creates_unique_intermediate_keyboards() {
             let data = [(8, 5), (6, 2), (5, 1), (1, 1), (4, 2), (4, 3)];
             for (letter_count, key_count) in data {
                 let alphabet = Key::with_first_n_letters(letter_count);
@@ -810,7 +681,7 @@ mod tests {
         }
 
         #[test]
-        fn with_dfs_builder_never_returns_empty_keyboard() {
+        fn with_dfs_never_returns_empty_keyboard() {
             let data = [(8, 3), (6, 3), (1, 1), (4, 3), (2, 1)];
             for (letter_count, key_count) in data {
                 let alphabet = Key::with_first_n_letters(letter_count);
@@ -828,7 +699,7 @@ mod tests {
         }
 
         #[test]
-        fn with_dfs_builder_creates_unique_final_keyboards() {
+        fn with_dfs_creates_unique_final_keyboards() {
             let data = [(8, 3), (5, 1), (4, 3), (4, 2)];
             for (letter_count, key_count) in data {
                 let alphabet = Key::with_first_n_letters(letter_count);
