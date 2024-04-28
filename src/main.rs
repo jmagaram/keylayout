@@ -28,7 +28,7 @@ fn main() {
 
     let find_best_n_key = || {
         let dict = Dictionary::load();
-        let best = exhaustive_n_key::find_best_n_key(24, &dict);
+        let best = exhaustive_n_key::find_best_n_key(25, &dict);
         match best {
             None => {
                 println!("None found");
@@ -55,5 +55,5 @@ fn main() {
         }
     };
 
-    dfs_pruning();
+    find_best_n_key();
 }

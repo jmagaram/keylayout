@@ -1,7 +1,7 @@
+use crate::keyboard::Pruneable;
 use crate::partitions::Partitions;
 use crate::{dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, solution::Solution};
 use humantime::{format_duration, FormattedDuration};
-use std::cell::RefCell;
 use std::time::Duration;
 use std::time::Instant;
 use thousands::Separable;
@@ -16,19 +16,27 @@ impl DurationFormatter for Duration {
     }
 }
 
+impl Pruneable for Keyboard {
+    fn should_prune(&self) -> bool {
+        false
+    }
+}
+
 pub fn find_best_n_key(key_count: u32, dictionary: &Dictionary) -> Option<Solution> {
     let start_time = Instant::now();
     let mut best: Option<Solution> = None;
-    let prune = |_k: &Keyboard| -> bool { false };
-    let inspect = |_k: &Keyboard| {};
+    let prune = |k: &Keyboard| -> Keyboard { k.clone() };
     let key_sizes = Partitions {
         sum: dictionary.alphabet().len(),
         parts: key_count,
         min: 1,
         max: key_count,
     };
-    let keyboards = Keyboard::with_dfs_builder(dictionary.alphabet(), key_sizes, &prune, &inspect);
-    for (index, k) in keyboards.enumerate() {
+    let keyboards = Keyboard::with_dfs(dictionary.alphabet(), &key_sizes, &prune);
+    for (index, k) in keyboards
+        .enumerate()
+        .filter(|(_, k)| k.len() == key_count as usize)
+    {
         let best_penalty = best.as_ref().map(|b| b.penalty()).unwrap_or(Penalty::MAX);
         let penalty = k.penalty(&dictionary, best_penalty);
         if penalty < best_penalty {
