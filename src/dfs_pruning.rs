@@ -122,6 +122,12 @@ pub mod statistics {
             ((self.seen as f32) / (self.started.elapsed().as_secs_f32())) as i32
         }
 
+        pub fn total_at_key_count(&self, key_count: usize) -> u32 {
+            self.penalty.count(&key_count)
+                + self.letters.count(&key_count)
+                + self.ok.count(&key_count)
+        }
+
         pub fn add(&mut self, status: &KeyboardStatus) {
             self.seen = self.seen + 1;
             self.has_new_best = false;
@@ -174,11 +180,11 @@ pub mod statistics {
                 self.seen_per_second().separate_with_underscores()
             )?;
             writeln!(f, "Elapsed: {}", self.started.elapsed().round_to_seconds())?;
-            let pct = |n: u32| (n as f32) / (self.seen as f32) * 100.0;
+            let pct_total = |n: u32| (n as f32) / (self.seen as f32) * 100.0;
             writeln!(f, "")?;
             writeln!(
                 f,
-                "K    Penalty           Letters           Pruned            Ok"
+                "K    Penalty           Letters           Pruned            Ok                Total"
             )?;
             let format = |n: u32, pct: f32| {
                 let result = format!("{} ({:.0}%)", n.separate_with_underscores(), pct);
@@ -186,22 +192,33 @@ pub mod statistics {
             };
             (10usize..=27)
                 .map(|key_count| {
+                    let total_at_key_count = self.total_at_key_count(key_count);
+                    let pct_of = |n: u32| {
+                        if total_at_key_count == 0 {
+                            0.0
+                        } else {
+                            (n as f32) / (total_at_key_count as f32) * 100.0
+                        }
+                    };
                     let ok = self.ok.count(&key_count);
-                    let ok_pct = pct(ok);
+                    let ok_pct = pct_of(ok);
                     let penalty = self.penalty.count(&key_count);
-                    let penalty_pct = pct(penalty);
+                    let penalty_pct = pct_of(penalty);
                     let letters = self.letters.count(&key_count);
-                    let letters_pct = pct(letters);
+                    let letters_pct = pct_of(letters);
                     let pruned = letters + penalty;
-                    let pruned_pct = pct(pruned);
+                    let pruned_pct = pct_of(pruned);
+                    let total = self.total_at_key_count(key_count);
+                    let total_pct = pct_total(total);
                     writeln!(
                         f,
-                        "{:<5}{}{}{}{}",
+                        "{:<5}{}{}{}{}{}",
                         key_count,
                         format(penalty, penalty_pct),
                         format(letters, letters_pct),
                         format(pruned, pruned_pct),
                         format(ok, ok_pct),
+                        format(total, total_pct),
                     )
                 })
                 .collect::<Result<(), _>>()?;
@@ -213,10 +230,10 @@ pub mod statistics {
                 f,
                 "{:<5}{}{}{}{}",
                 "ALL",
-                format(penalty_total, pct(penalty_total)),
-                format(letters_total, pct(letters_total)),
-                format(pruned_total, pct(pruned_total)),
-                format(ok_total, pct(ok_total)),
+                format(penalty_total, pct_total(penalty_total)),
+                format(letters_total, pct_total(letters_total)),
+                format(pruned_total, pct_total(pruned_total)),
+                format(ok_total, pct_total(ok_total)),
             )?;
             writeln!(f, "")?;
             writeln!(f, "K    Best")?;
