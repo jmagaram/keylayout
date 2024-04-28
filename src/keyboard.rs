@@ -712,16 +712,12 @@ mod tests {
     }
 
     mod dfs_builder {
-        use core::fmt;
-
         use super::{Prohibited, Pruneable, Tally};
-        use crate::{
-            keyboard::{
-                tests::{Key, Partitions},
-                Keyboard,
-            },
-            letter,
+        use crate::keyboard::{
+            tests::{Key, Partitions},
+            Keyboard,
         };
+        use core::fmt;
 
         struct KeyboardStatus {
             keyboard: Keyboard,
@@ -747,7 +743,6 @@ mod tests {
         impl KeyboardStatus {
             fn new(k: &Keyboard, disallow: Key) -> KeyboardStatus {
                 let mut prohibited = Prohibited::new();
-                // println!("Creating new keyboard status for {}", k.to_string());
                 prohibited.add(disallow);
                 let has_bad_letters = k.has_prohibited_keys(&prohibited);
                 KeyboardStatus {
@@ -830,7 +825,7 @@ mod tests {
 
         #[test]
         fn with_dfs_builder_creates_unique_final_keyboards() {
-            let data = [(8, 3)];
+            let data = [(8, 3), (5, 1), (4, 3), (4, 2)];
             for (letter_count, key_count) in data {
                 let alphabet = Key::with_first_n_letters(letter_count);
                 let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
@@ -855,18 +850,27 @@ mod tests {
         }
 
         #[test]
-        fn with_dfs_builder_print() {
-            let letter_count = 6;
-            let key_sizes = Partitions {
-                sum: letter_count,
-                min: 1,
-                max: letter_count,
-                parts: 3,
-            };
-            let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
-            let alphabet = Key::with_first_n_letters(letter_count);
-            for k in Keyboard::with_dfs(alphabet, key_sizes, &prune) {
-                println!("{}", k)
+        fn with_dfs_pruned_key_is_always_last() {
+            let data = [(6, 4, "ab"), (6, 4, "cd"), (6, 4, "ad"), (5, 3, "ab")];
+            for (letter_count, key_count, prohibited) in data {
+                let key_sizes = Partitions {
+                    sum: letter_count,
+                    min: 1,
+                    max: letter_count,
+                    parts: key_count,
+                };
+                let prohibited = Key::new(prohibited);
+                let prune = |k: &Keyboard| KeyboardStatus::new(k, prohibited);
+                let alphabet = Key::with_first_n_letters(letter_count);
+                assert!(Keyboard::with_dfs(alphabet, key_sizes, &prune).all(|k| {
+                    k.keyboard.keys.iter().enumerate().all(|(index, key)| {
+                        if key.contains_all(&prohibited) {
+                            index == (k.keyboard.keys.len() - 1)
+                        } else {
+                            true
+                        }
+                    })
+                }));
             }
         }
     }
