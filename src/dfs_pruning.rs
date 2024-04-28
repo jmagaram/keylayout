@@ -181,7 +181,7 @@ pub mod statistics {
                 "K    Penalty           Letters           Pruned            Ok"
             )?;
             let format = |n: u32, pct: f32| {
-                let result = format!("{} ({:.1}%)", n.separate_with_underscores(), pct);
+                let result = format!("{} ({:.0}%)", n.separate_with_underscores(), pct);
                 format!("{:<18}", result)
             };
             (10usize..=27)
@@ -242,7 +242,7 @@ pub mod statistics {
 
 pub fn solve() {
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 10);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
     let standard_penalties = [
         (26, 0.00006),
         (25, 0.000174),
@@ -261,12 +261,20 @@ pub fn solve() {
         (12, 0.02109),
         (11, 0.05),
     ];
-    let goals = PenaltyGoals::none(d.alphabet());
+    let mut goals = PenaltyGoals::none(d.alphabet());
     for (key_count, penalty) in standard_penalties {
         goals.with(key_count, Penalty::new(penalty));
     }
-    goals.with(10, Penalty::new(0.0246));
-    goals.with_adjustment(11..=26, 9_999.0);
+    // goals.with(10, Penalty::new(0.0246));
+    goals.with_adjustment(25..=25, 2.0);
+    goals.with_adjustment(23..=23, 2.0);
+    goals.with_adjustment(21..=21, 2.0);
+    goals.with_adjustment(19..=19, 2.0);
+    goals.with_adjustment(18..=18, 1.5);
+    goals.with_adjustment(17..=17, 0.8);
+    goals.with_adjustment(16..=16, 1.4);
+    // goals.with_adjustment(11..=26, 0.0001);
+    // goals.with_adjustment(11..=26, 0.0001);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
     let key_sizes = Partitions {
         sum: 27,

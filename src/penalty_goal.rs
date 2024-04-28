@@ -22,13 +22,11 @@ impl PenaltyGoals {
         }
     }
 
-    pub fn with(&self, key_count: u8, penalty: Penalty) -> PenaltyGoals {
-        let mut result = self.clone();
-        result.goals.insert(key_count, penalty);
-        result
+    pub fn with(&mut self, key_count: u8, penalty: Penalty) {
+        self.goals.insert(key_count, penalty);
     }
 
-    pub fn with_adjustment(&self, key_counts: RangeInclusive<u8>, multiplier: f32) -> PenaltyGoals {
+    pub fn with_adjustment(&mut self, key_counts: RangeInclusive<u8>, multiplier: f32) {
         assert!(
             multiplier > 0.0,
             "The multiplier must be greater that zero."
@@ -41,26 +39,24 @@ impl PenaltyGoals {
             key_counts.clone().max().unwrap() as usize <= self.alphabet.len() as usize,
             "The maximum key count must be less than or equal to the size of the alphabet."
         );
-        let mut result = self.clone();
         for key_count in key_counts {
-            match result.goals.get(&key_count) {
+            match self.goals.get(&key_count) {
                 None => (),
                 Some(previous) => {
                     let penalty = Penalty::new(previous.to_f32() * multiplier);
-                    result.goals.insert(key_count, penalty);
+                    self.goals.insert(key_count, penalty);
                 }
             }
         }
-        result
     }
 
     pub fn with_random_sampling(
-        &self,
+        &mut self,
         key_counts: RangeInclusive<u8>,
         sample_size: usize,
         take_index: usize,
         dictionary: &Dictionary,
-    ) -> PenaltyGoals {
+    ) {
         assert!(sample_size > 0, "Expected sample_size>0.");
         assert!(
             take_index < sample_size,
@@ -84,7 +80,6 @@ impl PenaltyGoals {
                 max: max as u32,
             }
         });
-        let mut result = self.clone();
         let prohibited = Prohibited::new();
         for p in partitions {
             println!(
@@ -97,9 +92,8 @@ impl PenaltyGoals {
                 .collect::<Vec<Penalty>>();
             penalties.sort_by(|a, b| a.partial_cmp(&b).unwrap());
             let penalty = penalties.iter().skip(take_index).next().unwrap();
-            result.goals.insert(p.parts as u8, penalty.clone());
+            self.goals.insert(p.parts as u8, penalty.clone());
         }
-        result
     }
 
     pub fn get(&self, key_count: u8) -> Option<Penalty> {
@@ -125,7 +119,8 @@ impl fmt::Display for PenaltyGoals {
 
 pub fn calculate_for_standard() {
     let d = Dictionary::load();
-    let p = PenaltyGoals::none(d.alphabet()).with_random_sampling(11..=26, 10000, 0, &d);
+    let mut p = PenaltyGoals::none(d.alphabet());
+    p.with_random_sampling(11..=26, 10000, 0, &d);
     println!("Best penalty goals with 10000 random samples");
     println!("{}", p);
 }
@@ -138,7 +133,8 @@ mod tests {
     #[ignore]
     fn display_property() {
         let d = Dictionary::load();
-        let p = PenaltyGoals::none(d.alphabet()).with_random_sampling(1..=10, 100, 10, &d);
+        let mut p = PenaltyGoals::none(d.alphabet());
+        p.with_random_sampling(1..=10, 100, 10, &d);
         println!("Penalties: {}", p);
     }
 }
