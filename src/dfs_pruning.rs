@@ -1,16 +1,11 @@
 use crate::{
-    dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, penalty_goal::PenaltyGoals,
-    prohibited::Prohibited,
+    dfs_pruning::keyboard_status::KeyboardStatus, dictionary::Dictionary, keyboard::Keyboard,
+    partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited,
 };
 use core::fmt;
-use hashbrown::HashMap;
 use humantime::{format_duration, FormattedDuration};
 
-use std::{
-    sync::mpsc,
-    thread,
-    time::{Duration, Instant},
-};
+use std::{sync::mpsc, thread, time::Duration};
 use thousands::Separable;
 
 trait DurationFormatter {
@@ -23,176 +18,110 @@ impl DurationFormatter for Duration {
     }
 }
 
-#[derive(Clone, Copy)]
-enum PruneKind {
-    MaxKeySizeExceeded,
-    ProhibitedLetters,
-    Penalty(Penalty),
-    KeyboardTooSmall,
-}
+pub mod keyboard_status {
+    use std::fmt;
 
-#[derive(Clone, Copy)]
-struct Prune {
-    kind: PruneKind,
-    key_count: usize,
-}
+    use crate::{
+        dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, penalty_goal::PenaltyGoals,
+        prohibited::Prohibited, solution::Solution,
+    };
 
-struct KeyCountTotals {
-    ok: u32,
-    prohibited_letters: u32,
-    max_key_size: u32,
-    keyboard_too_small: u32,
-    penalty: u32,
-}
-
-impl KeyCountTotals {
-    pub fn new() -> KeyCountTotals {
-        KeyCountTotals {
-            keyboard_too_small: 0,
-            max_key_size: 0,
-            ok: 0,
-            penalty: 0,
-            prohibited_letters: 0,
-        }
-    }
-}
-
-struct Statistics {
-    start_time: Instant,
-    seen: u32,
-    by_key_count: HashMap<usize, KeyCountTotals>,
-    recent_ok: Option<Keyboard>,
-}
-
-impl Statistics {
-    pub fn new() -> Statistics {
-        Statistics {
-            start_time: Instant::now(),
-            by_key_count: HashMap::new(),
-            recent_ok: None,
-            seen: 0,
-        }
+    #[derive(Clone)]
+    pub enum KeyboardStatus {
+        Ok(Solution),
+        HasProhibitedLetters(Keyboard),
+        PenaltyExceeded(Keyboard),
     }
 
-    pub fn max_key_size_exceeded_total(&self) -> u32 {
-        self.by_key_count.values().map(|v| v.max_key_size).sum()
-    }
-
-    pub fn prohibited_total(&self) -> u32 {
-        self.by_key_count
-            .values()
-            .map(|v| v.prohibited_letters)
-            .sum()
-    }
-
-    pub fn penalty_total(&self) -> u32 {
-        self.by_key_count.values().map(|v| v.penalty).sum()
-    }
-
-    pub fn add(&mut self, r: Result<Keyboard, Prune>) {
-        self.seen = self.seen + 1;
-        let key_count = match r {
-            Ok(ref k) => k.len(),
-            Err(e) => e.key_count,
-        };
-        if !self.by_key_count.contains_key(&key_count) {
-            self.by_key_count.insert(key_count, KeyCountTotals::new());
-        }
-        let stat = self.by_key_count.get_mut(&key_count).unwrap();
-        match r {
-            Ok(ref k) => {
-                self.recent_ok = Some(k.clone());
-                stat.ok = stat.ok + 1;
+    impl KeyboardStatus {
+        pub fn is_ok(&self) -> bool {
+            match self {
+                KeyboardStatus::Ok(_) => true,
+                _ => false,
             }
-            Err(p) => match p.kind {
-                PruneKind::MaxKeySizeExceeded => {
-                    stat.max_key_size = stat.max_key_size + 1;
+        }
+
+        pub fn evaluate(
+            k: &Keyboard,
+            dictionary: &Dictionary,
+            prohibited: &Prohibited,
+            goals: &PenaltyGoals,
+        ) -> KeyboardStatus {
+            if k.len() < 2 {
+                KeyboardStatus::Ok(k.clone().to_solution(Penalty::ZERO, "".to_string()))
+            } else {
+                match k.has_prohibited_keys(prohibited) {
+                    true => KeyboardStatus::HasProhibitedLetters(k.clone()),
+                    false => {
+                        let penalty_goal = goals.get(27 - k.len() as u8).unwrap_or(Penalty::MAX);
+                        let k_filled = k.fill_missing(dictionary.alphabet());
+                        let penalty = k_filled.penalty(&dictionary, penalty_goal);
+                        let solution = k.clone().to_solution(penalty, "".to_string());
+                        if penalty <= penalty_goal {
+                            KeyboardStatus::Ok(solution)
+                        } else {
+                            KeyboardStatus::PenaltyExceeded(k.clone())
+                        }
+                    }
                 }
-                PruneKind::Penalty(_penalty) => {
-                    stat.penalty = stat.penalty + 1;
+            }
+        }
+    }
+
+    impl fmt::Display for KeyboardStatus {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                KeyboardStatus::Ok(s) => {
+                    write!(f, "ok:      {}", s)
                 }
-                PruneKind::KeyboardTooSmall => {
-                    stat.keyboard_too_small = stat.keyboard_too_small + 1;
+                KeyboardStatus::HasProhibitedLetters(k) => {
+                    write!(f, "letters: {}", k)
                 }
-                PruneKind::ProhibitedLetters => {
-                    stat.prohibited_letters = stat.prohibited_letters + 1;
+                KeyboardStatus::PenaltyExceeded(k) => {
+                    write!(f, "penalty: {}", k)
                 }
-            },
+            }
         }
     }
 }
 
-impl fmt::Display for Statistics {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let seen_per_second = ((self.seen as f32) / self.start_time.elapsed().as_secs_f32()) as i32;
-        fn write_num(
-            f: &mut fmt::Formatter<'_>,
-            caption: &str,
-            num: u32,
-            total: u32,
-        ) -> Result<(), std::fmt::Error> {
-            writeln!(
-                f,
-                "{} {} ({:.0}%)",
-                caption,
-                num.separate_with_underscores(),
-                100.0 * (num as f32) / (total as f32)
-            )
+pub mod statistics {
+    use std::fmt;
+
+    use thousands::Separable;
+
+    use super::keyboard_status::KeyboardStatus;
+
+    pub struct Statistics {
+        seen: u128,
+    }
+
+    impl Statistics {
+        pub fn new() -> Statistics {
+            Statistics { seen: 0 }
         }
-        writeln!(
-            f,
-            "Keyboards:    {} ({}/sec)",
-            self.seen.separate_with_underscores(),
-            seen_per_second.separate_with_underscores()
-        )?;
-        writeln!(
-            f,
-            "Recent:       {}",
-            self.recent_ok
-                .clone()
-                .map_or("(none)".to_string(), |k| k.to_string())
-        )?;
-        writeln!(
-            f,
-            "Elapsed:      {}",
-            self.start_time.elapsed().round_to_seconds()
-        )?;
-        write_num(
-            f,
-            "Key too big: ",
-            self.max_key_size_exceeded_total(),
-            self.seen,
-        )?;
-        write_num(f, "Prohibited:  ", self.prohibited_total(), self.seen)?;
-        write_num(f, "Penalty:     ", self.penalty_total(), self.seen)?;
-        (1usize..27)
-            .filter_map(|key_count| {
-                self.by_key_count
-                    .get(&key_count)
-                    .map(|i| (key_count, i.penalty))
-            })
-            .map(|(key_count, prune_count)| {
-                writeln!(
-                    f,
-                    "                 {} : {} ({:.1}%)",
-                    key_count,
-                    prune_count.separate_with_underscores(),
-                    100.0 * (prune_count as f32) / (self.seen as f32)
-                )
-            })
-            .collect::<Result<(), _>>()?;
-        Ok(())
+
+        pub fn add(&mut self, _status: &KeyboardStatus) {
+            self.seen = self.seen + 1;
+        }
+
+        pub fn seen_is_multiple_of(&self, n: u128) -> bool {
+            self.seen.rem_euclid(n) == 0
+        }
+    }
+
+    impl fmt::Display for Statistics {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            writeln!(f, "Seen: {}", self.seen.separate_with_underscores())
+        }
     }
 }
 
-// This algorithm is broken. It keeps combining keys until you get down to 10.
-// But at the 11 key stages, you'll probably have a bunch of 2 and 3 keys, and
-// these can't really be combined.
 pub fn solve() {
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 45);
-    let max_key_size = 4;
-    let penalty_goals = PenaltyGoals::none(d.alphabet())
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 80);
+    let (tx, rx) = mpsc::channel::<KeyboardStatus>();
+    let goals = PenaltyGoals::none(d.alphabet())
         .with(26, Penalty::new(0.00006))
         .with(25, Penalty::new(0.000174))
         .with(24, Penalty::new(0.000385))
@@ -208,75 +137,147 @@ pub fn solve() {
         .with(14, Penalty::new(0.013027))
         .with(13, Penalty::new(0.016709))
         .with(12, Penalty::new(0.02109))
-        .with_adjustment(11..=23, 0.85)
+        // .with_adjustment(11..=23, 5.0)
         .with(10, Penalty::new(0.0246));
-    let prune_result = |k: &Keyboard| -> Result<Keyboard, Prune> {
-        Ok(k.clone())
-            .and_then(|k| match k.len() < 10 {
-                true => Err(Prune {
-                    kind: PruneKind::KeyboardTooSmall,
-                    key_count: k.len(),
-                }),
-                false => Ok(k),
-            })
-            .and_then(|k| match k.max_key_size() {
-                Some(size) if size > max_key_size => Err(Prune {
-                    kind: PruneKind::MaxKeySizeExceeded,
-                    key_count: k.len(),
-                }),
-                _ => Ok(k),
-            })
-            .and_then(|k| match k.has_prohibited_keys(&prohibited) {
-                false => Ok(k),
-                true => Err(Prune {
-                    kind: PruneKind::ProhibitedLetters,
-                    key_count: k.len(),
-                }),
-            })
-            .and_then(|k| {
-                let penalty_to_beat = penalty_goals.get(k.len() as u8).unwrap_or(Penalty::MAX);
-                let actual_penalty = k.penalty(&d, penalty_to_beat);
-                match actual_penalty > penalty_to_beat {
-                    true => Err(Prune {
-                        kind: PruneKind::Penalty(actual_penalty),
-                        key_count: k.len(),
-                    }),
-                    false => Ok(k),
-                }
-            })
-    };
-    let start = Keyboard::with_every_letter_on_own_key(d.alphabet());
-    let (tx, rx) = mpsc::channel::<Result<Keyboard, Prune>>();
     let prune = |k: &Keyboard| -> bool {
-        let result = prune_result(k);
-        let should_prune = result.is_err();
+        let result = keyboard_status::KeyboardStatus::evaluate(k, &d, &prohibited, &goals);
+        let result_is_ok = result.is_ok();
+        let should_prune = !result_is_ok;
         tx.send(result).unwrap();
         should_prune
     };
-    let solutions = start
-        .every_smaller_with(&prune)
-        .filter(|k| k.len() == 10)
-        .map(|k| {
+    let key_sizes = Partitions {
+        sum: 27,
+        parts: 10,
+        min: 2,
+        max: 3,
+    };
+    let inspect = |_k: &Keyboard| {};
+    let solutions =
+        Keyboard::with_dfs_builder(d.alphabet(), key_sizes, &prune, &inspect).map(|k| {
             let penalty = k.penalty(&d, Penalty::MAX);
             k.to_solution(penalty, "".to_string())
         });
     let _join_handle = thread::spawn(move || {
-        let mut progress_stats = Statistics::new();
+        let mut statistics = statistics::Statistics::new();
         loop {
-            let prune_result = rx.recv();
-            match prune_result {
-                Ok(prune_result) => {
-                    progress_stats.add(prune_result);
-                    if progress_stats.seen.rem_euclid(1_000) == 0 {
-                        println!("{}", progress_stats);
+            let keyboard_status = rx.recv();
+            match keyboard_status {
+                Ok(keyboard_status) => {
+                    statistics.add(&keyboard_status);
+                    if statistics.seen_is_multiple_of(10) {
+                        println!("{}", keyboard_status);
                     }
                 }
-                Err(_err) => {}
+                Err(err) => {
+                    println!("{}", err)
+                }
             }
         }
     });
     for s in solutions {
-        println!("{}", s);
+        println!("SOLVED {}", s);
     }
     println!("=== DONE ===");
 }
+
+// struct KeyCountTotals {
+//     ok: u32,
+//     prohibited_letters: u32,
+//     penalty: u32,
+// }
+
+// impl KeyCountTotals {
+//     pub fn new() -> KeyCountTotals {
+//         KeyCountTotals {
+//             ok: 0,
+//             penalty: 0,
+//             prohibited_letters: 0,
+//         }
+//     }
+// }
+
+// struct Statistics {
+//     start_time: Instant,
+//     seen: u32,
+//     by_key_count: HashMap<usize, KeyCountTotals>,
+//     recent_ok: Option<Keyboard>,
+// }
+
+// impl Statistics {
+//     pub fn new() -> Statistics {
+//         Statistics {
+//             start_time: Instant::now(),
+//             by_key_count: HashMap::new(),
+//             recent_ok: None,
+//             seen: 0,
+//         }
+//     }
+
+//     pub fn prohibited_total(&self) -> u32 {
+//         self.by_key_count
+//             .values()
+//             .map(|v| v.prohibited_letters)
+//             .sum()
+//     }
+
+//     pub fn penalty_total(&self) -> u32 {
+//         self.by_key_count.values().map(|v| v.penalty).sum()
+//     }
+
+// impl fmt::Display for Statistics {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         let seen_per_second = ((self.seen as f32) / self.start_time.elapsed().as_secs_f32()) as i32;
+//         fn write_num(
+//             f: &mut fmt::Formatter<'_>,
+//             caption: &str,
+//             num: u32,
+//             total: u32,
+//         ) -> Result<(), std::fmt::Error> {
+//             writeln!(
+//                 f,
+//                 "{} {} ({:.0}%)",
+//                 caption,
+//                 num.separate_with_underscores(),
+//                 100.0 * (num as f32) / (total as f32)
+//             )
+//         }
+//         writeln!(
+//             f,
+//             "Keyboards:    {} ({}/sec)",
+//             self.seen.separate_with_underscores(),
+//             seen_per_second.separate_with_underscores()
+//         )?;
+//         writeln!(
+//             f,
+//             "Recent:       {}",
+//             self.recent_ok
+//                 .clone()
+//                 .map_or("(none)".to_string(), |k| k.to_string())
+//         )?;
+//         writeln!(
+//             f,
+//             "Elapsed:      {}",
+//             self.start_time.elapsed().round_to_seconds()
+//         )?;
+//         write_num(f, "Prohibited:  ", self.prohibited_total(), self.seen)?;
+//         write_num(f, "Penalty:     ", self.penalty_total(), self.seen)?;
+//         (2usize..=10)
+//             .filter_map(|key_count| {
+//                 self.by_key_count
+//                     .get(&key_count)
+//                     .map(|i| (key_count, i.penalty))
+//             })
+//             .map(|(key_count, prune_count)| {
+//                 writeln!(
+//                     f,
+//                     "                 {} : {} ({:.1}%)",
+//                     key_count,
+//                     prune_count.separate_with_underscores(),
+//                     100.0 * (prune_count as f32) / (self.seen as f32)
+//                 )
+//             })
+//             .collect::<Result<(), _>>()?;
+//         Ok(())
+//     }
+// }

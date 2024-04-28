@@ -28,7 +28,15 @@ fn main() {
 
     let find_best_n_key = || {
         let dict = Dictionary::load();
-        exhaustive_n_key::find_best_n_key(25, &dict);
+        let best = exhaustive_n_key::find_best_n_key(24, &dict);
+        match best {
+            None => {
+                println!("None found");
+            }
+            Some(k) => {
+                println!("{}", k);
+            }
+        }
     };
 
     let genetic_solver = move || {

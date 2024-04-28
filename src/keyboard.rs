@@ -307,13 +307,15 @@ impl Keyboard {
     /// Generates all possible keyboards in a depth-first manner, adding keys
     /// one at a time. Any keyboard where the `prune` function returns false is
     /// removed from the output, and prevents further depth-first building.
-    pub fn with_dfs_builder<'a, F>(
+    pub fn with_dfs_builder<'a, F, G>(
         letters: Key,
         key_sizes: Partitions,
         prune: &'a F,
+        inspect: &'a G,
     ) -> impl Iterator<Item = Keyboard> + 'a
     where
         F: (Fn(&Keyboard) -> bool) + 'a,
+        G: (Fn(&Keyboard)) + 'a,
     {
         assert_eq!(
             letters.len(),
@@ -327,24 +329,33 @@ impl Keyboard {
             .map(|key_sizes| Tally::from(key_sizes))
             .flat_map(|t| t.combinations())
             .flat_map(move |key_sizes| {
-                Keyboard::dfs_builder_utility(Keyboard::empty(), letters, key_sizes.to_vec(), prune)
+                Keyboard::dfs_builder_utility(
+                    Keyboard::empty(),
+                    letters,
+                    key_sizes.to_vec(),
+                    prune,
+                    inspect,
+                )
             })
     }
 
-    fn dfs_builder_utility<'a, F>(
+    fn dfs_builder_utility<'a, F, G>(
         self,
         letters: Key,
         key_sizes: Vec<u32>,
         prune: &'a F,
+        inspect: &'a G,
     ) -> impl Iterator<Item = Keyboard> + 'a
     where
         F: (Fn(&Keyboard) -> bool) + 'a,
+        G: (Fn(&Keyboard)) + 'a,
     {
         if prune(&self) {
             let result = std::iter::empty();
             let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(result);
             result
         } else {
+            inspect(&self);
             if key_sizes.len() == 0 {
                 let result = std::iter::once(self.clone());
                 let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(result);
@@ -362,7 +373,7 @@ impl Keyboard {
                 });
                 let keyboards = new_keys.flat_map(move |(new_key, letters)| {
                     let k = self.add_key(new_key);
-                    k.dfs_builder_utility(letters, key_sizes.to_vec(), prune)
+                    k.dfs_builder_utility(letters, key_sizes.to_vec(), prune, inspect)
                 });
                 let result: Box<dyn Iterator<Item = Keyboard>> = Box::new(keyboards);
                 result
@@ -466,9 +477,53 @@ impl fmt::Display for Keyboard {
 #[cfg(test)]
 mod tests {
 
+    use std::cell::RefCell;
+
     use crate::prohibited;
 
     use super::*;
+
+    fn factorial<R>(n: u32, inspect: &mut R) -> u32
+    where
+        R: FnMut() -> (),
+    {
+        inspect();
+        if n == 1 {
+            1
+        } else {
+            n * factorial(n - 1, inspect)
+        }
+    }
+
+    fn factorial2<R>(n: u32, inspect: &R) -> u32
+    where
+        R: Fn() -> (),
+    {
+        inspect();
+        if n == 1 {
+            1
+        } else {
+            n * factorial2(n - 1, inspect)
+        }
+    }
+
+    #[test]
+    fn factorial_with_observer() {
+        let counter: RefCell<u32> = RefCell::new(0);
+        let observer = || {
+            println!("Doing the recursion!");
+            let mut mut_counter = counter.borrow_mut();
+            *mut_counter = *mut_counter + 1;
+            drop(mut_counter);
+        };
+        let result = factorial2(5, &observer);
+        // let result = factorial(5, &mut || {
+        //     println!("Doing the recursion!");
+        //     counter = counter + 1;
+        //     items.push(counter);
+        // });
+        println!("{}", counter.borrow_mut());
+    }
 
     #[test]
     #[cfg(debug_assertions)]
@@ -669,7 +724,8 @@ mod tests {
         let expected = key_sizes.total_unique_keyboards();
         let alphabet = Key::with_first_n_letters(8);
         let prune = |_k: &Keyboard| false;
-        let actual = Keyboard::with_dfs_builder(alphabet, key_sizes, &prune).count();
+        let inspect = |_k: &Keyboard| {};
+        let actual = Keyboard::with_dfs_builder(alphabet, key_sizes, &prune, &inspect).count();
         assert_eq!(expected, actual as u128);
     }
 
@@ -684,7 +740,8 @@ mod tests {
         let mut tally = Tally::new();
         let alphabet = Key::with_first_n_letters(8);
         let prune = |_k: &Keyboard| false;
-        for k in Keyboard::with_dfs_builder(alphabet, key_sizes, &prune) {
+        let inspect = |_k: &Keyboard| {};
+        for k in Keyboard::with_dfs_builder(alphabet, key_sizes, &prune, &inspect) {
             let count = tally.increment(k.to_string());
             assert!(count < 2);
         }
@@ -702,7 +759,8 @@ mod tests {
         prohibited.add_many([Key::new("cd")].into_iter());
         let alphabet = Key::with_first_n_letters(5);
         let prune = |k: &Keyboard| k.has_prohibited_keys(&prohibited);
-        for k in Keyboard::with_dfs_builder(alphabet, key_sizes, &prune) {
+        let inspect = |_k: &Keyboard| {};
+        for k in Keyboard::with_dfs_builder(alphabet, key_sizes, &prune, &inspect) {
             println!("{}", k)
         }
     }
