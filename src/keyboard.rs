@@ -349,7 +349,7 @@ impl Keyboard {
     /// 1..=10.
     pub fn with_dfs<'a, F, G>(
         letters: Key,
-        key_sizes: Partitions,
+        key_sizes: &Partitions,
         prune: &'a F,
     ) -> impl Iterator<Item = G> + 'a
     where
@@ -775,7 +775,7 @@ mod tests {
                 let expected = key_sizes.total_unique_keyboards();
                 let alphabet = Key::with_first_n_letters(letter_count);
                 let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
-                let actual = Keyboard::with_dfs(alphabet, key_sizes, &prune)
+                let actual = Keyboard::with_dfs(alphabet, &key_sizes, &prune)
                     .filter(|k| k.keyboard.len() == key_count as usize)
                     .count();
                 assert_eq!(expected, actual as u128);
@@ -798,7 +798,7 @@ mod tests {
                             parts: key_count,
                         };
                         let mut tally = Tally::new();
-                        for k in Keyboard::with_dfs(alphabet, key_sizes, &prune)
+                        for k in Keyboard::with_dfs(alphabet, &key_sizes, &prune)
                             .filter(|k| k.keyboard.len() == len as usize)
                         {
                             let count = tally.increment(k.keyboard.to_string());
@@ -822,7 +822,7 @@ mod tests {
                     parts: key_count,
                 };
                 assert!(
-                    Keyboard::with_dfs(alphabet, key_sizes, &prune).all(|k| k.keyboard.len() > 0)
+                    Keyboard::with_dfs(alphabet, &key_sizes, &prune).all(|k| k.keyboard.len() > 0)
                 );
             }
         }
@@ -840,7 +840,7 @@ mod tests {
                     parts: key_count,
                 };
                 let mut tally = Tally::new();
-                for k in Keyboard::with_dfs(alphabet, key_sizes, &prune)
+                for k in Keyboard::with_dfs(alphabet, &key_sizes, &prune)
                     .filter(|k| k.keyboard.len() == key_count as usize)
                 {
                     let count = tally.increment(k.keyboard.to_string());
@@ -866,7 +866,7 @@ mod tests {
                 let prohibited = Key::new(prohibited);
                 let prune = |k: &Keyboard| KeyboardStatus::new(k, prohibited);
                 let alphabet = Key::with_first_n_letters(letter_count);
-                assert!(Keyboard::with_dfs(alphabet, key_sizes, &prune).all(|k| {
+                assert!(Keyboard::with_dfs(alphabet, &key_sizes, &prune).all(|k| {
                     k.keyboard.keys.iter().enumerate().all(|(index, key)| {
                         if key.contains_all(&prohibited) {
                             index == (k.keyboard.keys.len() - 1)
