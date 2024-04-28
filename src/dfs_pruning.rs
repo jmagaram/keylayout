@@ -96,6 +96,7 @@ pub mod statistics {
         letters: Tally<usize>,
         best: HashMap<usize, Solution>,
         started: Instant,
+        has_new_best: bool,
     }
 
     impl Statistics {
@@ -107,6 +108,7 @@ pub mod statistics {
                 ok: Tally::new(),
                 best: HashMap::new(),
                 started: Instant::now(),
+                has_new_best: false,
             }
         }
 
@@ -116,6 +118,7 @@ pub mod statistics {
 
         pub fn add(&mut self, status: &KeyboardStatus) {
             self.seen = self.seen + 1;
+            self.has_new_best = false;
             match &status {
                 &KeyboardStatus::Ok(solution) => {
                     let key_count = solution.keyboard().len();
@@ -123,10 +126,12 @@ pub mod statistics {
                     match self.best.get(&key_count) {
                         None => {
                             self.best.insert(key_count, solution.clone());
+                            self.has_new_best = true;
                         }
                         Some(best) => {
                             if solution.penalty() < best.penalty() {
                                 self.best.insert(key_count, solution.clone());
+                                self.has_new_best = true;
                             }
                         }
                     }
@@ -143,6 +148,10 @@ pub mod statistics {
 
         pub fn seen_is_multiple_of(&self, n: u128) -> bool {
             self.seen.rem_euclid(n) == 0
+        }
+
+        pub fn has_new_best(&self) -> bool {
+            self.has_new_best
         }
     }
 
@@ -166,7 +175,7 @@ pub mod statistics {
                 f,
                 "K    Penalty           Letters           Pruned            Ok"
             )?;
-            (2usize..12)
+            (2usize..=10)
                 .map(|key_count| {
                     let ok = self.ok.count(&key_count);
                     let ok_pct = pct(ok);
@@ -193,7 +202,7 @@ pub mod statistics {
                 .collect::<Result<(), _>>()?;
             writeln!(f, "")?;
             writeln!(f, "K    Best")?;
-            (2usize..12)
+            (2usize..=10)
                 .filter_map(|key_count| {
                     self.best
                         .get(&key_count)
@@ -208,7 +217,7 @@ pub mod statistics {
 
 pub fn solve() {
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 80);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
     let (tx, rx) = mpsc::channel::<KeyboardStatus>();
     let goals = PenaltyGoals::none(d.alphabet())
         .with(26, Penalty::new(0.00006))
@@ -226,7 +235,7 @@ pub fn solve() {
         .with(14, Penalty::new(0.013027))
         .with(13, Penalty::new(0.016709))
         .with(12, Penalty::new(0.02109))
-        // .with_adjustment(11..=23, 5.0)
+        .with_adjustment(11..=26, 5.0)
         .with(10, Penalty::new(0.0246));
     let prune = |k: &Keyboard| -> bool {
         let result = keyboard_status::KeyboardStatus::evaluate(k, &d, &prohibited, &goals);
@@ -254,18 +263,19 @@ pub fn solve() {
             match keyboard_status {
                 Ok(keyboard_status) => {
                     statistics.add(&keyboard_status);
-                    if statistics.seen_is_multiple_of(100_000) {
+                    if statistics.seen_is_multiple_of(100_000) || statistics.has_new_best() {
                         println!("{}", statistics);
                     }
                 }
-                Err(err) => {
-                    println!("{}", err)
+                Err(_err) => {
+                    break;
                 }
             }
         }
     });
-    for s in solutions {
-        println!("SOLVED {}", s);
-    }
-    println!("=== DONE ===");
+    solutions.count();
+    // println!("======================= SOLUTIONS FOUND =======================");
+    // for s in solutions {
+    //     println!("{}", s);
+    // }
 }
