@@ -720,9 +720,12 @@ mod tests {
         use core::fmt;
 
         use super::{Prohibited, Pruneable, Tally};
-        use crate::keyboard::{
-            tests::{Key, Partitions},
-            Keyboard,
+        use crate::{
+            keyboard::{
+                tests::{Key, Partitions},
+                Keyboard,
+            },
+            letter,
         };
 
         struct KeyboardStatus {
@@ -738,11 +741,10 @@ mod tests {
                     .join("");
                 write!(
                     f,
-                    "{} len:{}, k:'{}' bad:{}",
+                    "{}  '{}' {}",
                     indent,
-                    self.keyboard.len(),
                     self.keyboard.to_string(),
-                    self.has_bad_letters
+                    if self.has_bad_letters { "bad" } else { "" }
                 )
             }
         }
@@ -750,6 +752,7 @@ mod tests {
         impl KeyboardStatus {
             fn new(k: &Keyboard, disallow: Key) -> KeyboardStatus {
                 let mut prohibited = Prohibited::new();
+                // println!("Creating new keyboard status for {}", k.to_string());
                 prohibited.add(disallow);
                 let has_bad_letters = k.has_prohibited_keys(&prohibited);
                 KeyboardStatus {
@@ -767,54 +770,106 @@ mod tests {
 
         #[test]
         fn with_dfs_builder_creates_proper_number_of_keyboards() {
-            let key_count = 3;
-            let letter_count = 8;
-            let key_sizes = Partitions {
-                sum: letter_count,
-                min: 1,
-                max: letter_count,
-                parts: key_count,
-            };
-            let expected = key_sizes.total_unique_keyboards();
-            let alphabet = Key::with_first_n_letters(letter_count);
-            let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
-            let actual = Keyboard::with_dfs(alphabet, key_sizes, &prune)
-                .filter(|k| k.keyboard.len() == key_count as usize)
-                .count();
-            assert_eq!(expected, actual as u128);
+            let data = [(8, 3), (4, 2), (7, 3), (1, 1), (2, 2), (6, 3)];
+            for (letter_count, key_count) in data {
+                let key_sizes = Partitions {
+                    sum: letter_count,
+                    min: 1,
+                    max: letter_count,
+                    parts: key_count,
+                };
+                let expected = key_sizes.total_unique_keyboards();
+                let alphabet = Key::with_first_n_letters(letter_count);
+                let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
+                let actual = Keyboard::with_dfs(alphabet, key_sizes, &prune)
+                    .filter(|k| k.keyboard.len() == key_count as usize)
+                    .count();
+                assert_eq!(expected, actual as u128);
+            }
         }
 
         #[test]
-        fn with_dfs_builder_creates_unique_keyboards() {
-            let key_count = 3;
-            let letter_count = 8;
-            let key_sizes = Partitions {
-                sum: letter_count,
-                min: 1,
-                max: letter_count,
-                parts: key_count,
-            };
-            let mut tally = Tally::new();
-            let alphabet = Key::with_first_n_letters(letter_count);
-            let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
-            for k in Keyboard::with_dfs(alphabet, key_sizes, &prune)
-                .filter(|k| k.keyboard.len() == key_count as usize)
-            {
-                let count = tally.increment(k.keyboard.to_string());
-                assert!(count < 2);
+        fn with_dfs_builder_creates_unique_intermediate_keyboards() {
+            let data = [(8, 5), (6, 2), (5, 1), (1, 1), (4, 2), (4, 3)];
+            for (letter_count, key_count) in data {
+                let alphabet = Key::with_first_n_letters(letter_count);
+                let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
+                (2..key_count)
+                    .into_iter()
+                    .map(|len| {
+                        let key_sizes = Partitions {
+                            sum: letter_count,
+                            min: 1,
+                            max: letter_count,
+                            parts: key_count,
+                        };
+                        let mut tally = Tally::new();
+                        for k in Keyboard::with_dfs(alphabet, key_sizes, &prune)
+                            .filter(|k| k.keyboard.len() == len as usize)
+                        {
+                            let count = tally.increment(k.keyboard.to_string());
+                            assert!(count < 2, "Expected only unique keyboards of size {}", len);
+                        }
+                    })
+                    .count();
+            }
+        }
+
+        #[test]
+        fn with_dfs_builder_never_returns_empty_keyboard() {
+            let data = [(8, 3), (6, 3), (1, 1), (4, 3), (2, 1)];
+            for (letter_count, key_count) in data {
+                let alphabet = Key::with_first_n_letters(letter_count);
+                let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
+                let key_sizes = Partitions {
+                    sum: letter_count,
+                    min: 1,
+                    max: letter_count,
+                    parts: key_count,
+                };
+                assert!(
+                    Keyboard::with_dfs(alphabet, key_sizes, &prune).all(|k| k.keyboard.len() > 0)
+                );
+            }
+        }
+
+        #[test]
+        fn with_dfs_builder_creates_unique_final_keyboards() {
+            let data = [(8, 3)];
+            for (letter_count, key_count) in data {
+                let alphabet = Key::with_first_n_letters(letter_count);
+                let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
+                let key_sizes = Partitions {
+                    sum: letter_count,
+                    min: 1,
+                    max: letter_count,
+                    parts: key_count,
+                };
+                let mut tally = Tally::new();
+                for k in Keyboard::with_dfs(alphabet, key_sizes, &prune)
+                    .filter(|k| k.keyboard.len() == key_count as usize)
+                {
+                    let count = tally.increment(k.keyboard.to_string());
+                    assert!(
+                        count < 2,
+                        "Expected only unique keyboards of size {}",
+                        key_count
+                    );
+                }
             }
         }
 
         #[test]
         fn with_dfs_builder_print() {
+            let letter_count = 6;
             let key_sizes = Partitions {
-                sum: 5,
+                sum: letter_count,
                 min: 1,
-                max: 5,
+                max: letter_count,
                 parts: 3,
             };
-            let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("ab"));
-            let alphabet = Key::with_first_n_letters(5);
+            let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
+            let alphabet = Key::with_first_n_letters(letter_count);
             for k in Keyboard::with_dfs(alphabet, key_sizes, &prune) {
                 println!("{}", k)
             }
