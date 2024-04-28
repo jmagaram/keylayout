@@ -717,6 +717,8 @@ mod tests {
     }
 
     mod dfs_builder {
+        use core::fmt;
+
         use super::{Prohibited, Pruneable, Tally};
         use crate::keyboard::{
             tests::{Key, Partitions},
@@ -726,6 +728,23 @@ mod tests {
         struct KeyboardStatus {
             keyboard: Keyboard,
             has_bad_letters: bool,
+        }
+
+        impl fmt::Display for KeyboardStatus {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                let indent = std::iter::repeat("   ")
+                    .take(self.keyboard.len())
+                    .collect::<Vec<&str>>()
+                    .join("");
+                write!(
+                    f,
+                    "{} len:{}, k:'{}' bad:{}",
+                    indent,
+                    self.keyboard.len(),
+                    self.keyboard.to_string(),
+                    self.has_bad_letters
+                )
+            }
         }
 
         impl KeyboardStatus {
@@ -797,7 +816,7 @@ mod tests {
             let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("ab"));
             let alphabet = Key::with_first_n_letters(5);
             for k in Keyboard::with_dfs(alphabet, key_sizes, &prune) {
-                println!("{}", k.keyboard)
+                println!("{}", k)
             }
         }
     }
