@@ -187,7 +187,7 @@ pub mod statistics {
                 "K    Penalty           Letters           Pruned            Ok                Total"
             )?;
             let format = |n: u32, pct: f32| {
-                let result = format!("{} ({:.0}%)", n.separate_with_underscores(), pct);
+                let result = format!("{} ({:.1}%)", n.separate_with_underscores(), pct);
                 format!("{:<18}", result)
             };
             (10usize..=27)
