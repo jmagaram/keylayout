@@ -2,11 +2,8 @@ use crate::{
     dfs_pruning::keyboard_status::KeyboardStatus, dictionary::Dictionary, keyboard::Keyboard,
     partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited,
 };
-use core::fmt;
 use humantime::{format_duration, FormattedDuration};
-
 use std::{sync::mpsc, thread, time::Duration};
-use thousands::Separable;
 
 trait DurationFormatter {
     fn round_to_seconds(&self) -> FormattedDuration;
@@ -86,23 +83,62 @@ pub mod keyboard_status {
 }
 
 pub mod statistics {
-    use std::fmt;
-
+    use super::{keyboard_status::KeyboardStatus, DurationFormatter};
+    use crate::{solution::Solution, tally::Tally};
+    use hashbrown::HashMap;
+    use std::{fmt, time::Instant};
     use thousands::Separable;
-
-    use super::keyboard_status::KeyboardStatus;
 
     pub struct Statistics {
         seen: u128,
+        ok: Tally<usize>,
+        penalty: Tally<usize>,
+        letters: Tally<usize>,
+        best: HashMap<usize, Solution>,
+        started: Instant,
     }
 
     impl Statistics {
         pub fn new() -> Statistics {
-            Statistics { seen: 0 }
+            Statistics {
+                seen: 0,
+                penalty: Tally::new(),
+                letters: Tally::new(),
+                ok: Tally::new(),
+                best: HashMap::new(),
+                started: Instant::now(),
+            }
         }
 
-        pub fn add(&mut self, _status: &KeyboardStatus) {
+        pub fn seen_per_second(&self) -> i32 {
+            ((self.seen as f32) / (self.started.elapsed().as_secs_f32())) as i32
+        }
+
+        pub fn add(&mut self, status: &KeyboardStatus) {
             self.seen = self.seen + 1;
+            match &status {
+                &KeyboardStatus::Ok(solution) => {
+                    let key_count = solution.keyboard().len();
+                    self.ok.increment(key_count);
+                    match self.best.get(&key_count) {
+                        None => {
+                            self.best.insert(key_count, solution.clone());
+                        }
+                        Some(best) => {
+                            if solution.penalty() < best.penalty() {
+                                self.best.insert(key_count, solution.clone());
+                            }
+                        }
+                    }
+                }
+                &KeyboardStatus::HasProhibitedLetters(keyboard) => {
+                    let key_count = keyboard.len();
+                    self.letters.increment(key_count);
+                }
+                &KeyboardStatus::PenaltyExceeded(keyboard) => {
+                    self.penalty.increment(keyboard.len());
+                }
+            }
         }
 
         pub fn seen_is_multiple_of(&self, n: u128) -> bool {
@@ -112,7 +148,60 @@ pub mod statistics {
 
     impl fmt::Display for Statistics {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            writeln!(f, "Seen: {}", self.seen.separate_with_underscores())
+            writeln!(
+                f,
+                "===================================================================="
+            )?;
+            writeln!(f, "")?;
+            writeln!(
+                f,
+                "Seen:    {} ({:0.}/sec)",
+                self.seen.separate_with_underscores(),
+                self.seen_per_second().separate_with_underscores()
+            )?;
+            writeln!(f, "Elapsed: {}", self.started.elapsed().round_to_seconds())?;
+            let pct = |n: u32| (n as f32) / (self.seen as f32) * 100.0;
+            writeln!(f, "")?;
+            writeln!(
+                f,
+                "K    Penalty           Letters           Pruned            Ok"
+            )?;
+            (2usize..12)
+                .map(|key_count| {
+                    let ok = self.ok.count(&key_count);
+                    let ok_pct = pct(ok);
+                    let penalty = self.penalty.count(&key_count);
+                    let penalty_pct = pct(penalty);
+                    let letters = self.letters.count(&key_count);
+                    let letters_pct = pct(letters);
+                    let pruned = letters + penalty;
+                    let pruned_pct = pct(pruned);
+                    let format = |n: u32, pct: f32| {
+                        let result = format!("{} ({:.0})%", n.separate_with_underscores(), pct);
+                        format!("{:<18}", result)
+                    };
+                    writeln!(
+                        f,
+                        "{:<5}{}{}{}{}",
+                        key_count,
+                        format(penalty, penalty_pct),
+                        format(letters, letters_pct),
+                        format(pruned, pruned_pct),
+                        format(ok, ok_pct),
+                    )
+                })
+                .collect::<Result<(), _>>()?;
+            writeln!(f, "")?;
+            writeln!(f, "K    Best")?;
+            (2usize..12)
+                .filter_map(|key_count| {
+                    self.best
+                        .get(&key_count)
+                        .map(|solution| (key_count, solution))
+                })
+                .map(|(key_count, solution)| writeln!(f, "{:<3}  {}", key_count, solution))
+                .collect::<Result<(), _>>()?;
+            Ok(())
         }
     }
 }
@@ -165,8 +254,8 @@ pub fn solve() {
             match keyboard_status {
                 Ok(keyboard_status) => {
                     statistics.add(&keyboard_status);
-                    if statistics.seen_is_multiple_of(10) {
-                        println!("{}", keyboard_status);
+                    if statistics.seen_is_multiple_of(100_000) {
+                        println!("{}", statistics);
                     }
                 }
                 Err(err) => {
@@ -180,104 +269,3 @@ pub fn solve() {
     }
     println!("=== DONE ===");
 }
-
-// struct KeyCountTotals {
-//     ok: u32,
-//     prohibited_letters: u32,
-//     penalty: u32,
-// }
-
-// impl KeyCountTotals {
-//     pub fn new() -> KeyCountTotals {
-//         KeyCountTotals {
-//             ok: 0,
-//             penalty: 0,
-//             prohibited_letters: 0,
-//         }
-//     }
-// }
-
-// struct Statistics {
-//     start_time: Instant,
-//     seen: u32,
-//     by_key_count: HashMap<usize, KeyCountTotals>,
-//     recent_ok: Option<Keyboard>,
-// }
-
-// impl Statistics {
-//     pub fn new() -> Statistics {
-//         Statistics {
-//             start_time: Instant::now(),
-//             by_key_count: HashMap::new(),
-//             recent_ok: None,
-//             seen: 0,
-//         }
-//     }
-
-//     pub fn prohibited_total(&self) -> u32 {
-//         self.by_key_count
-//             .values()
-//             .map(|v| v.prohibited_letters)
-//             .sum()
-//     }
-
-//     pub fn penalty_total(&self) -> u32 {
-//         self.by_key_count.values().map(|v| v.penalty).sum()
-//     }
-
-// impl fmt::Display for Statistics {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         let seen_per_second = ((self.seen as f32) / self.start_time.elapsed().as_secs_f32()) as i32;
-//         fn write_num(
-//             f: &mut fmt::Formatter<'_>,
-//             caption: &str,
-//             num: u32,
-//             total: u32,
-//         ) -> Result<(), std::fmt::Error> {
-//             writeln!(
-//                 f,
-//                 "{} {} ({:.0}%)",
-//                 caption,
-//                 num.separate_with_underscores(),
-//                 100.0 * (num as f32) / (total as f32)
-//             )
-//         }
-//         writeln!(
-//             f,
-//             "Keyboards:    {} ({}/sec)",
-//             self.seen.separate_with_underscores(),
-//             seen_per_second.separate_with_underscores()
-//         )?;
-//         writeln!(
-//             f,
-//             "Recent:       {}",
-//             self.recent_ok
-//                 .clone()
-//                 .map_or("(none)".to_string(), |k| k.to_string())
-//         )?;
-//         writeln!(
-//             f,
-//             "Elapsed:      {}",
-//             self.start_time.elapsed().round_to_seconds()
-//         )?;
-//         write_num(f, "Prohibited:  ", self.prohibited_total(), self.seen)?;
-//         write_num(f, "Penalty:     ", self.penalty_total(), self.seen)?;
-//         (2usize..=10)
-//             .filter_map(|key_count| {
-//                 self.by_key_count
-//                     .get(&key_count)
-//                     .map(|i| (key_count, i.penalty))
-//             })
-//             .map(|(key_count, prune_count)| {
-//                 writeln!(
-//                     f,
-//                     "                 {} : {} ({:.1}%)",
-//                     key_count,
-//                     prune_count.separate_with_underscores(),
-//                     100.0 * (prune_count as f32) / (self.seen as f32)
-//                 )
-//             })
-//             .collect::<Result<(), _>>()?;
-//         Ok(())
-//     }
-// }
