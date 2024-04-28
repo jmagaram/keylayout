@@ -55,5 +55,5 @@ fn main() {
         }
     };
 
-    find_best_n_key();
+    dfs_pruning();
 }
