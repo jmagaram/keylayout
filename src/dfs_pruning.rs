@@ -3,7 +3,7 @@ use crate::{
     partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited,
 };
 use humantime::{format_duration, FormattedDuration};
-use std::{sync::mpsc, thread, time::Duration};
+use std::time::Duration;
 
 trait DurationFormatter {
     fn round_to_seconds(&self) -> FormattedDuration;
@@ -19,8 +19,12 @@ pub mod keyboard_status {
     use std::fmt;
 
     use crate::{
-        dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, penalty_goal::PenaltyGoals,
-        prohibited::Prohibited, solution::Solution,
+        dictionary::Dictionary,
+        keyboard::{Keyboard, Pruneable},
+        penalty::Penalty,
+        penalty_goal::PenaltyGoals,
+        prohibited::Prohibited,
+        solution::Solution,
     };
 
     #[derive(Clone)]
@@ -30,15 +34,17 @@ pub mod keyboard_status {
         PenaltyExceeded(Keyboard),
     }
 
-    impl KeyboardStatus {
-        pub fn is_ok(&self) -> bool {
+    impl Pruneable for KeyboardStatus {
+        fn should_prune(&self) -> bool {
             match self {
-                KeyboardStatus::Ok(_) => true,
-                _ => false,
+                KeyboardStatus::Ok(_) => false,
+                _ => true,
             }
         }
+    }
 
-        pub fn evaluate(
+    impl KeyboardStatus {
+        pub fn new(
             k: &Keyboard,
             dictionary: &Dictionary,
             prohibited: &Prohibited,
@@ -223,7 +229,6 @@ pub mod statistics {
 pub fn solve() {
     let d = Dictionary::load();
     let prohibited = Prohibited::with_top_n_letter_pairs(&d, 10);
-    let (tx, rx) = mpsc::channel::<KeyboardStatus>();
     let goals = PenaltyGoals::none(d.alphabet())
         .with(26, Penalty::new(0.00006)) // 1 key with 2 letters
         .with(25, Penalty::new(0.000174)) // 1 key with 3 letters
@@ -244,14 +249,7 @@ pub fn solve() {
         .with_adjustment(11..=26, 5.0)
         .with(10, Penalty::new(0.0246));
     // .with(10, Penalty::MAX);
-    let prune = |k: &Keyboard| -> bool {
-        let result = keyboard_status::KeyboardStatus::evaluate(k, &d, &prohibited, &goals);
-        let result_is_ok = result.is_ok();
-        let should_prune = !result_is_ok;
-        tx.send(result).unwrap();
-        should_prune
-    };
-
+    let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
     // investigate the penalty scores, 10 or 27
     // only gettng to 10 if parts is 11
     // stopped at 0 doing nothing if ...? didn't prune anything
@@ -261,32 +259,12 @@ pub fn solve() {
         min: 2,
         max: 3,
     };
-    let inspect = |_k: &Keyboard| {};
-    let solutions =
-        Keyboard::with_dfs_builder(d.alphabet(), key_sizes, &prune, &inspect).map(|k| {
-            let penalty = k.penalty(&d, Penalty::MAX);
-            k.to_solution(penalty, "".to_string())
-        });
-    let _join_handle = thread::spawn(move || {
-        let mut statistics = statistics::Statistics::new();
-        loop {
-            let keyboard_status = rx.recv();
-            match keyboard_status {
-                Ok(keyboard_status) => {
-                    statistics.add(&keyboard_status);
-                    if statistics.seen_is_multiple_of(100_000) || statistics.has_new_best() {
-                        println!("{}", statistics);
-                    }
-                }
-                Err(_err) => {
-                    break;
-                }
-            }
+    let solutions = Keyboard::with_dfs(d.alphabet(), &key_sizes, &prune);
+    let mut statistics = statistics::Statistics::new();
+    for s in solutions {
+        statistics.add(&s);
+        if statistics.seen_is_multiple_of(100_000) || statistics.has_new_best() {
+            println!("{}", statistics);
         }
-    });
-    solutions.count();
-    // println!("======================= SOLUTIONS FOUND =======================");
-    // for s in solutions {
-    //     println!("{}", s);
-    // }
+    }
 }
