@@ -215,37 +215,6 @@ impl Keyboard {
         }
     }
 
-    /// Generates every keyboard, including the current one, that results from
-    /// recursively combining keys in a depth-first manner. So if you start with
-    /// a 15 key keyboard, this returns the current keyboard plus all possible
-    /// 14, 13, 12, ... size keyboards down to the case where every letter is on
-    /// a single key. Duplicates do not occur.
-    pub fn every_smaller(&self) -> impl Iterator<Item = Keyboard> {
-        let explorer = DfsExplorer {
-            keyboard: self.clone(),
-            index: 0,
-        };
-        explorer.dfs().map(|k| k.keyboard)
-    }
-
-    /// Generates every keyboard, including the current one, that results from
-    /// recursively combining keys in a depth-first manner. So if you start with
-    /// a 15 key keyboard, this returns the current keyboard plus all possible
-    /// 14, 13, 12, ... size keyboards down to the case where every letter is on
-    /// a single key. Duplicates do not occur. The `prune` function stops the
-    /// depth-first traversal, making it possible to stop searching based on
-    /// maximum key size or the penalty score.
-    pub fn every_smaller_with<'a, F>(self, prune: &'a F) -> impl Iterator<Item = Keyboard> + 'a
-    where
-        F: (Fn(&Keyboard) -> bool) + 'a,
-    {
-        let explorer = DfsExplorer {
-            keyboard: self.clone(),
-            index: 0,
-        };
-        explorer.dfs_with(prune).map(|k| k.keyboard)
-    }
-
     /// Generates the sequence of all keyboards where every letter is swapped
     /// with every other letter.
     pub fn every_swap(&self) -> Vec<Keyboard> {
@@ -687,94 +656,6 @@ mod tests {
         for k in Keyboard::random(dict.alphabet(), &layout, &prohibited).take(20) {
             println!("{}", k);
         }
-    }
-
-    #[test]
-    fn every_smaller_if_empty_return_self() {
-        let start = Keyboard::with_keys(vec![]);
-        let result = start.every_smaller().collect::<Vec<Keyboard>>();
-        assert_eq!(1, result.len());
-        assert_eq!("".to_string(), result[0].to_string());
-    }
-
-    #[test]
-    fn every_smaller_if_one_key_return_self() {
-        let start = Keyboard::with_keys(vec![Key::new("abc")]);
-        let result = start.every_smaller().collect::<Vec<Keyboard>>();
-        assert_eq!(1, result.len());
-        assert_eq!("abc".to_string(), result[0].to_string());
-    }
-
-    #[test]
-    fn every_smaller_returns_correct_number_of_keyboards() {
-        let data = [3, 4, 5, 7];
-        for keys in data {
-            let start = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(keys));
-            let expected: u128 = (1..=keys)
-                .map(|key_count| Partitions {
-                    sum: keys,
-                    parts: key_count,
-                    min: 1,
-                    max: keys,
-                })
-                .map(|p| p.total_unique_keyboards())
-                .sum();
-            let actual = start.every_smaller().count() as u128;
-            assert_eq!(expected, actual, "for keys {}", keys);
-        }
-    }
-
-    #[test]
-    fn every_smaller_returns_unique_keyboards() {
-        let data = [3, 4, 5, 7];
-        for keys in data {
-            let start = Keyboard::with_every_letter_on_own_key(Key::with_first_n_letters(keys));
-            let mut tally = Tally::new();
-            start.every_smaller().for_each(move |k| {
-                let count = tally.increment(k.to_string());
-                assert_eq!(1, count)
-            });
-        }
-    }
-
-    #[test]
-    fn every_smaller_goes_depth_first() {
-        let start = Keyboard::with_every_letter_on_own_key(Key::with_every_letter());
-        let first_10_key = start.every_smaller().find(|k| k.len() == 10);
-        match first_10_key {
-            Some(ten_key) => assert_eq!(10, ten_key.len()),
-            None => panic!("Could not get a 10 key"),
-        }
-    }
-
-    #[test]
-    fn every_smaller_can_prune_root() {
-        let k = Keyboard::with_layout("a,b,c,d,e");
-        let prune = |k: &Keyboard| k.len() == 5;
-        let actual = k.every_smaller_with(&prune).count();
-        assert_eq!(0, actual);
-    }
-
-    #[test]
-    fn every_smaller_can_prune_base_case_of_single_key() {
-        let k = Keyboard::with_layout("a,b,c,d,e");
-        let prune = |k: &Keyboard| k.len() == 1;
-        let base_case_count = k
-            .every_smaller_with(&prune)
-            .filter(|k| k.len() == 1)
-            .count();
-        assert_eq!(base_case_count, 0);
-    }
-
-    #[test]
-    fn every_smaller_can_prune() {
-        let k = Keyboard::with_layout("a,b,c,d,e");
-        let prune = |k: &Keyboard| k.max_key_size().map(|ks| ks > 2).unwrap_or(false);
-        let count_big_keys = k
-            .every_smaller_with(&prune)
-            .filter(|k| k.max_key_size().map(|ks| ks > 2).unwrap_or(true))
-            .count();
-        assert_eq!(count_big_keys, 0);
     }
 
     #[test]

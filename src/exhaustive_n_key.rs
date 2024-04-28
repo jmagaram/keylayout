@@ -1,3 +1,4 @@
+use crate::partitions::Partitions;
 use crate::{dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, solution::Solution};
 use humantime::{format_duration, FormattedDuration};
 use std::time::Duration;
@@ -16,10 +17,15 @@ impl DurationFormatter for Duration {
 
 pub fn find_best_n_key(key_count: u32, dictionary: &Dictionary) -> Option<Solution> {
     let start_time = Instant::now();
-    let start = Keyboard::with_every_letter_on_own_key(dictionary.alphabet());
-    let prune = |k: &Keyboard| -> bool { k.len() < key_count as usize };
-    let keyboards = start.every_smaller_with(&prune).skip(1);
     let mut best: Option<Solution> = None;
+    let prune = |_k: &Keyboard| -> bool { false };
+    let key_sizes = Partitions {
+        sum: dictionary.alphabet().len(),
+        parts: key_count,
+        min: 1,
+        max: key_count,
+    };
+    let keyboards = Keyboard::with_dfs_builder(dictionary.alphabet(), key_sizes, &prune);
     for (index, k) in keyboards.enumerate() {
         let best_penalty = best.as_ref().map(|b| b.penalty()).unwrap_or(Penalty::MAX);
         let penalty = k.penalty(&dictionary, best_penalty);
@@ -36,7 +42,7 @@ pub fn find_best_n_key(key_count: u32, dictionary: &Dictionary) -> Option<Soluti
             println!("{}", solution);
             best = Some(solution);
         }
-        if index > 0 && index.rem_euclid(1_000_000) == 0 {
+        if index > 0 && index.rem_euclid(10_000) == 0 {
             println!(
                 "> seen {} keyboards with {} keys, {}",
                 index.separate_with_underscores(),
