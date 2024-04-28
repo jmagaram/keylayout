@@ -43,6 +43,10 @@ where
         }
     }
 
+    pub fn count_all(&self) -> u32 {
+        self.0.values().sum()
+    }
+
     fn decrement_by(&mut self, item: T, n: u32) -> u32 {
         match self.0.get_mut(&item) {
             None => {

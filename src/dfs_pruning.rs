@@ -180,6 +180,10 @@ pub mod statistics {
                 f,
                 "K    Penalty           Letters           Pruned            Ok"
             )?;
+            let format = |n: u32, pct: f32| {
+                let result = format!("{} ({:.1}%)", n.separate_with_underscores(), pct);
+                format!("{:<18}", result)
+            };
             (10usize..=27)
                 .map(|key_count| {
                     let ok = self.ok.count(&key_count);
@@ -190,10 +194,6 @@ pub mod statistics {
                     let letters_pct = pct(letters);
                     let pruned = letters + penalty;
                     let pruned_pct = pct(pruned);
-                    let format = |n: u32, pct: f32| {
-                        let result = format!("{} ({:.1}%)", n.separate_with_underscores(), pct);
-                        format!("{:<18}", result)
-                    };
                     writeln!(
                         f,
                         "{:<5}{}{}{}{}",
@@ -205,6 +205,19 @@ pub mod statistics {
                     )
                 })
                 .collect::<Result<(), _>>()?;
+            let penalty_total = self.penalty.count_all();
+            let letters_total = self.letters.count_all();
+            let pruned_total = penalty_total + letters_total;
+            let ok_total = self.ok.count_all();
+            writeln!(
+                f,
+                "{:<5}{}{}{}{}",
+                "ALL",
+                format(penalty_total, pct(penalty_total)),
+                format(letters_total, pct(letters_total)),
+                format(pruned_total, pct(pruned_total)),
+                format(ok_total, pct(ok_total)),
+            )?;
             writeln!(f, "")?;
             writeln!(f, "K    Best")?;
             (10usize..=27)
