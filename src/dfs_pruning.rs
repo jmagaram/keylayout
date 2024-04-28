@@ -226,7 +226,14 @@ pub mod statistics {
                         .get(&key_count)
                         .map(|solution| (key_count, solution))
                 })
-                .map(|(key_count, solution)| writeln!(f, "{:<3}  {}", key_count, solution))
+                .map(|(key_count, solution)| {
+                    writeln!(
+                        f,
+                        "{:<3}  {}",
+                        key_count,
+                        solution.without_keys_with_one_letter()
+                    )
+                })
                 .collect::<Result<(), _>>()?;
             Ok(())
         }
@@ -235,7 +242,7 @@ pub mod statistics {
 
 pub fn solve() {
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 120);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 10);
     let standard_penalties = [
         (26, 0.00006),
         (25, 0.000174),
@@ -261,7 +268,6 @@ pub fn solve() {
     goals.with(10, Penalty::new(0.0246));
     goals.with_adjustment(11..=26, 9_999.0);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
-    // stopped at 0 doing nothing if ...? didn't prune anything
     let key_sizes = Partitions {
         sum: 27,
         parts: 10,

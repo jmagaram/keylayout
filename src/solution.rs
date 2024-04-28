@@ -25,6 +25,14 @@ impl Solution {
     pub fn keyboard(&self) -> &Keyboard {
         &self.keyboard
     }
+
+    pub fn without_keys_with_one_letter(&self) -> Solution {
+        Solution {
+            keyboard: self.keyboard.without_keys_with_one_letter(),
+            notes: self.notes.clone(),
+            penalty: self.penalty,
+        }
+    }
 }
 
 impl fmt::Display for Solution {
