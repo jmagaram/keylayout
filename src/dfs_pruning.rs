@@ -46,7 +46,7 @@ pub mod keyboard_status {
     impl KeyboardStatus {
         pub fn new(
             k: &Keyboard,
-            dictionary: &Dictionary,
+            d: &Dictionary,
             prohibited: &Prohibited,
             goals: &PenaltyGoals,
         ) -> KeyboardStatus {
@@ -56,11 +56,11 @@ pub mod keyboard_status {
                 match k.has_prohibited_keys(prohibited) {
                     true => KeyboardStatus::HasProhibitedLetters(k.clone()),
                     false => {
-                        let k_filled = k.fill_missing(dictionary.alphabet());
+                        let k_filled = k.fill_missing(d.alphabet());
                         let penalty_goal = goals.get(k_filled.len() as u8).unwrap_or(Penalty::MAX);
-                        let penalty = k_filled.penalty(&dictionary, penalty_goal);
+                        let penalty = k_filled.penalty(&d, penalty_goal);
                         if penalty <= penalty_goal {
-                            let solution = k.clone().to_solution(penalty, "".to_string());
+                            let solution = k_filled.clone().to_solution(penalty, "".to_string());
                             KeyboardStatus::Ok(solution)
                         } else {
                             KeyboardStatus::PenaltyExceeded(k.clone())
@@ -181,7 +181,7 @@ pub mod statistics {
                 f,
                 "K    Penalty           Letters           Pruned            Ok"
             )?;
-            (2usize..=10)
+            (10usize..=26)
                 .map(|key_count| {
                     let ok = self.ok.count(&key_count);
                     let ok_pct = pct(ok);
@@ -208,7 +208,7 @@ pub mod statistics {
                 .collect::<Result<(), _>>()?;
             writeln!(f, "")?;
             writeln!(f, "K    Best")?;
-            (2usize..=10)
+            (10usize..=26)
                 .filter_map(|key_count| {
                     self.best
                         .get(&key_count)
@@ -240,6 +240,7 @@ pub fn solve() {
         (14, 0.013027),
         (13, 0.016709),
         (12, 0.02109),
+        (11, 0.05),
     ];
     let goals = PenaltyGoals::none(d.alphabet());
     for (key_count, penalty) in standard_penalties {

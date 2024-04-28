@@ -44,6 +44,15 @@ impl Keyboard {
         Keyboard::with_keys(keys)
     }
 
+    pub fn without_keys_with_one_letter(&self) -> Keyboard {
+        let keys = self
+            .keys
+            .iter()
+            .filter_map(|k| if k.len() > 1 { Some(*k) } else { None })
+            .collect::<Vec<Key>>();
+        Keyboard::with_keys(keys)
+    }
+
     /// Generates a keyboard based on a sequence of letters delimited by spaces
     /// or commas. For example "abc,def,ghi" or "abc def ghi".
     pub fn with_layout(s: &str) -> Keyboard {
