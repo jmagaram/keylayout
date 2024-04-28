@@ -50,17 +50,17 @@ pub mod keyboard_status {
             prohibited: &Prohibited,
             goals: &PenaltyGoals,
         ) -> KeyboardStatus {
-            if k.len() == 0 {
+            let k = k.fill_missing(d.alphabet());
+            if k.len() == d.alphabet().len() as usize {
                 KeyboardStatus::Ok(k.clone().to_solution(Penalty::ZERO, "".to_string()))
             } else {
                 match k.has_prohibited_keys(prohibited) {
                     true => KeyboardStatus::HasProhibitedLetters(k.clone()),
                     false => {
-                        let k_filled = k.fill_missing(d.alphabet());
-                        let penalty_goal = goals.get(k_filled.len() as u8).unwrap_or(Penalty::MAX);
-                        let penalty = k_filled.penalty(&d, penalty_goal);
-                        if penalty <= penalty_goal {
-                            let solution = k_filled.clone().to_solution(penalty, "".to_string());
+                        let penalty_goal = goals.get(k.len() as u8).unwrap_or(Penalty::MAX);
+                        let k_penalty = k.penalty(&d, penalty_goal);
+                        if k_penalty <= penalty_goal {
+                            let solution = k.clone().to_solution(k_penalty, "".to_string());
                             KeyboardStatus::Ok(solution)
                         } else {
                             KeyboardStatus::PenaltyExceeded(k.clone())
@@ -143,8 +143,7 @@ pub mod statistics {
                     }
                 }
                 &KeyboardStatus::HasProhibitedLetters(keyboard) => {
-                    let key_count = keyboard.len();
-                    self.letters.increment(key_count);
+                    self.letters.increment(keyboard.len());
                 }
                 &KeyboardStatus::PenaltyExceeded(keyboard) => {
                     self.penalty.increment(keyboard.len());
@@ -181,7 +180,7 @@ pub mod statistics {
                 f,
                 "K    Penalty           Letters           Pruned            Ok"
             )?;
-            (10usize..=26)
+            (10usize..=27)
                 .map(|key_count| {
                     let ok = self.ok.count(&key_count);
                     let ok_pct = pct(ok);
@@ -208,7 +207,7 @@ pub mod statistics {
                 .collect::<Result<(), _>>()?;
             writeln!(f, "")?;
             writeln!(f, "K    Best")?;
-            (10usize..=26)
+            (10usize..=27)
                 .filter_map(|key_count| {
                     self.best
                         .get(&key_count)
@@ -223,7 +222,7 @@ pub mod statistics {
 
 pub fn solve() {
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 10);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 120);
     let standard_penalties = [
         (26, 0.00006),
         (25, 0.000174),
@@ -247,14 +246,12 @@ pub fn solve() {
         goals.with(key_count, Penalty::new(penalty));
     }
     goals.with(10, Penalty::new(0.0246));
-    goals.with_adjustment(11..=26, 5.0);
+    goals.with_adjustment(11..=26, 9_999.0);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
-    // investigate the penalty scores, 10 or 27
-    // only gettng to 10 if parts is 11
     // stopped at 0 doing nothing if ...? didn't prune anything
     let key_sizes = Partitions {
         sum: 27,
-        parts: 11,
+        parts: 10,
         min: 2,
         max: 3,
     };
@@ -262,7 +259,7 @@ pub fn solve() {
     let mut statistics = statistics::Statistics::new();
     for s in solutions {
         statistics.add(&s);
-        if statistics.seen_is_multiple_of(100_000) || statistics.has_new_best() {
+        if statistics.seen_is_multiple_of(10_000) || statistics.has_new_best() {
             println!("{}", statistics);
         }
     }
