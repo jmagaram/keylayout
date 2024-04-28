@@ -341,8 +341,12 @@ impl Keyboard {
     }
 
     /// Generates all possible keyboards in a depth-first manner, adding keys
-    /// one at a time. Any keyboard where the `prune` function returns false is
-    /// removed from the output, and prevents further depth-first building.
+    /// one at a time. Each keyboard is first mapped to a `Prunable` using the
+    /// `prune` function. If the keyboard should be pruned, it is returned in
+    /// the results and no further depth-first traversal happens in that branch.
+    /// All intermediate results are returned. So if you're trying to make a
+    /// keyboard of length 10, this function will return keyboards of length
+    /// 1..=10.
     pub fn with_dfs<'a, F, G>(
         letters: Key,
         key_sizes: Partitions,
