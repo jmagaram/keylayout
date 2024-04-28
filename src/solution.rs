@@ -29,6 +29,10 @@ impl Solution {
 
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {} | {}", self.penalty, self.keyboard, self.notes)
+        if self.notes.len() > 0 {
+            write!(f, "{} {} | {}", self.penalty, self.keyboard, self.notes)
+        } else {
+            write!(f, "{} {} ", self.penalty, self.keyboard)
+        }
     }
 }
