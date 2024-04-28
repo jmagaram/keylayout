@@ -56,13 +56,8 @@ pub mod keyboard_status {
                 match k.has_prohibited_keys(prohibited) {
                     true => KeyboardStatus::HasProhibitedLetters(k.clone()),
                     false => {
-                        // 27 - number of letters on keyboard
-                        // af bq
-                        // 27 + 2 - 4 = 25
-                        let penalty_goal = goals
-                            .get(27 + k.len() as u8 - k.letters().count_letters() as u8)
-                            .unwrap_or(Penalty::MAX);
                         let k_filled = k.fill_missing(dictionary.alphabet());
+                        let penalty_goal = goals.get(k_filled.len() as u8).unwrap_or(Penalty::MAX);
                         let penalty = k_filled.penalty(&dictionary, penalty_goal);
                         if penalty <= penalty_goal {
                             let solution = k.clone().to_solution(penalty, "".to_string());
@@ -229,26 +224,29 @@ pub mod statistics {
 pub fn solve() {
     let d = Dictionary::load();
     let prohibited = Prohibited::with_top_n_letter_pairs(&d, 10);
-    let goals = PenaltyGoals::none(d.alphabet())
-        .with(26, Penalty::new(0.00006)) // 1 key with 2 letters
-        .with(25, Penalty::new(0.000174)) // 1 key with 3 letters
-        .with(24, Penalty::new(0.000385))
-        .with(23, Penalty::new(0.0007))
-        .with(22, Penalty::new(0.0012))
-        .with(21, Penalty::new(0.001974))
-        .with(20, Penalty::new(0.002559))
-        .with(19, Penalty::new(0.003633))
-        .with(18, Penalty::new(0.004623))
-        .with(17, Penalty::new(0.005569))
-        .with(16, Penalty::new(0.007603))
-        .with(15, Penalty::new(0.009746))
-        .with(14, Penalty::new(0.013027))
-        .with(13, Penalty::new(0.016709))
-        .with(12, Penalty::new(0.02109))
-        .with(11, Penalty::new(1.02109))
-        .with_adjustment(11..=26, 5.0)
-        .with(10, Penalty::new(0.0246));
-    // .with(10, Penalty::MAX);
+    let standard_penalties = [
+        (26, 0.00006),
+        (25, 0.000174),
+        (24, 0.000385),
+        (23, 0.0007),
+        (22, 0.0012),
+        (21, 0.001974),
+        (20, 0.002559),
+        (19, 0.003633),
+        (18, 0.004623),
+        (17, 0.005569),
+        (16, 0.007603),
+        (15, 0.009746),
+        (14, 0.013027),
+        (13, 0.016709),
+        (12, 0.02109),
+    ];
+    let goals = PenaltyGoals::none(d.alphabet());
+    for (key_count, penalty) in standard_penalties {
+        goals.with(key_count, Penalty::new(penalty));
+    }
+    goals.with(10, Penalty::new(0.0246));
+    goals.with_adjustment(11..=26, 5.0);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
     // investigate the penalty scores, 10 or 27
     // only gettng to 10 if parts is 11
