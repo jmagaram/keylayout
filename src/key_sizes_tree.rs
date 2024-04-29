@@ -4,6 +4,7 @@ use std::collections::HashSet;
 /// Represents all possible key size layouts for a given number of keys, number
 /// of letters, and max and min key sizes. Note that a layout of 1,2,3 is
 /// considered different than 3,2,1; order matters.
+#[derive(Clone)]
 pub struct KeySizesTree(Vec<Vec<u32>>);
 
 impl KeySizesTree {
@@ -14,6 +15,10 @@ impl KeySizesTree {
                 .flat_map(|p| Tally::from(p).combinations())
                 .collect::<Vec<Vec<u32>>>(),
         )
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty() || (self.0.len() == 1 && self.0[0].len() == 0)
     }
 
     pub fn next(&self) -> Vec<(u32, KeySizesTree)> {
@@ -56,6 +61,16 @@ impl KeySizesTree {
 mod tests {
 
     use super::*;
+
+    #[test]
+    fn next() {
+        let target = KeySizesTree(vec![vec![1, 2]]);
+        let next = target.next();
+        assert_eq!(1, next.len());
+        let (head, next) = &next[0];
+        assert_eq!(1, *head);
+        assert_eq!(vec![vec![2]], next.0);
+    }
 
     #[test]
     #[ignore]

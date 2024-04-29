@@ -1,6 +1,9 @@
+#![allow(dead_code)]
+
 use crate::{
-    dictionary::Dictionary, key::Key, letter::Letter, partitions::Partitions, penalty::Penalty,
-    prohibited::Prohibited, solution::Solution, tally::Tally, word::Word,
+    dictionary::Dictionary, key::Key, key_sizes_tree::KeySizesTree, letter::Letter,
+    partitions::Partitions, penalty::Penalty, prohibited::Prohibited, solution::Solution,
+    tally::Tally, word::Word,
 };
 use rand::Rng;
 use std::{fmt, iter};
@@ -336,58 +339,58 @@ impl Keyboard {
     ) -> impl Iterator<Item = G> + 'a
     where
         F: (Fn(&Keyboard) -> G) + 'a,
-        G: Pruneable + Sized + 'a,
+        G: Pruneable + Sized + Clone + 'a,
     {
         assert_eq!(
             letters.len(),
             key_sizes.sum,
             "The total number of letters must equal the partition sum."
         );
-        if letters.len() != key_sizes.sum {}
-        key_sizes
-            .calculate()
-            .into_iter()
-            .map(|key_sizes| Tally::from(key_sizes))
-            .flat_map(|t| t.combinations())
-            .flat_map(move |key_sizes| {
-                Keyboard::with_dfs_util(Keyboard::empty(), letters, key_sizes.to_vec(), prune)
-            })
+        let tree = KeySizesTree::new(key_sizes);
+        let start = Keyboard::empty();
+        start.with_dfs_util(letters, tree, prune)
     }
 
-    fn with_dfs_util<'a, F, G>(
+    pub fn with_dfs_util<'a, F, G>(
         self,
         letters: Key,
-        key_sizes: Vec<u32>,
+        key_sizes: KeySizesTree,
         prune: &'a F,
     ) -> impl Iterator<Item = G> + 'a
     where
         F: (Fn(&Keyboard) -> G) + 'a,
-        G: Pruneable + Sized + 'a,
+        G: Pruneable + Sized + Clone + 'a,
     {
         let current = prune(&self);
         let current_take = if self.len() == 0 { 0 } else { 1 };
-        if current.should_prune() || key_sizes.len() == 0 {
+        if current.should_prune() || key_sizes.is_empty() {
             let result = std::iter::once(current).take(current_take);
             let result: Box<dyn Iterator<Item = G>> = Box::new(result);
             result
         } else {
-            let (key_size, key_sizes) = key_sizes.split_first().unwrap();
-            let key_sizes = key_sizes.to_vec();
-            let min_letter = letters.min_letter().unwrap();
-            let remaining_letters = letters.remove(min_letter);
-            let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
-            let new_keys = other_letters_for_key.map(move |o| {
-                let new_key = o.add(min_letter);
-                let remaining_letters = letters.except(new_key);
-                (new_key, remaining_letters)
-            });
-            let keyboards = new_keys.flat_map(move |(new_key, letters)| {
-                let k = self.add_key(new_key);
-                let descendents = k.with_dfs_util(letters, key_sizes.to_vec(), prune);
-                descendents
-            });
-            let current = std::iter::once(current).take(current_take);
-            let result: Box<dyn Iterator<Item = G>> = Box::new(current.chain(keyboards));
+            let result = key_sizes
+                .next()
+                .into_iter()
+                .flat_map(move |(key_size, key_sizes)| {
+                    let min_letter = letters.min_letter().unwrap();
+                    let remaining_letters = letters.remove(min_letter);
+                    let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
+                    let new_keys = other_letters_for_key.map(move |o| {
+                        let new_key = o.add(min_letter);
+                        let remaining_letters = letters.except(new_key);
+                        (new_key, remaining_letters)
+                    });
+                    let kbd = self.clone();
+                    let keyboards = new_keys.flat_map(move |(new_key, letters)| {
+                        let k = kbd.add_key(new_key);
+                        let generated = k.to_string();
+                        let descendents = k.with_dfs_util(letters, key_sizes.clone(), prune);
+                        descendents
+                    });
+                    let current = std::iter::once(current.clone()).take(current_take);
+                    current.chain(keyboards)
+                });
+            let result: Box<dyn Iterator<Item = G>> = Box::new(result);
             result
         }
     }
@@ -610,7 +613,9 @@ mod tests {
             Keyboard,
         };
         use core::fmt;
+        use std::cell::RefCell;
 
+        #[derive(Clone)]
         struct KeyboardStatus {
             keyboard: Keyboard,
             has_bad_letters: bool,
@@ -633,7 +638,15 @@ mod tests {
         }
 
         impl KeyboardStatus {
-            fn new(k: &Keyboard, disallow: Key) -> KeyboardStatus {
+            fn new_ok(k: &Keyboard) -> KeyboardStatus {
+                let has_bad_letters = false;
+                KeyboardStatus {
+                    keyboard: k.clone(),
+                    has_bad_letters: has_bad_letters,
+                }
+            }
+
+            fn evaluate(k: &Keyboard, disallow: Key) -> KeyboardStatus {
                 let mut prohibited = Prohibited::new();
                 prohibited.add(disallow);
                 let has_bad_letters = k.has_prohibited_keys(&prohibited);
@@ -662,7 +675,7 @@ mod tests {
                 };
                 let expected = key_sizes.total_unique_keyboards();
                 let alphabet = Key::with_first_n_letters(letter_count);
-                let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
+                let prune = |k: &Keyboard| KeyboardStatus::new_ok(k);
                 let actual = Keyboard::with_dfs(alphabet, &key_sizes, &prune)
                     .filter(|k| k.keyboard.len() == key_count as usize)
                     .count();
@@ -671,11 +684,34 @@ mod tests {
         }
 
         #[test]
+        fn with_dfs_never_calls_prune_more_than_once_per_keyboard() {
+            let data = [(8, 3), (8, 5), (4, 2), (7, 3), (1, 1), (2, 2), (6, 3)];
+            for (letter_count, key_count) in data {
+                let key_sizes = Partitions {
+                    sum: letter_count,
+                    min: 1,
+                    max: letter_count,
+                    parts: key_count,
+                };
+                let alphabet = Key::with_first_n_letters(letter_count);
+                let prune_count: RefCell<Tally<String>> = RefCell::new(Tally::new());
+                let prune = |k: &Keyboard| {
+                    let mut tally = prune_count.borrow_mut();
+                    if tally.increment(k.to_string()) > 1 {
+                        panic!("Tried to evaluate the same keyboard more than once.");
+                    }
+                    KeyboardStatus::new_ok(k)
+                };
+                Keyboard::with_dfs(alphabet, &key_sizes, &prune).count();
+            }
+        }
+
+        #[test]
         fn with_dfs_creates_unique_intermediate_keyboards() {
             let data = [(8, 5), (6, 2), (5, 1), (1, 1), (4, 2), (4, 3)];
             for (letter_count, key_count) in data {
                 let alphabet = Key::with_first_n_letters(letter_count);
-                let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
+                let prune = |k: &Keyboard| KeyboardStatus::new_ok(k);
                 (2..key_count)
                     .into_iter()
                     .map(|len| {
@@ -702,7 +738,7 @@ mod tests {
             let data = [(8, 3), (6, 3), (1, 1), (4, 3), (2, 1)];
             for (letter_count, key_count) in data {
                 let alphabet = Key::with_first_n_letters(letter_count);
-                let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
+                let prune = |k: &Keyboard| KeyboardStatus::new_ok(k);
                 let key_sizes = Partitions {
                     sum: letter_count,
                     min: 1,
@@ -720,7 +756,7 @@ mod tests {
             let data = [(8, 3), (5, 1), (4, 3), (4, 2)];
             for (letter_count, key_count) in data {
                 let alphabet = Key::with_first_n_letters(letter_count);
-                let prune = |k: &Keyboard| KeyboardStatus::new(k, Key::new("xyz"));
+                let prune = |k: &Keyboard| KeyboardStatus::new_ok(k);
                 let key_sizes = Partitions {
                     sum: letter_count,
                     min: 1,
@@ -742,7 +778,7 @@ mod tests {
         }
 
         #[test]
-        fn with_dfs_pruned_key_is_always_last() {
+        fn with_dfs_pruned_keyboard_is_last() {
             let data = [(6, 4, "ab"), (6, 4, "cd"), (6, 4, "ad"), (5, 3, "ab")];
             for (letter_count, key_count, prohibited) in data {
                 let key_sizes = Partitions {
@@ -752,7 +788,7 @@ mod tests {
                     parts: key_count,
                 };
                 let prohibited = Key::new(prohibited);
-                let prune = |k: &Keyboard| KeyboardStatus::new(k, prohibited);
+                let prune = |k: &Keyboard| KeyboardStatus::evaluate(k, prohibited);
                 let alphabet = Key::with_first_n_letters(letter_count);
                 assert!(Keyboard::with_dfs(alphabet, &key_sizes, &prune).all(|k| {
                     k.keyboard.keys.iter().enumerate().all(|(index, key)| {
@@ -763,6 +799,26 @@ mod tests {
                         }
                     })
                 }));
+            }
+        }
+
+        #[test]
+        #[ignore]
+        fn with_dfs_print_keyboards() {
+            let data = [(5, 3)];
+            for (letter_count, key_count) in data {
+                let key_sizes = Partitions {
+                    sum: letter_count,
+                    min: 1,
+                    max: letter_count,
+                    parts: key_count,
+                };
+                let alphabet = Key::with_first_n_letters(letter_count);
+                let prune = |k: &Keyboard| KeyboardStatus::new_ok(k);
+                let actual = Keyboard::with_dfs(alphabet, &key_sizes, &prune);
+                for k in actual {
+                    println!("{}", k);
+                }
             }
         }
     }
