@@ -82,6 +82,13 @@ mod tests {
     }
 
     #[test]
+    fn is_empty_false() {
+        assert!(false == KeySizesTree(vec![vec![1, 2]]).is_empty());
+        assert!(false == KeySizesTree(vec![vec![1]]).is_empty());
+        assert!(false == KeySizesTree(vec![vec![1], vec![2]]).is_empty());
+    }
+
+    #[test]
     fn next() {
         let target = KeySizesTree(vec![vec![1, 2]]);
         let next = target.next();
