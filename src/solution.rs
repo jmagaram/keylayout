@@ -37,10 +37,15 @@ impl Solution {
 
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.notes.len() > 0 {
-            write!(f, "{} {} | {}", self.penalty, self.keyboard, self.notes)
+        let penalty = if self.penalty == Penalty::MAX {
+            "-------".to_string()
         } else {
-            write!(f, "{} {} ", self.penalty, self.keyboard)
+            format!("{}", self.penalty)
+        };
+        if self.notes.len() > 0 {
+            write!(f, "{} {} | {}", penalty, self.keyboard, self.notes)
+        } else {
+            write!(f, "{} {} ", penalty, self.keyboard)
         }
     }
 }

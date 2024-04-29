@@ -56,16 +56,18 @@ pub mod keyboard_status {
             } else {
                 match k.has_prohibited_keys(prohibited) {
                     true => KeyboardStatus::HasProhibitedLetters(k.clone()),
-                    false => {
-                        let penalty_goal = goals.get(k.len() as u8).unwrap_or(Penalty::MAX);
-                        let k_penalty = k.penalty(&d, penalty_goal);
-                        if k_penalty <= penalty_goal {
-                            let solution = k.clone().to_solution(k_penalty, "".to_string());
-                            KeyboardStatus::Ok(solution)
-                        } else {
-                            KeyboardStatus::PenaltyExceeded(k.clone())
+                    false => match goals.get(k.len() as u8) {
+                        None => KeyboardStatus::Ok(k.to_solution(Penalty::MAX, "".to_string())),
+                        Some(penalty_goal) => {
+                            let k_penalty = k.penalty(&d, penalty_goal);
+                            if k_penalty <= penalty_goal {
+                                let solution = k.clone().to_solution(k_penalty, "".to_string());
+                                KeyboardStatus::Ok(solution)
+                            } else {
+                                KeyboardStatus::PenaltyExceeded(k.clone())
+                            }
                         }
-                    }
+                    },
                 }
             }
         }
@@ -259,7 +261,6 @@ pub mod statistics {
 
 pub fn solve() {
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 70);
     let standard_penalties = [
         (26, 0.00006),
         (25, 0.000174),
@@ -282,19 +283,10 @@ pub fn solve() {
     for (key_count, penalty) in standard_penalties {
         goals.with(key_count, Penalty::new(penalty));
     }
-    // goals.with(10, Penalty::new(0.0246));
-    goals.with(26, Penalty::MAX);
-    goals.with(25, Penalty::MAX);
-    goals.with(24, Penalty::MAX);
-    goals.with_adjustment(11..=23, 1.4);
-    // goals.with_adjustment(23..=23, 2.0);
-    // goals.with_adjustment(21..=21, 2.0);
-    // goals.with_adjustment(19..=19, 2.0);
-    // goals.with_adjustment(18..=18, 1.5);
-    // goals.with_adjustment(17..=17, 0.8);
-    // goals.with_adjustment(16..=16, 1.4);
-    // goals.with_adjustment(11..=26, 0.0001);
-    // goals.with_adjustment(11..=26, 0.0001);
+    goals.with(10, Penalty::new(0.03));
+    goals.remove(22..=27);
+    goals.with_adjustment(11..=21, 1.4);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 70);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
     let key_sizes = Partitions {
         sum: 27,
