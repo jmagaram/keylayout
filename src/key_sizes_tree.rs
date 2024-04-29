@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 /// Represents all possible key size layouts for a given number of keys, number
 /// of letters, and max and min key sizes. Note that a layout of 1,2,3 is
-/// considered different than 3,2,1; order matters.
+/// considered different than 3,2,1.
 #[derive(Clone)]
 pub struct KeySizesTree(Vec<Vec<u32>>);
 
@@ -18,7 +18,8 @@ impl KeySizesTree {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty() || (self.0.len() == 1 && self.0[0].len() == 0)
+        let only_zeros = |items: &Vec<u32>| items.iter().all(|i| *i == 0);
+        self.0.is_empty() || self.0.iter().all(only_zeros)
     }
 
     pub fn next(&self) -> Vec<(u32, KeySizesTree)> {
@@ -61,6 +62,24 @@ impl KeySizesTree {
 mod tests {
 
     use super::*;
+
+    #[test]
+    fn is_empty_true_if_no_items() {
+        let target = KeySizesTree(vec![]);
+        assert!(target.is_empty());
+    }
+
+    #[test]
+    fn is_empty_true_if_only_empty_items() {
+        let target = KeySizesTree(vec![vec![], vec![]]);
+        assert!(target.is_empty());
+    }
+
+    #[test]
+    fn is_empty_true_if_only_items_with_zeros() {
+        let target = KeySizesTree(vec![vec![0, 0], vec![0, 0]]);
+        assert!(target.is_empty());
+    }
 
     #[test]
     fn next() {
