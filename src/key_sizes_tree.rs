@@ -61,10 +61,10 @@ mod tests {
     #[ignore]
     fn test_print_out() {
         let p = Partitions {
-            sum: 27,
-            parts: 10,
+            sum: 10,
+            parts: 3,
             min: 2,
-            max: 4,
+            max: 5,
         };
         let target = KeySizesTree::new(&p);
         target.print(0);
