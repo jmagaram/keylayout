@@ -26,6 +26,20 @@ impl PenaltyGoals {
         self.goals.insert(key_count, penalty);
     }
 
+    pub fn remove(&mut self, key_counts: RangeInclusive<u8>) {
+        assert!(
+            key_counts.clone().min().unwrap() > 0,
+            "The minimum key count is 1."
+        );
+        assert!(
+            key_counts.clone().max().unwrap() as usize <= self.alphabet.len() as usize,
+            "The maximum key count must be less than or equal to the size of the alphabet."
+        );
+        for key_count in key_counts {
+            self.goals.remove(&key_count);
+        }
+    }
+
     pub fn with_adjustment(&mut self, key_counts: RangeInclusive<u8>, multiplier: f32) {
         assert!(
             multiplier > 0.0,
