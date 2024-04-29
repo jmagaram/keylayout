@@ -171,20 +171,41 @@ fn iterate_letters_in_key(c: &mut Criterion) {
     });
 }
 
+fn check_keyboard_for_invalid_pairs(c: &mut Criterion) {
+    let dict = Dictionary::load();
+    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 70);
+    let p = Partitions {
+        sum: 27,
+        min: 2,
+        max: 4,
+        parts: 10,
+    };
+    let keyboards = Keyboard::random(dict.alphabet(), &p, &prohibited)
+        .take(100)
+        .collect::<Vec<Keyboard>>();
+    c.bench_function("CHECK KEYBOARD INVALID PAIRS", |b| {
+        b.iter(|| {
+            for k in &keyboards {
+                k.has_prohibited_keys(black_box(&prohibited));
+            }
+        })
+    });
+}
 criterion_group!(
     benches,
-    generate_big_subsets,
-    generate_small_subsets,
-    load_dictionary,
-    calculate_penalty,
-    set_bits,
-    count_letters_in_key,
-    iterate_letters_in_key,
-    random_keyboards,
-    best_n_key,
-    distribute_keys,
-    partition_sum,
-    distribute_letters,
-    random_subsets
+    // generate_big_subsets,
+    // generate_small_subsets,
+    check_keyboard_for_invalid_pairs,
+    // load_dictionary,
+    // calculate_penalty,
+    // set_bits,
+    // count_letters_in_key,
+    // iterate_letters_in_key,
+    // random_keyboards,
+    // best_n_key,
+    // distribute_keys,
+    // partition_sum,
+    // distribute_letters,
+    // random_subsets
 );
 criterion_main!(benches);

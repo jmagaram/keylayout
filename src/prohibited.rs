@@ -1,12 +1,20 @@
+use crate::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty};
+use bitvec::vec::BitVec;
 use hashbrown::HashSet;
 
-use crate::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty};
-
-pub struct Prohibited(HashSet<Key>);
+pub struct Prohibited {
+    set: HashSet<Key>,
+    cache: BitVec,
+}
 
 impl Prohibited {
+    const MAX_CACHE_KEY: usize = 0b11111_11111_11111;
+
     pub fn new() -> Prohibited {
-        Prohibited(HashSet::new())
+        Prohibited {
+            set: HashSet::new(),
+            cache: BitVec::new(),
+        }
     }
 
     pub fn with_top_n_letter_pairs(dict: &Dictionary, top_n: usize) -> Prohibited {
@@ -43,7 +51,16 @@ impl Prohibited {
     }
 
     pub fn is_allowed(&self, other: Key) -> bool {
-        !self.0.iter().any(|p| other.contains_all(&p))
+        if (other.to_u32() as usize) <= Prohibited::MAX_CACHE_KEY {
+            let result = self
+                .cache
+                .get(other.to_u32() as usize)
+                .as_deref()
+                .map_or(true, |b| b == &false);
+            result
+        } else {
+            !self.set.iter().any(|p| other.contains_all(&p))
+        }
     }
 
     pub fn add(&mut self, key: Key) {
@@ -51,22 +68,26 @@ impl Prohibited {
             panic!("Can not add an empty key to the list of prohibited keys.")
         }
         let subsets = self
-            .0
+            .set
             .iter()
             .filter(|i| key.contains_all(i) && key != **i)
             .map(|i| i.clone())
             .collect::<Vec<Key>>();
         let supersets = self
-            .0
+            .set
             .iter()
             .filter(|i| (**i).contains_all(&key) && key != **i)
             .map(|i| i.clone())
             .collect::<Vec<Key>>();
         for s in supersets {
-            self.0.remove(&s);
+            self.set.remove(&s);
         }
         if subsets.is_empty() {
-            self.0.insert(key);
+            self.set.insert(key);
+            let key_as_usize = key.to_u32() as usize;
+            for i in 0..=Prohibited::MAX_CACHE_KEY {
+                self.cache.push((i & key_as_usize) == key_as_usize)
+            }
         }
     }
 
@@ -122,8 +143,8 @@ mod tests {
         let mut p = Prohibited::new();
         p.add(Key::new("ab"));
         p.add(Key::new("abc"));
-        assert_eq!(p.0.len(), 1);
-        assert_eq!(Key::new("ab"), p.0.into_iter().next().unwrap());
+        assert_eq!(p.set.len(), 1);
+        assert_eq!(Key::new("ab"), p.set.into_iter().next().unwrap());
     }
 
     #[test]
@@ -131,7 +152,7 @@ mod tests {
         let mut p = Prohibited::new();
         p.add(Key::new("abc"));
         p.add(Key::new("ab"));
-        assert_eq!(p.0.len(), 1);
-        assert_eq!(Key::new("ab"), p.0.into_iter().next().unwrap());
+        assert_eq!(p.set.len(), 1);
+        assert_eq!(Key::new("ab"), p.set.into_iter().next().unwrap());
     }
 }
