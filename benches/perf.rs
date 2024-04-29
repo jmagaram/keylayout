@@ -2,8 +2,8 @@
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use keylayout::{
-    dictionary::Dictionary, exhaustive_n_key, key::Key, keyboard::Keyboard, partitions::Partitions,
-    penalty::Penalty, prohibited::Prohibited, tally::Tally, util,
+    dictionary::Dictionary, exhaustive_n_key, key::Key, keyboard::Keyboard, letter::Letter,
+    partitions::Partitions, penalty::Penalty, prohibited::Prohibited, tally::Tally, util,
 };
 
 fn calculate_penalty(c: &mut Criterion) {
@@ -173,7 +173,8 @@ fn iterate_letters_in_key(c: &mut Criterion) {
 
 fn check_keyboard_for_invalid_pairs(c: &mut Criterion) {
     let dict = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 70);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 35);
+    // let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 35, 0);
     let p = Partitions {
         sum: 27,
         min: 2,

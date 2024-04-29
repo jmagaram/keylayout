@@ -283,13 +283,14 @@ pub fn solve() {
         goals.with(key_count, Penalty::new(penalty));
     }
     // goals.with(10, Penalty::new(0.0246));
-    goals.with_adjustment(25..=25, 2.0);
-    goals.with_adjustment(23..=23, 2.0);
-    goals.with_adjustment(21..=21, 2.0);
-    goals.with_adjustment(19..=19, 2.0);
-    goals.with_adjustment(18..=18, 1.5);
-    goals.with_adjustment(17..=17, 0.8);
-    goals.with_adjustment(16..=16, 1.4);
+    goals.with(26, Penalty::MAX);
+    goals.with(25, Penalty::MAX);
+    // goals.with_adjustment(23..=23, 2.0);
+    // goals.with_adjustment(21..=21, 2.0);
+    // goals.with_adjustment(19..=19, 2.0);
+    // goals.with_adjustment(18..=18, 1.5);
+    // goals.with_adjustment(17..=17, 0.8);
+    // goals.with_adjustment(16..=16, 1.4);
     // goals.with_adjustment(11..=26, 0.0001);
     // goals.with_adjustment(11..=26, 0.0001);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);

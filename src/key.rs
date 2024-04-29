@@ -18,10 +18,6 @@ impl Key {
         Key::try_from(letters).unwrap()
     }
 
-    pub fn to_u32(&self) -> u32 {
-        self.0
-    }
-
     pub fn with_every_letter() -> Key {
         Key((1 << Letter::ALPHABET_SIZE) - 1)
     }

@@ -1,5 +1,4 @@
 use dictionary::Dictionary;
-use keyboard::Keyboard;
 use penalty::Penalty;
 use prohibited::Prohibited;
 
