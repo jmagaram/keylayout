@@ -91,6 +91,10 @@ impl Keyboard {
         self.keys.iter().map(|k| k.count_letters()).min()
     }
 
+    pub fn keys<'a>(&'a self) -> impl Iterator<Item = Key> + 'a {
+        self.keys.iter().map(|k| *k)
+    }
+
     fn find_key(&self, letter: Letter) -> Option<Key> {
         let key_index = self.find_key_index(letter)?;
         let key = self.keys.get(key_index)?;
