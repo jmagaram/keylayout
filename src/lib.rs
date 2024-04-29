@@ -2,6 +2,7 @@ pub mod dfs_pruning;
 pub mod dictionary;
 pub mod exhaustive_n_key;
 pub mod frequency;
+pub mod generate_stats;
 pub mod genetic;
 pub mod key;
 pub mod keyboard;
