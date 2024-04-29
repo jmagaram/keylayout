@@ -91,8 +91,11 @@ impl Keyboard {
         self.keys.iter().map(|k| k.count_letters()).min()
     }
 
-    pub fn keys<'a>(&'a self) -> impl Iterator<Item = Key> + 'a {
-        self.keys.iter().map(|k| *k)
+    pub fn key_sizes(&self) -> Tally<u32> {
+        self.keys.iter().fold(Tally::new(), |mut total, i| {
+            total.increment(i.len());
+            total
+        })
     }
 
     fn find_key(&self, letter: Letter) -> Option<Key> {
