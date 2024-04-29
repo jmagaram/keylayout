@@ -186,11 +186,11 @@ pub mod statistics {
             writeln!(f, "")?;
             writeln!(
                 f,
-                "K    Penalty           Letters           Pruned            Ok                Total"
+                "K    Penalty             Letters             Pruned              Ok                  Total"
             )?;
             let format = |n: u32, pct: f32| {
-                let result = format!("{} ({:.1}%)", n.separate_with_underscores(), pct);
-                format!("{:<18}", result)
+                let result = format!("{} ({:.0}%)", n.separate_with_underscores(), pct);
+                format!("{:<20}", result)
             };
             (10usize..=27)
                 .map(|key_count| {
