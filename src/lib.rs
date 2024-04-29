@@ -5,6 +5,7 @@ pub mod frequency;
 pub mod generate_stats;
 pub mod genetic;
 pub mod key;
+pub mod key_sizes_tree;
 pub mod keyboard;
 pub mod lazy_tree;
 pub mod letter;

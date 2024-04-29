@@ -10,6 +10,7 @@ mod frequency;
 mod generate_stats;
 mod genetic;
 mod key;
+mod key_sizes_tree;
 mod keyboard;
 mod lazy_tree;
 mod letter;
