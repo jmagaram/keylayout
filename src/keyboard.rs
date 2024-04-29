@@ -87,6 +87,10 @@ impl Keyboard {
         self.keys.iter().map(|k| k.count_letters()).max()
     }
 
+    pub fn min_key_size(&self) -> Option<u32> {
+        self.keys.iter().map(|k| k.count_letters()).min()
+    }
+
     fn find_key(&self, letter: Letter) -> Option<Key> {
         let key_index = self.find_key_index(letter)?;
         let key = self.keys.get(key_index)?;
