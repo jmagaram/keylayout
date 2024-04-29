@@ -1,12 +1,9 @@
-use std::{fmt, iter};
-
-use rand::Rng;
-use serde_json::de;
-
 use crate::{
     dictionary::Dictionary, key::Key, letter::Letter, partitions::Partitions, penalty::Penalty,
     prohibited::Prohibited, solution::Solution, tally::Tally, word::Word,
 };
+use rand::Rng;
+use std::{fmt, iter};
 
 #[derive(Clone)]
 pub struct Keyboard {
