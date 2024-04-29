@@ -259,7 +259,7 @@ pub mod statistics {
 
 pub fn solve() {
     let d = Dictionary::load();
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 40);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 70);
     let standard_penalties = [
         (26, 0.00006),
         (25, 0.000174),
@@ -285,6 +285,8 @@ pub fn solve() {
     // goals.with(10, Penalty::new(0.0246));
     goals.with(26, Penalty::MAX);
     goals.with(25, Penalty::MAX);
+    goals.with(24, Penalty::MAX);
+    goals.with_adjustment(11..=23, 1.4);
     // goals.with_adjustment(23..=23, 2.0);
     // goals.with_adjustment(21..=21, 2.0);
     // goals.with_adjustment(19..=19, 2.0);
