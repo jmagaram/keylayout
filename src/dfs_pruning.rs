@@ -301,6 +301,13 @@ pub fn solve() {
         if statistics.seen_is_multiple_of(10_000) || statistics.has_new_best() {
             println!("{}", statistics);
         }
+        if statistics.seen_is_multiple_of(200_000) {
+            println!("");
+            println!("===================================================================================================");
+            println!("");
+            println!("{}", goals);
+            println!("");
+        }
     }
 }
 

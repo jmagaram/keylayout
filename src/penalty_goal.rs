@@ -121,12 +121,14 @@ impl PenaltyGoals {
 
 impl fmt::Display for PenaltyGoals {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Penalty goals")?;
+        writeln!(f, "")?;
         let ordered = self
             .goals
             .iter()
-            .map(|(key_count, penalty)| format!("{}:{}", key_count, penalty))
+            .map(|(key_count, penalty)| format!("{:<2} {:.4}", key_count, penalty))
             .collect::<Vec<String>>()
-            .join(", ");
+            .join("\n");
         write!(f, "{}", ordered)
     }
 }
