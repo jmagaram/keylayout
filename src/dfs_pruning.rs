@@ -261,6 +261,7 @@ pub mod statistics {
 
 pub fn solve() {
     let d = Dictionary::load();
+    // top 20%
     let penalty_limits = [
         (11, 0.035212047),
         (12, 0.028836569),
@@ -284,7 +285,7 @@ pub fn solve() {
         goals.with(key_count, Penalty::new(penalty));
     }
     goals.with(10, Penalty::new(0.03));
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 70);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 60);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
     let key_sizes = Partitions {
         sum: 27,
