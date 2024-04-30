@@ -261,32 +261,30 @@ pub mod statistics {
 
 pub fn solve() {
     let d = Dictionary::load();
-    let new_penalties = [
-        (11, 0.03611106),
-        (12, 0.02973344),
-        (13, 0.024452677),
-        (14, 0.019330861),
-        (15, 0.017020512),
-        (16, 0.014967105),
-        (17, 0.012844248),
-        (18, 0.010766614),
-        (19, 0.008923525),
-        (20, 0.0073023876),
-        (21, 0.005899894),
-        (22, 0.004318292),
-        (23, 0.0031641757),
-        (24, 0.001949629),
-        (25, 0.00097342057),
-        (26, 0.00014783311),
+    let penalty_limits = [
+        (11, 0.035212047),
+        (12, 0.028836569),
+        (13, 0.023573535),
+        (14, 0.018724455),
+        (15, 0.016393073),
+        (16, 0.014338043),
+        (17, 0.012302379),
+        (18, 0.010197972),
+        (19, 0.008511533),
+        (20, 0.006951685),
+        (21, 0.0055407956),
+        (22, 0.0040391646),
+        (23, 0.0029261562),
+        (24, 0.0017350693),
+        (25, 0.00082302664),
+        (26, 0.0001239321),
     ];
     let mut goals = PenaltyGoals::none(d.alphabet());
-    for (key_count, penalty) in new_penalties {
+    for (key_count, penalty) in penalty_limits {
         goals.with(key_count, Penalty::new(penalty));
     }
     goals.with(10, Penalty::new(0.03));
-    goals.remove(22..=27);
-    goals.with_adjustment(11..=21, 1.4);
-    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 60);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&d, 70);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
     let key_sizes = Partitions {
         sum: 27,
