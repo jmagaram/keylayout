@@ -58,6 +58,7 @@ pub fn random_keyboards_of_key_count(
 pub fn random_keyboards(
     samples_per_key_count: usize,
     dictionary: &Dictionary,
+    prohibited: &Prohibited,
     file_name: &str,
 ) -> Result<(), std::io::Error> {
     let file = File::create(file_name)?;
@@ -66,9 +67,8 @@ pub fn random_keyboards(
         writer,
         "index,keyboard,keys,penalty,max_key,min_key,count_1,count_2,count_3,count_4,count_5,count_6"
     )?;
-    let prohibited = &Prohibited::new();
     let letter_count = dictionary.alphabet().len();
-    (2..=letter_count)
+    (10..=letter_count - 1)
         .map(|key_count| {
             let key_sizes = Partitions {
                 sum: letter_count,
