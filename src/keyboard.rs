@@ -368,28 +368,24 @@ impl Keyboard {
             let result: Box<dyn Iterator<Item = G>> = Box::new(result);
             result
         } else {
-            let result = key_sizes
-                .next()
-                .into_iter()
-                .flat_map(move |(key_size, key_sizes)| {
-                    let min_letter = letters.min_letter().unwrap();
-                    let remaining_letters = letters.remove(min_letter);
-                    let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
-                    let new_keys = other_letters_for_key.map(move |o| {
-                        let new_key = o.add(min_letter);
-                        let remaining_letters = letters.except(new_key);
-                        (new_key, remaining_letters)
-                    });
-                    let kbd = self.clone();
-                    let keyboards = new_keys.flat_map(move |(new_key, letters)| {
-                        let k = kbd.add_key(new_key);
-                        let generated = k.to_string();
-                        let descendents = k.with_dfs_util(letters, key_sizes.clone(), prune);
-                        descendents
-                    });
-                    let current = std::iter::once(current.clone()).take(current_take);
-                    current.chain(keyboards)
+            let result = key_sizes.next().flat_map(move |(key_size, key_sizes)| {
+                let min_letter = letters.min_letter().unwrap();
+                let remaining_letters = letters.remove(min_letter);
+                let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
+                let new_keys = other_letters_for_key.map(move |o| {
+                    let new_key = o.add(min_letter);
+                    let remaining_letters = letters.except(new_key);
+                    (new_key, remaining_letters)
                 });
+                let kbd = self.clone();
+                let keyboards = new_keys.flat_map(move |(new_key, letters)| {
+                    let k = kbd.add_key(new_key);
+                    let descendents = k.with_dfs_util(letters, key_sizes.clone(), prune);
+                    descendents
+                });
+                let current = std::iter::once(current.clone()).take(current_take);
+                current.chain(keyboards)
+            });
             let result: Box<dyn Iterator<Item = G>> = Box::new(result);
             result
         }
