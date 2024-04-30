@@ -383,10 +383,10 @@ impl Keyboard {
                     let descendents = k.with_dfs_util(letters, key_sizes.clone(), prune);
                     descendents
                 });
-                let current = std::iter::once(current.clone()).take(current_take);
-                current.chain(keyboards)
+                keyboards
             });
-            let result: Box<dyn Iterator<Item = G>> = Box::new(result);
+            let current = std::iter::once(current.clone()).take(current_take);
+            let result: Box<dyn Iterator<Item = G>> = Box::new(current.chain(result));
             result
         }
     }
