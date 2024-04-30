@@ -1,5 +1,4 @@
 use dictionary::Dictionary;
-use partitions::Partitions;
 use penalty::Penalty;
 use prohibited::Prohibited;
 
@@ -24,10 +23,12 @@ mod util;
 mod word;
 
 fn generate_keyboard_stats() {
-    let file_name = "keyboard_stats.txt";
-    let samples = 5_000;
+    let samples = 2_500;
+    let pairs = 60;
     let dictionary = Dictionary::load();
-    generate_stats::random_keyboards(samples, &dictionary, &file_name).unwrap();
+    let file_name = format!("kbd_{}_pairs_full_dict.txt", pairs);
+    let prohibited = Prohibited::with_top_n_letter_pairs(&dictionary, pairs);
+    generate_stats::random_keyboards(samples, &dictionary, &prohibited, &file_name).unwrap();
 }
 
 fn dfs_pruning() {
@@ -64,7 +65,7 @@ fn genetic_solver() {
 }
 
 fn main() {
-    // dfs_pruning();
-    // generate_keyboard_stats();
     dfs_pruning();
+    // generate_keyboard_stats();
+    // dfs_pruning();
 }
