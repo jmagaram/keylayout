@@ -25,14 +25,15 @@ mod word;
 fn generate_keyboard_stats() {
     let samples = 2_500;
     let pairs = 60;
-    let dictionary = Dictionary::load();
-    let file_name = format!("kbd_{}_pairs_full_dict.txt", pairs);
+    let dictionary = Dictionary::load().filter_top_n_words(120_000);
+    let file_name = format!("kbd_{}_pairs_120k_dict.txt", pairs);
     let prohibited = Prohibited::with_top_n_letter_pairs(&dictionary, pairs);
     generate_stats::random_keyboards(samples, &dictionary, &prohibited, &file_name).unwrap();
 }
 
 fn dfs_pruning() {
-    dfs_pruning::solve();
+    let args = dfs_pruning::SolveArgs::new_from_prompts();
+    dfs_pruning::solve(&args);
 }
 
 fn find_best_n_key() {
@@ -63,9 +64,21 @@ fn genetic_solver() {
         }
     }
 }
+use dialoguer::{Input, Select};
 
 fn main() {
-    dfs_pruning();
-    // generate_keyboard_stats();
-    // dfs_pruning();
+    let selection = Select::new()
+        .with_prompt("What do you want to do?")
+        .item("DFS search")
+        .item("Genetic algorithm")
+        .default(0)
+        .interact()
+        .unwrap();
+    match selection {
+        0 => dfs_pruning(),
+        1 => genetic_solver(),
+        _ => {
+            println!("Not sure what do with that selection");
+        }
+    }
 }
