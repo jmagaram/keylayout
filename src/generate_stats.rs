@@ -1,16 +1,28 @@
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
-    prohibited::Prohibited,
+    prohibited::Prohibited, solution::Solution, util,
 };
+use humantime::{format_duration, FormattedDuration};
 use std::{
     fs::File,
     io::{BufWriter, Write},
+    ops::RangeInclusive,
+    time::{Duration, Instant},
 };
 use thousands::Separable;
 
+trait DurationFormatter {
+    fn round_to_seconds(&self) -> FormattedDuration;
+}
+
+impl DurationFormatter for Duration {
+    fn round_to_seconds(&self) -> FormattedDuration {
+        format_duration(Duration::from_secs(self.as_secs()))
+    }
+}
 pub fn random_keyboards_of_key_count(
     count: usize,
-    key_sizes: &Partitions,
+    key_sizes: Partitions,
     dictionary: &Dictionary,
     prohibited: &Prohibited,
     file_name: &str,
@@ -55,6 +67,52 @@ pub fn random_keyboards_of_key_count(
     Ok(())
 }
 
+#[derive(Clone)]
+pub struct Args<'a> {
+    pub samples_per_key_count: usize,
+    pub dictionary: &'a Dictionary,
+    pub prohibited: &'a Prohibited,
+    pub key_count: RangeInclusive<u32>,
+    pub min_key_size: u32,
+    pub max_key_size: u32,
+}
+
+impl<'a> Args<'a> {
+    fn partitions(&'a self) -> impl Iterator<Item = Partitions> + 'a {
+        let alphabet_size = self.dictionary.alphabet().len();
+        assert!(self
+            .key_count
+            .clone()
+            .all(|key_count| key_count * self.min_key_size <= alphabet_size
+                && key_count * self.max_key_size >= alphabet_size));
+        self.key_count.clone().map(move |key_count| Partitions {
+            sum: alphabet_size,
+            parts: key_count,
+            min: self.min_key_size,
+            max: self.max_key_size,
+        })
+    }
+
+    pub fn keyboards(&'a self) -> impl Iterator<Item = Solution> + 'a {
+        self.partitions().flat_map(|p| {
+            Keyboard::random(self.dictionary.alphabet(), p, self.prohibited)
+                .take(self.samples_per_key_count)
+                .map(|k| {
+                    let penalty = k.penalty(&self.dictionary, Penalty::MAX);
+                    k.to_solution(penalty, "".to_string())
+                })
+        })
+    }
+
+    pub fn print(&self) {
+        let now = Instant::now();
+        for k in self.keyboards() {
+            println!("{}", k);
+        }
+        println!("Elapsed: {}", now.elapsed().round_to_seconds())
+    }
+}
+
 pub fn random_keyboards(
     samples_per_key_count: usize,
     dictionary: &Dictionary,
@@ -76,7 +134,7 @@ pub fn random_keyboards(
                 min: 1,
                 max: ((letter_count / key_count) + 3).min(letter_count),
             };
-            Keyboard::random(dictionary.alphabet(), &key_sizes, &prohibited)
+            Keyboard::random(dictionary.alphabet(), key_sizes, &prohibited)
                 .take(samples_per_key_count)
                 .enumerate()
                 .map(|(index, k)| {

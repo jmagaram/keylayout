@@ -2,4 +2,6 @@
 .DS_Store
 flamegraph.svg
 justinkeypair.pem
-keyboard_stats.txt
+*.txt
+*.xlsx
+
