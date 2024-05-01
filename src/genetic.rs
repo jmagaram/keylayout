@@ -80,13 +80,17 @@ pub fn find_best<'a>(args: FindBestArgs<'a>) -> impl Iterator<Item = Option<Solu
     };
     let mut best: Option<Solution> = None;
     let results = std::iter::repeat_with(move || {
-        let start = Keyboard::random(args.dictionary.alphabet(), &partition, &args.prohibited)
-            .map(|k| {
-                let penalty = k.penalty(args.dictionary, Penalty::MAX);
-                k.to_solution(penalty, "".to_string())
-            })
-            .next()
-            .unwrap();
+        let start = Keyboard::random(
+            args.dictionary.alphabet(),
+            partition.clone(),
+            &args.prohibited,
+        )
+        .map(|k| {
+            let penalty = k.penalty(args.dictionary, Penalty::MAX);
+            k.to_solution(penalty, "".to_string())
+        })
+        .next()
+        .unwrap();
         let solution = Genetic {
             best: start,
             current_generation: 1,

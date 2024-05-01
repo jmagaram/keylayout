@@ -152,7 +152,7 @@ impl Keyboard {
     /// appear together on the same key.
     pub fn random<'a>(
         alphabet: Key,
-        layout: &'a Partitions,
+        layout: Partitions,
         prohibited: &'a Prohibited,
     ) -> impl Iterator<Item = Keyboard> + 'a {
         assert!(
@@ -597,7 +597,7 @@ mod tests {
             max: 4,
         };
         let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
-        for k in Keyboard::random(dict.alphabet(), &layout, &prohibited).take(20) {
+        for k in Keyboard::random(dict.alphabet(), layout, &prohibited).take(20) {
             println!("{}", k);
         }
     }

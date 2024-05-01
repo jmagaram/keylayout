@@ -100,7 +100,7 @@ impl PenaltyGoals {
                 "Calculating random sample of size {} for keyboard with {} keys...",
                 sample_size, p.parts
             );
-            let mut penalties = Keyboard::random(self.alphabet, &p, &prohibited)
+            let mut penalties = Keyboard::random(self.alphabet, p.clone(), &prohibited)
                 .take(sample_size)
                 .map(|k| k.penalty(&dictionary, Penalty::MAX))
                 .collect::<Vec<Penalty>>();
