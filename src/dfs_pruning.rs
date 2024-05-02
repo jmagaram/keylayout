@@ -385,7 +385,10 @@ pub fn solve(args: &SolveArgs) {
         (args.penalty_top_percent as f32) / 100.0,
         args.penalty_multiplier,
     );
-    goals.with_adjustment(11..=26, args.penalty_multiplier);
+    goals.with_adjustment(
+        args.penalty_goal_from_key_count..=args.penalty_goal_until_key_count,
+        args.penalty_multiplier,
+    );
     goals.with(10, Penalty::new(args.penalty_for_10_keys));
     let prohibited = Prohibited::with_top_n_letter_pairs(&d, args.prohibited_pairs as usize);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
