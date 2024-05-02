@@ -1,9 +1,17 @@
 #![allow(dead_code)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use hashbrown::HashSet;
 use keylayout::{
-    dictionary::Dictionary, exhaustive_n_key, key::Key, keyboard::Keyboard, letter::Letter,
-    partitions::Partitions, penalty::Penalty, prohibited::Prohibited, tally::Tally, util,
+    dictionary::Dictionary,
+    exhaustive_n_key,
+    key::Key,
+    keyboard::{Keyboard, Pruneable},
+    partitions::Partitions,
+    penalty::Penalty,
+    prohibited::Prohibited,
+    tally::Tally,
+    util,
 };
 
 fn calculate_penalty(c: &mut Criterion) {
@@ -96,17 +104,17 @@ fn random_subsets(c: &mut Criterion) {
 }
 
 fn random_keyboards(c: &mut Criterion) {
-    let partition = Partitions {
-        sum: 27,
-        parts: 10,
-        min: 2,
-        max: 5,
-    };
     let dict = Dictionary::load();
     let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
     c.bench_function("RANDOM KEYBOARDS", |b| {
         b.iter(|| {
-            Keyboard::random(dict.alphabet(), &partition, black_box(&prohibited))
+            let partition = Partitions {
+                sum: 27,
+                parts: 10,
+                min: 2,
+                max: 5,
+            };
+            Keyboard::random(dict.alphabet(), partition, black_box(&prohibited))
                 .take(50)
                 .count();
         })
@@ -174,14 +182,13 @@ fn iterate_letters_in_key(c: &mut Criterion) {
 fn check_keyboard_for_invalid_pairs(c: &mut Criterion) {
     let dict = Dictionary::load();
     let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 35);
-    // let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 35, 0);
     let p = Partitions {
         sum: 27,
         min: 2,
         max: 4,
         parts: 10,
     };
-    let keyboards = Keyboard::random(dict.alphabet(), &p, &prohibited)
+    let keyboards = Keyboard::random(dict.alphabet(), p, &prohibited)
         .take(100)
         .collect::<Vec<Keyboard>>();
     c.bench_function("CHECK KEYBOARD INVALID PAIRS", |b| {
@@ -192,12 +199,54 @@ fn check_keyboard_for_invalid_pairs(c: &mut Criterion) {
         })
     });
 }
+
+#[derive(Clone)]
+struct KeyboardStatus(Keyboard);
+
+impl Pruneable for KeyboardStatus {
+    fn should_prune(&self) -> bool {
+        false
+    }
+}
+
+fn generate_unique_keyboards_with_dfs(c: &mut Criterion) {
+    let dict = Dictionary::load().filter_top_n_words(100_000);
+    let p = Partitions {
+        sum: 27,
+        min: 1,
+        max: 4,
+        parts: 10,
+    };
+    let prune = |k: &Keyboard| {
+        let k_filled = k.fill_missing(dict.alphabet());
+        let _penalty = k_filled.penalty(&dict, Penalty::MAX);
+        let result = KeyboardStatus(k.clone());
+        result
+    };
+    c.bench_function("GENERATE UNIQUE KEYBOARDS", |b| {
+        b.iter(|| {
+            let mut unique = HashSet::new();
+            // let keyboards =
+            //     Keyboard::with_dfs_util_2(dict.alphabet(), &p, &prune).filter(|k| k.0.len() == 10);
+            let keyboards = Keyboard::with_dfs(dict.alphabet(), &p, &prune)
+                .filter(|k| k.0.len() == p.parts as usize);
+            for k in keyboards {
+                unique.insert(k.0.to_string());
+                if unique.len() == 50 {
+                    break;
+                }
+            }
+        })
+    });
+}
+
 criterion_group!(
     benches,
     // generate_big_subsets,
     // generate_small_subsets,
-    check_keyboard_for_invalid_pairs,
-    // load_dictionary,
+    // check_keyboard_for_invalid_pairs,
+    // generate_unique_keyboards_with_dfs,
+    load_dictionary,
     // calculate_penalty,
     // set_bits,
     // count_letters_in_key,
