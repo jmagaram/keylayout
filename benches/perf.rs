@@ -121,15 +121,6 @@ fn random_keyboards(c: &mut Criterion) {
     });
 }
 
-fn best_n_key(c: &mut Criterion) {
-    let d = Dictionary::load();
-    c.bench_function("BEST N KEY", |b| {
-        b.iter(|| {
-            exhaustive_n_key::find_best_n_key(black_box(26), &d);
-        })
-    });
-}
-
 fn set_bits(c: &mut Criterion) {
     c.bench_function("SET BITS ITERATOR", |b| {
         b.iter(|| {
@@ -242,20 +233,19 @@ fn generate_unique_keyboards_with_dfs(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    // generate_big_subsets,
-    // generate_small_subsets,
-    // check_keyboard_for_invalid_pairs,
-    // generate_unique_keyboards_with_dfs,
+    generate_big_subsets,
+    generate_small_subsets,
+    check_keyboard_for_invalid_pairs,
+    generate_unique_keyboards_with_dfs,
     load_dictionary,
-    // calculate_penalty,
-    // set_bits,
-    // count_letters_in_key,
-    // iterate_letters_in_key,
-    // random_keyboards,
-    // best_n_key,
-    // distribute_keys,
-    // partition_sum,
-    // distribute_letters,
-    // random_subsets
+    calculate_penalty,
+    set_bits,
+    count_letters_in_key,
+    iterate_letters_in_key,
+    random_keyboards,
+    distribute_keys,
+    partition_sum,
+    distribute_letters,
+    random_subsets
 );
 criterion_main!(benches);
