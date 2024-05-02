@@ -682,7 +682,11 @@ mod tests {
                 let actual = Keyboard::with_dfs(alphabet, &key_sizes, &prune)
                     .filter(|k| k.keyboard.len() == key_count as usize)
                     .count();
-                assert_eq!(expected, actual as u128);
+                assert_eq!(
+                    expected, actual as u128,
+                    "letter count: {} key count: {}",
+                    letter_count, key_count
+                );
             }
         }
 
