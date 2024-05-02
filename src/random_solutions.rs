@@ -84,7 +84,7 @@ impl CsvOutput {
 impl<'a> Args<'a> {
     pub fn save_to_csv(&'a self) -> Result<(), csv::Error> {
         let file_name = format!(
-            "stats_samples_{}_pairs_{}.csv",
+            "kbd_penalties_pairs_{}_samples_{}.csv",
             self.samples_per_key_count,
             self.prohibited.len()
         );
@@ -142,7 +142,6 @@ impl<'a> Args<'a> {
                     Some(k) => {
                         let penalty = k.penalty(&dictionary, Penalty::MAX);
                         let solution = k.to_solution(penalty, "".to_string());
-                        println!("{}", solution);
                         solutions.push(solution);
                     }
                 }

@@ -17,6 +17,7 @@ mod partitions;
 mod penalty;
 mod penalty_goal;
 mod prohibited;
+mod random_solutions;
 mod solution;
 mod tally;
 mod util;

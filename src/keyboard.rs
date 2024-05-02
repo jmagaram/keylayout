@@ -98,6 +98,13 @@ impl Keyboard {
         })
     }
 
+    pub fn key_size_tally(&self) -> Tally<u32> {
+        self.keys.iter().fold(Tally::new(), |mut total, i| {
+            total.increment(i.len());
+            total
+        })
+    }
+
     fn find_key(&self, letter: Letter) -> Option<Key> {
         let key_index = self.find_key_index(letter)?;
         let key = self.keys.get(key_index)?;

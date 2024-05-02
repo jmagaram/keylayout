@@ -8,6 +8,10 @@ impl Prohibited {
         Prohibited(HashSet::new())
     }
 
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     pub fn with_top_n_letter_pairs(dict: &Dictionary, top_n: usize) -> Prohibited {
         if dict.words().len() > 307_000 {
             let cache = "ai,st,ns,nt,io,fn,ds,ao,ey,eo,tw,bm,hw,nr,ae,bh,dt,ms,dr,rs,mw,fr,bw,dn,fs,mt,ei,hm,ft,rt,mn,lr,au,dm,ps,cs,ln,ls,lm,dl,gs,gn,lt,dg,iu,mp,ny,sy,gt,mr,et,ct,cw,bo,hn,er,sw,no,cm,ou,lp,as,hs,pt,hr,bt,dp,dk,bs,gl,my,cp,dw,bl,hl,fl,es,ch,cr,bp,fm,br,dy,cn,eh,de,cg,bc,ht,pr,is,ar,lw,el,hp,nw,eu,np,cd,bf,fw,bd,cf,fk,fh,ry,cl,ah,dh,op,or,bg,rv,pw,at,nv,rw,ac,kn,em,fp,ru,gr,ow,al,kt,km,oy,gm,ks,fg,ty,am,ad,ap,ep,bn,mo,gk,gh,ir,in,en,it,ce,kl,df,an,sv,mv,gp,hk,kr,kp,jm,di,wy,il,im,os,co,gw,ek,ot,eg,ci,fv,be,lo,lv,hy,ab,kv,do,tv,gy,dv,ef,ly,ip,ag,fy,bk,hi,ck,cv,bj,pv,ew,by,ay,kw,tx,bi,ho,cy,py,jp,su,af,iy,jt,fi,ak,dj,bv,js,jl,mu,rx,tu,nu,jr,nx,pu,sx,gi,go,cu,jn,vw,gj,gv,iv,aw,du,sz,dx,iw,lu,fo,av,dz,cj,fj,ex,hv,hu,hj,tz,ov,ax,lx,bu,ev,jw,px,ik,ky,gu,mx,cx,xy,ko,vy,uv,jk,fu,aj,bx,uw,ix,uy,jy,wx,ij,jv,gx,ox,jo,ej,ku,ux,vx,nz,mz,lz,hx,fx,kx,rz,bz,cz,ju,gz,hz,pz,jx,kz,qs,ez,fz,az,vz,yz,wz,gq,jz,dq,iz,nq,oz,e',cq,qr,aq,qt,mq,lq,pq,bq,iq,eq,uz,oq,a',fq,hq,kq,n',qw,qu,qv,xz,qy,jq,qx,r',l',qz,i',t',u',o',d',b',p',s',m',g',c',k',y',h',f',w',v',x',j',q',z'";
