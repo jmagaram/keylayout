@@ -7,9 +7,11 @@ use crate::{
     penalty_goal::{self, PenaltyGoals, ProhibitedPairs},
     prohibited::Prohibited,
 };
+use core::fmt;
 use dialoguer::{Input, Select};
 use humantime::{format_duration, FormattedDuration};
 use std::time::Duration;
+use thousands::Separable;
 
 trait DurationFormatter {
     fn round_to_seconds(&self) -> FormattedDuration;
@@ -278,6 +280,40 @@ pub struct SolveArgs {
     display_progress_every: u128,
 }
 
+impl fmt::Display for SolveArgs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "Dictionary size: {}",
+            self.dictionary_size
+                .map(|i| i.separate_with_underscores())
+                .unwrap_or("full".to_string())
+        )?;
+        writeln!(f, "Prohibited pairs: {}", self.prohibited_pairs)?;
+        writeln!(f, "Maximum key size: {}", self.max_key_size)?;
+        writeln!(f, "Penalty pruning:")?;
+        writeln!(
+            f,
+            "  Samples have prohibited pairs: {}",
+            self.penalty_based_on_samples_with
+        )?;
+        writeln!(
+            f,
+            "  Threshold is top percent: {}",
+            self.penalty_top_percent
+        )?;
+        writeln!(f, "  From key count: {}", self.penalty_goal_from_key_count)?;
+        writeln!(
+            f,
+            "  Until key count: {}",
+            self.penalty_goal_until_key_count
+        )?;
+        writeln!(f, "  Multiplier: {}", self.penalty_multiplier)?;
+        writeln!(f, "  10 key goal: {}", self.penalty_for_10_keys)?;
+        Ok(())
+    }
+}
+
 impl SolveArgs {
     pub fn preconfigured() -> SolveArgs {
         SolveArgs {
@@ -413,16 +449,18 @@ pub fn solve(args: &SolveArgs) {
     let mut statistics = statistics::Statistics::new();
     for s in solutions {
         statistics.add(&s);
-        if statistics.seen_is_multiple_of(args.display_progress_every) || statistics.has_new_best()
-        {
+        if statistics.seen_is_multiple_of(args.display_progress_every * 10) {
             println!("{}", statistics);
-        }
-        if statistics.seen_is_multiple_of(200_000) {
             println!("");
-            println!("===================================================================================================");
+            println!("{}", args);
             println!("");
             println!("{}", goals);
             println!("");
+        } else if statistics.seen_is_multiple_of(args.display_progress_every)
+            || statistics.has_new_best()
+        {
+            println!("{}", statistics);
+            println!();
         }
     }
 }

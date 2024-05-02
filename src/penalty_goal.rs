@@ -14,6 +14,18 @@ pub enum ProhibitedPairs {
     Num80,
 }
 
+impl fmt::Display for ProhibitedPairs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProhibitedPairs::Zero => write!(f, "0"),
+            ProhibitedPairs::Num20 => write!(f, "20"),
+            ProhibitedPairs::Num40 => write!(f, "40"),
+            ProhibitedPairs::Num60 => write!(f, "60"),
+            ProhibitedPairs::Num80 => write!(f, "80"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PenaltyGoals {
     goals: BTreeMap<u8, Penalty>,
@@ -115,18 +127,12 @@ impl PenaltyGoals {
 impl fmt::Display for PenaltyGoals {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Penalty goals")?;
-        writeln!(f, "")?;
         let ordered = self
             .goals
             .iter()
-            .map(|(key_count, penalty)| format!("{:<2} {:.4}", key_count, penalty))
+            .map(|(key_count, penalty)| format!("  {:<2} {:.4}", key_count, penalty))
             .collect::<Vec<String>>()
             .join("\n");
         write!(f, "{}", ordered)
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 }
