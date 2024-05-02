@@ -279,6 +279,21 @@ pub struct SolveArgs {
 }
 
 impl SolveArgs {
+    pub fn preconfigured() -> SolveArgs {
+        SolveArgs {
+            dictionary_size: Some(120_000),
+            display_progress_every: 10_000,
+            max_key_size: 5,
+            penalty_based_on_samples_with: ProhibitedPairs::Num60,
+            penalty_for_10_keys: 0.030,
+            penalty_goal_from_key_count: 11,
+            penalty_goal_until_key_count: 24,
+            penalty_multiplier: 1.0,
+            penalty_top_percent: 20,
+            prohibited_pairs: 70,
+        }
+    }
+
     pub fn new_from_prompts() -> SolveArgs {
         let dictionary_size_index = Select::new()
             .with_prompt("Dictionary size")
@@ -380,13 +395,9 @@ pub fn solve(args: &SolveArgs) {
     };
     let mut goals = PenaltyGoals::none(d.alphabet());
     goals.use_random_samples(
-        11..=26,
+        args.penalty_goal_from_key_count..=args.penalty_goal_until_key_count,
         args.penalty_based_on_samples_with,
         (args.penalty_top_percent as f32) / 100.0,
-        args.penalty_multiplier,
-    );
-    goals.with_adjustment(
-        args.penalty_goal_from_key_count..=args.penalty_goal_until_key_count,
         args.penalty_multiplier,
     );
     goals.with(10, Penalty::new(args.penalty_for_10_keys));
