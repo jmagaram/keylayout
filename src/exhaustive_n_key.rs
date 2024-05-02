@@ -91,8 +91,8 @@ pub fn find_best_n_key(args: Args) -> Option<Solution> {
     let total_keyboards = key_sizes.total_unique_keyboards();
     let keyboards = Keyboard::with_dfs(dictionary.alphabet(), &key_sizes, &prune);
     for (index, k) in keyboards
+        .filter(|k| k.len() == args.key_count as usize)
         .enumerate()
-        .filter(|(_, k)| k.len() == args.key_count as usize)
     {
         let best_penalty = best.as_ref().map(|b| b.penalty()).unwrap_or(Penalty::MAX);
         let penalty = k.penalty(&dictionary, best_penalty);
@@ -110,12 +110,11 @@ pub fn find_best_n_key(args: Args) -> Option<Solution> {
             println!("{}", solution);
             best = Some(solution);
         }
-        if index > 0 && index.rem_euclid(10_000) == 0 {
+        if index > 0 && index.rem_euclid(100_000) == 0 {
             println!(
-                "--- seen {} keyboards of {} with {} keys in {} ---",
+                "--- seen {}/{} keyboards in {}",
                 index.separate_with_underscores(),
                 total_keyboards.separate_with_underscores(),
-                args.key_count,
                 start_time.elapsed().round_to_seconds()
             );
             if let Some(ref solution) = best {
