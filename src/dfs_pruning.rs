@@ -1,6 +1,12 @@
 use crate::{
-    dfs_pruning::keyboard_status::KeyboardStatus, dictionary::Dictionary, keyboard::Keyboard,
-    partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited,
+    dfs_pruning::keyboard_status::KeyboardStatus,
+    dictionary::Dictionary,
+    keyboard::Keyboard,
+    partitions::Partitions,
+    penalty::Penalty,
+    penalty_goal::{self, PenaltyGoals, ProhibitedPairs},
+    prohibited::Prohibited,
+    solution_samples,
 };
 use dialoguer::{Input, Select};
 use humantime::{format_duration, FormattedDuration};
@@ -262,23 +268,21 @@ pub mod statistics {
 
 pub struct SolveArgs {
     dictionary_size: Option<usize>,
-    penalty_goal_adjustment: f32,
-    penalty_goal_for_10_keys: f32,
     prohibited_pairs: u8,
     max_key_size: u32,
-    min_key_size: u32,
+    penalty_based_on_samples_with: penalty_goal::ProhibitedPairs,
+    penalty_top_percent: u8,
+    penalty_goal_from_key_count: u8,
+    penalty_goal_until_key_count: u8,
+    penalty_multiplier: f32,
+    penalty_for_10_keys: f32,
     display_progress_every: u128,
 }
 
 impl SolveArgs {
     pub fn new_from_prompts() -> SolveArgs {
-        let prohibited_pairs = Input::<u8>::new()
-            .with_prompt("Number of invalid pairs?")
-            .default(40)
-            .interact_text()
-            .unwrap();
         let dictionary_size_index = Select::new()
-            .with_prompt("Dictionary size?")
+            .with_prompt("Dictionary size")
             .item("Entire (307_000)")
             .item("Significant (120_000 words)")
             .item("Small (90_000)")
@@ -295,24 +299,59 @@ impl SolveArgs {
             4 => Some(5_000),
             _ => panic!("Do not know how to handle that input for dictionary size."),
         };
+        let prohibited_pairs = Input::<u8>::new()
+            .with_prompt("Prohibited letter pairs")
+            .default(40)
+            .interact_text()
+            .unwrap();
+        let max_key_size = Input::<u32>::new()
+            .with_prompt("Maximum letters per key")
+            .default(5)
+            .interact_text()
+            .unwrap();
+        let penalty_goals_based_on_index = Select::new()
+            .with_prompt("Penalty goals based on which random samples")
+            .item("No prohibited pairs")
+            .item("20 prohibited pairs")
+            .item("40 prohibited pairs")
+            .item("60 prohibited pairs")
+            .item("80 prohibited pairs")
+            .default(0)
+            .interact()
+            .unwrap();
+        let penalty_goals_based_on = match penalty_goals_based_on_index {
+            0 => ProhibitedPairs::Zero,
+            1 => ProhibitedPairs::Num20,
+            2 => ProhibitedPairs::Num40,
+            3 => ProhibitedPairs::Num60,
+            4 => ProhibitedPairs::Num80,
+            _ => {
+                panic!("Unexpected penalty goal index");
+            }
+        };
+        let penalty_goal_from_key_count = Input::<u8>::new()
+            .with_prompt("Penalty goal from key count")
+            .default(11)
+            .interact_text()
+            .unwrap();
+        let penalty_goal_until_key_count = Input::<u8>::new()
+            .with_prompt("Penalty goal to key count")
+            .default(24)
+            .interact_text()
+            .unwrap();
+        let penalty_goal_top_percent = Input::<u8>::new()
+            .with_prompt("Penalties must in the top percent of random samples")
+            .default(25)
+            .interact_text()
+            .unwrap();
         let penalty_goal_adjustment = Input::<f32>::new()
-            .with_prompt("Penalty limit multiplier?")
+            .with_prompt("Penalty limit multiplier")
             .default(1.0)
             .interact_text()
             .unwrap();
         let penalty_goal_for_10_keys = Input::<f32>::new()
             .with_prompt("Penalty goal for 10 key solution")
             .default(0.03)
-            .interact_text()
-            .unwrap();
-        let max_key_size = Input::<u32>::new()
-            .with_prompt("Max letters per key?")
-            .default(4)
-            .interact_text()
-            .unwrap();
-        let min_key_size = Input::<u32>::new()
-            .with_prompt("Min letters per key?")
-            .default(2)
             .interact_text()
             .unwrap();
         let display_progress_every = Input::<u128>::new()
@@ -323,10 +362,13 @@ impl SolveArgs {
         SolveArgs {
             dictionary_size,
             display_progress_every,
-            min_key_size,
             max_key_size,
-            penalty_goal_adjustment,
-            penalty_goal_for_10_keys,
+            penalty_based_on_samples_with: penalty_goals_based_on,
+            penalty_top_percent: penalty_goal_top_percent,
+            penalty_multiplier: penalty_goal_adjustment,
+            penalty_for_10_keys: penalty_goal_for_10_keys,
+            penalty_goal_from_key_count,
+            penalty_goal_until_key_count,
             prohibited_pairs,
         }
     }
@@ -337,52 +379,21 @@ pub fn solve(args: &SolveArgs) {
         None => Dictionary::load(),
         Some(count) => Dictionary::load().filter_top_n_words(count),
     };
-    let penalty_limits = [
-        (11, 0.033761382),
-        (12, 0.027356036),
-        (13, 0.022223976),
-        (14, 0.01762744),
-        (15, 0.015489524),
-        (16, 0.013303437),
-        (17, 0.01127746),
-        (18, 0.009444942),
-        (19, 0.007776286),
-        (20, 0.0062784567),
-        (21, 0.0049019833),
-        (22, 0.00341645),
-        (23, 0.002465709),
-        (24, 0.0014274485),
-        (25, 0.0006215214),
-        (26, 0.00009072169),
-        // (11, 0.035212047),
-        // (12, 0.028836569),
-        // (13, 0.023573535),
-        // (14, 0.018724455),
-        // (15, 0.016393073),
-        // (16, 0.014338043),
-        // (17, 0.012302379),
-        // (18, 0.010197972),
-        // (19, 0.008511533),
-        // (20, 0.006951685),
-        // (21, 0.0055407956),
-        // (22, 0.0040391646),
-        // (23, 0.0029261562),
-        // (24, 0.0017350693),
-        // (25, 0.00082302664),
-        // (26, 0.0001239321),
-    ];
     let mut goals = PenaltyGoals::none(d.alphabet());
-    for (key_count, penalty) in penalty_limits {
-        goals.with(key_count, Penalty::new(penalty));
-    }
-    goals.with_adjustment(11..=26, args.penalty_goal_adjustment);
-    goals.with(10, Penalty::new(args.penalty_goal_for_10_keys));
+    goals.use_random_samples(
+        11..=26,
+        args.penalty_based_on_samples_with,
+        (args.penalty_top_percent as f32) / 100.0,
+        args.penalty_multiplier,
+    );
+    goals.with_adjustment(11..=26, args.penalty_multiplier);
+    goals.with(10, Penalty::new(args.penalty_for_10_keys));
     let prohibited = Prohibited::with_top_n_letter_pairs(&d, args.prohibited_pairs as usize);
     let prune = |k: &Keyboard| KeyboardStatus::new(k, &d, &prohibited, &goals);
     let key_sizes = Partitions {
         sum: 27,
         parts: 10,
-        min: args.min_key_size,
+        min: 1,
         max: args.max_key_size,
     };
     let solutions = Keyboard::with_dfs(d.alphabet(), &key_sizes, &prune);
@@ -402,22 +413,3 @@ pub fn solve(args: &SolveArgs) {
         }
     }
 }
-
-// let standard_penalties = [
-//     (26, 0.00006),
-//     (25, 0.000174),
-//     (24, 0.000385),
-//     (23, 0.0007),
-//     (22, 0.0012),
-//     (21, 0.001974),
-//     (20, 0.002559),
-//     (19, 0.003633),
-//     (18, 0.004623),
-//     (17, 0.005569),
-//     (16, 0.007603),
-//     (15, 0.009746),
-//     (14, 0.013027),
-//     (13, 0.016709),
-//     (12, 0.02109),
-//     (11, 0.05),
-// ];

@@ -52,12 +52,19 @@ pub struct CsvOutput {
 }
 
 impl CsvOutput {
-    pub fn load_from_csv(file_name: String) -> Result<Vec<CsvOutput>, csv::Error> {
+    pub fn penalty(&self) -> Penalty {
+        Penalty::new(self.penalty)
+    }
+
+    pub fn keys(&self) -> u32 {
+        self.keys as u32
+    }
+
+    pub fn load_from_csv(file_name: &str) -> Result<Vec<CsvOutput>, csv::Error> {
         let mut rdr = csv::ReaderBuilder::new()
             .has_headers(true)
             .from_path(file_name)
             .unwrap();
-
         rdr.deserialize().collect::<Result<Vec<CsvOutput>, _>>()
     }
 

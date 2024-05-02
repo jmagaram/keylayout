@@ -85,6 +85,7 @@ fn main() {
         .default(0)
         .interact()
         .unwrap();
+    println!();
     match selection {
         0 => dfs_pruning(),
         1 => genetic_solver(),

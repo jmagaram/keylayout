@@ -57,7 +57,7 @@ impl Dictionary {
     }
 
     fn load_json() -> HashMap<String, f32> {
-        const FILE_NAME: &'static str = "./src/words.json";
+        const FILE_NAME: &'static str = "./words.json";
         let file = File::open(FILE_NAME).expect("file not found");
         let reader = BufReader::new(file);
         let word_frequencies: HashMap<String, f32> =
