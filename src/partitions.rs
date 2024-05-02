@@ -48,15 +48,12 @@ impl Partitions {
         Partitions::go(self.sum, self.parts, self.sum, self.min, self.max)
     }
 
-    pub fn has_solutions(&self) -> bool {
+    fn has_solution(&self) -> bool {
         self.min * self.parts <= self.sum && self.max * self.parts >= self.sum
     }
 
     pub fn calculate_tree<'a>(self) -> Box<dyn Iterator<Item = (u32, Partitions)> + 'a> {
-        assert!(
-            self.min * self.parts <= self.sum && self.max * self.parts >= self.sum,
-            "Does not add up!"
-        );
+        assert!(self.has_solution(), "Can not partition the sum.");
         if self.sum == 0 && self.parts == 0 {
             let result = std::iter::empty::<(u32, Partitions)>();
             let boxed_result: Box<dyn Iterator<Item = (u32, Partitions)>> = Box::new(result);
@@ -85,7 +82,7 @@ impl Partitions {
                             max: self.max,
                             parts: self.parts - 1,
                         };
-                        next.has_solutions()
+                        next.has_solution()
                     }
                     // *i * self.parts <= self.sum && *i + self.max * (self.parts - 1) >= self.sum
                 })
