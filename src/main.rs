@@ -52,8 +52,8 @@ fn dfs_pruning_preconfigured() {
 }
 
 fn find_best_n_key() {
-    let dict = Dictionary::load();
-    let best = exhaustive_n_key::find_best_n_key(25, &dict);
+    let args = exhaustive_n_key::Args::new_from_prompts();
+    let best = exhaustive_n_key::find_best_n_key(args);
     match best {
         None => {
             println!("None found");
@@ -87,6 +87,7 @@ fn main() {
         .item("DFS search")
         .item("DFS preconfigured")
         .item("Genetic algorithm")
+        .item("Find best N key")
         .item("Save random keyboard penalties to CSV")
         .default(0)
         .interact()
@@ -96,7 +97,8 @@ fn main() {
         0 => dfs_pruning(),
         1 => dfs_pruning_preconfigured(),
         2 => genetic_solver(),
-        3 => save_random_keyboard_penalties(),
+        3 => find_best_n_key(),
+        4 => save_random_keyboard_penalties(),
         _ => panic!("Did not know how to handle that selection."),
     }
 }
