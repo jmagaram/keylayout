@@ -16,8 +16,8 @@ mod partitions;
 mod penalty;
 mod penalty_goal;
 mod prohibited;
-mod random_solutions;
 mod solution;
+mod solution_samples;
 mod tally;
 mod util;
 mod vec_threads;
@@ -28,7 +28,7 @@ fn save_random_keyboard_penalties() {
     for prohibited_pairs in [0, 20, 40, 60, 80] {
         println!("Working on prohibited pairs: {}", prohibited_pairs);
         let prohibited = Prohibited::with_top_n_letter_pairs(&dictionary, prohibited_pairs);
-        let args = random_solutions::Args {
+        let args = solution_samples::Args {
             dictionary: &dictionary,
             key_count: 10..=26,
             min_key_size: 1,
