@@ -1,11 +1,6 @@
 use crate::{
-    dfs_pruning::keyboard_status::KeyboardStatus,
-    dictionary::{self, Dictionary},
-    keyboard::Keyboard,
-    partitions::Partitions,
-    penalty::Penalty,
-    penalty_goal::PenaltyGoals,
-    prohibited::Prohibited,
+    dfs_pruning::keyboard_status::KeyboardStatus, dictionary::Dictionary, keyboard::Keyboard,
+    partitions::Partitions, penalty::Penalty, penalty_goal::PenaltyGoals, prohibited::Prohibited,
 };
 use dialoguer::{Input, Select};
 use humantime::{format_duration, FormattedDuration};

@@ -6,7 +6,6 @@ mod dfs_pruning;
 mod dictionary;
 mod exhaustive_n_key;
 mod frequency;
-mod generate_stats;
 mod genetic;
 mod key;
 mod key_sizes_tree;
@@ -21,15 +20,25 @@ mod random_solutions;
 mod solution;
 mod tally;
 mod util;
+mod vec_threads;
 mod word;
 
-fn generate_keyboard_stats() {
-    let samples = 2_500;
-    let pairs = 60;
-    let dictionary = Dictionary::load().filter_top_n_words(120_000);
-    let file_name = format!("kbd_{}_pairs_120k_dict.txt", pairs);
-    let prohibited = Prohibited::with_top_n_letter_pairs(&dictionary, pairs);
-    generate_stats::random_keyboards(samples, &dictionary, &prohibited, &file_name).unwrap();
+fn save_random_keyboard_penalties() {
+    let dictionary = Dictionary::load();
+    for prohibited_pairs in [0, 20, 40, 60, 80] {
+        println!("Working on prohibited pairs: {}", prohibited_pairs);
+        let prohibited = Prohibited::with_top_n_letter_pairs(&dictionary, prohibited_pairs);
+        let args = random_solutions::Args {
+            dictionary: &dictionary,
+            key_count: 10..=26,
+            min_key_size: 1,
+            max_key_size: 5,
+            prohibited: &prohibited,
+            samples_per_key_count: 5000,
+            thread_count: 4,
+        };
+        args.save_to_csv().unwrap();
+    }
 }
 
 fn dfs_pruning() {
@@ -65,21 +74,21 @@ fn genetic_solver() {
         }
     }
 }
-use dialoguer::{Input, Select};
 
 fn main() {
+    use dialoguer::Select;
     let selection = Select::new()
         .with_prompt("What do you want to do?")
         .item("DFS search")
         .item("Genetic algorithm")
+        .item("Save random keyboard penalties to CSV")
         .default(0)
         .interact()
         .unwrap();
     match selection {
         0 => dfs_pruning(),
         1 => genetic_solver(),
-        _ => {
-            println!("Not sure what do with that selection");
-        }
+        2 => save_random_keyboard_penalties(),
+        _ => panic!("Did not know how to handle that selection."),
     }
 }

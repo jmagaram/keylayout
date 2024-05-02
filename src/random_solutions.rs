@@ -84,7 +84,7 @@ impl CsvOutput {
 impl<'a> Args<'a> {
     pub fn save_to_csv(&'a self) -> Result<(), csv::Error> {
         let file_name = format!(
-            "kbd_penalties_pairs_{}_samples_{}.csv",
+            "kbd_penalties_{}_samples_{}_pairs.csv",
             self.samples_per_key_count,
             self.prohibited.len()
         );
