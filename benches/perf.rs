@@ -4,7 +4,6 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use hashbrown::HashSet;
 use keylayout::{
     dictionary::Dictionary,
-    exhaustive_n_key,
     key::Key,
     keyboard::{Keyboard, Pruneable},
     partitions::Partitions,

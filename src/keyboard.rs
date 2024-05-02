@@ -1,9 +1,8 @@
 #![allow(dead_code)]
 
 use crate::{
-    dictionary::Dictionary, key::Key, key_sizes_tree::KeySizesTree, letter::Letter,
-    partitions::Partitions, penalty::Penalty, prohibited::Prohibited, solution::Solution,
-    tally::Tally, word::Word,
+    dictionary::Dictionary, key::Key, letter::Letter, partitions::Partitions, penalty::Penalty,
+    prohibited::Prohibited, solution::Solution, tally::Tally, word::Word,
 };
 use rand::Rng;
 use std::{fmt, iter};

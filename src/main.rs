@@ -8,7 +8,6 @@ mod exhaustive_n_key;
 mod frequency;
 mod genetic;
 mod key;
-mod key_sizes_tree;
 mod keyboard;
 mod lazy_tree;
 mod letter;
