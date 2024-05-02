@@ -6,7 +6,6 @@ use crate::{
     penalty::Penalty,
     penalty_goal::{self, PenaltyGoals, ProhibitedPairs},
     prohibited::Prohibited,
-    solution_samples,
 };
 use dialoguer::{Input, Select};
 use humantime::{format_duration, FormattedDuration};
