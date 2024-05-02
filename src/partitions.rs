@@ -47,6 +47,72 @@ impl Partitions {
     pub fn calculate(&self) -> Vec<Vec<u32>> {
         Partitions::go(self.sum, self.parts, self.sum, self.min, self.max)
     }
+
+    pub fn has_solutions(&self) -> bool {
+        self.min * self.parts <= self.sum && self.max * self.parts >= self.sum
+    }
+
+    pub fn calculate_tree<'a>(self) -> Box<dyn Iterator<Item = (u32, Partitions)> + 'a> {
+        assert!(
+            self.min * self.parts <= self.sum && self.max * self.parts >= self.sum,
+            "Does not add up!"
+        );
+        if self.sum == 0 && self.parts == 0 {
+            let result = std::iter::empty::<(u32, Partitions)>();
+            let boxed_result: Box<dyn Iterator<Item = (u32, Partitions)>> = Box::new(result);
+            boxed_result
+        } else if self.sum > 0 && self.parts == 1 {
+            let result = std::iter::once::<(u32, Partitions)>((
+                self.sum,
+                Partitions {
+                    sum: 0,
+                    parts: 0,
+                    min: 0,
+                    max: 0,
+                },
+            ));
+            let boxed_result: Box<dyn Iterator<Item = (u32, Partitions)>> = Box::new(result);
+            boxed_result
+        } else {
+            let result = (self.min..=self.max)
+                .filter(move |i| {
+                    if *i > self.sum {
+                        false
+                    } else {
+                        let next = Partitions {
+                            sum: self.sum - i,
+                            min: self.min,
+                            max: self.max,
+                            parts: self.parts - 1,
+                        };
+                        next.has_solutions()
+                    }
+                    // *i * self.parts <= self.sum && *i + self.max * (self.parts - 1) >= self.sum
+                })
+                .map(move |i| {
+                    (
+                        i,
+                        Partitions {
+                            sum: self.sum - i,
+                            parts: self.parts - 1,
+                            min: self.min,
+                            // min: self.min.max(i),
+                            max: self.max,
+                        },
+                    )
+                });
+            let boxed_result: Box<dyn Iterator<Item = (u32, Partitions)>> = Box::new(result);
+            boxed_result
+        }
+    }
+
+    pub fn print_recursive(&self, depth: usize) {
+        let indent = std::iter::repeat("...").take(depth).collect::<String>();
+        self.clone().calculate_tree().for_each(|(item, rest)| {
+            println!("{}{}", indent, item);
+            rest.print_recursive(depth + 1);
+        });
+    }
 }
 
 #[cfg(test)]
@@ -113,6 +179,22 @@ mod tests {
             parts: 2,
         };
         assert_eq!(p.total_unique_keyboards(), 15);
+    }
+
+    #[test]
+    #[ignore]
+    fn print_recursive() {
+        let sum = 3;
+        let parts = 2;
+        let min = 1;
+        let max = 3;
+        let partitions = Partitions {
+            sum,
+            parts,
+            min,
+            max,
+        };
+        partitions.print_recursive(0);
     }
 
     #[test]

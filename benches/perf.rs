@@ -114,7 +114,26 @@ fn random_keyboards(c: &mut Criterion) {
                 max: 5,
             };
             Keyboard::random(dict.alphabet(), partition, black_box(&prohibited))
-                .take(50)
+                .take(2000)
+                .count();
+        })
+    });
+}
+
+fn random_keyboards_limited_alphabet(c: &mut Criterion) {
+    let total_letters = 10;
+    let alphabet = Key::with_first_n_letters(total_letters);
+    let prohibited = Prohibited::new();
+    c.bench_function("RANDOM KEYBOARDS LIMITED ALPHABET", |b| {
+        b.iter(|| {
+            let partition = Partitions {
+                sum: total_letters,
+                parts: total_letters / 2,
+                min: 1,
+                max: total_letters,
+            };
+            Keyboard::random(alphabet, partition, black_box(&prohibited))
+                .take(20_000)
                 .count();
         })
     });
@@ -232,19 +251,20 @@ fn generate_unique_keyboards_with_dfs(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    generate_big_subsets,
-    generate_small_subsets,
-    check_keyboard_for_invalid_pairs,
-    generate_unique_keyboards_with_dfs,
-    load_dictionary,
-    calculate_penalty,
-    set_bits,
-    count_letters_in_key,
-    iterate_letters_in_key,
-    random_keyboards,
-    distribute_keys,
-    partition_sum,
-    distribute_letters,
-    random_subsets
+    // generate_big_subsets,
+    // generate_small_subsets,
+    // check_keyboard_for_invalid_pairs,
+    // generate_unique_keyboards_with_dfs,
+    // load_dictionary,
+    // calculate_penalty,
+    // set_bits,
+    // count_letters_in_key,
+    // iterate_letters_in_key,
+    // random_keyboards,
+    random_keyboards_limited_alphabet,
+    // distribute_keys,
+    // partition_sum,
+    // distribute_letters,
+    // random_subsets
 );
 criterion_main!(benches);

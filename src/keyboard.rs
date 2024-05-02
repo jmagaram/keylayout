@@ -352,15 +352,14 @@ impl Keyboard {
             key_sizes.sum,
             "The total number of letters must equal the partition sum."
         );
-        let tree = KeySizesTree::new(key_sizes);
         let start = Keyboard::empty();
-        start.with_dfs_util(letters, tree, prune)
+        start.with_dfs_util(letters, key_sizes.clone(), prune)
     }
 
     pub fn with_dfs_util<'a, F, G>(
         self,
         letters: Key,
-        key_sizes: KeySizesTree,
+        key_sizes: Partitions,
         prune: &'a F,
     ) -> impl Iterator<Item = G> + 'a
     where
@@ -369,28 +368,30 @@ impl Keyboard {
     {
         let current = prune(&self);
         let current_take = if self.len() == 0 { 0 } else { 1 };
-        if current.should_prune() || key_sizes.is_empty() {
+        if current.should_prune() || key_sizes.sum == 0 {
             let result = std::iter::once(current).take(current_take);
             let result: Box<dyn Iterator<Item = G>> = Box::new(result);
             result
         } else {
-            let result = key_sizes.next().flat_map(move |(key_size, key_sizes)| {
-                let min_letter = letters.min_letter().unwrap();
-                let remaining_letters = letters.remove(min_letter);
-                let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
-                let new_keys = other_letters_for_key.map(move |o| {
-                    let new_key = o.add(min_letter);
-                    let remaining_letters = letters.except(new_key);
-                    (new_key, remaining_letters)
+            let result = key_sizes
+                .calculate_tree()
+                .flat_map(move |(key_size, key_sizes)| {
+                    let min_letter = letters.min_letter().unwrap();
+                    let remaining_letters = letters.remove(min_letter);
+                    let other_letters_for_key = remaining_letters.subsets_of_size(key_size - 1);
+                    let new_keys = other_letters_for_key.map(move |o| {
+                        let new_key = o.add(min_letter);
+                        let remaining_letters = letters.except(new_key);
+                        (new_key, remaining_letters)
+                    });
+                    let kbd = self.clone();
+                    let keyboards = new_keys.flat_map(move |(new_key, letters)| {
+                        let k = kbd.add_key(new_key);
+                        let descendents = k.with_dfs_util(letters, key_sizes.clone(), prune);
+                        descendents
+                    });
+                    keyboards
                 });
-                let kbd = self.clone();
-                let keyboards = new_keys.flat_map(move |(new_key, letters)| {
-                    let k = kbd.add_key(new_key);
-                    let descendents = k.with_dfs_util(letters, key_sizes.clone(), prune);
-                    descendents
-                });
-                keyboards
-            });
             let current = std::iter::once(current.clone()).take(current_take);
             let result: Box<dyn Iterator<Item = G>> = Box::new(current.chain(result));
             result
@@ -667,7 +668,7 @@ mod tests {
 
         #[test]
         fn with_dfs_creates_proper_number_of_keyboards() {
-            let data = [(8, 3), (4, 2), (7, 3), (1, 1), (2, 2), (6, 3)];
+            let data = [(3, 2), (8, 3), (4, 2), (7, 3), (1, 1), (2, 2), (6, 3)];
             for (letter_count, key_count) in data {
                 let key_sizes = Partitions {
                     sum: letter_count,
@@ -811,7 +812,7 @@ mod tests {
         #[test]
         #[ignore]
         fn with_dfs_print_keyboards() {
-            let data = [(5, 3)];
+            let data = [(3, 2)];
             for (letter_count, key_count) in data {
                 let key_sizes = Partitions {
                     sum: letter_count,
