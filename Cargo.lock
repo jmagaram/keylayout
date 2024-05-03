@@ -387,6 +387,7 @@ dependencies = [
  "hashbrown 0.14.3",
  "humantime",
  "rand",
+ "rayon",
  "serde",
  "serde_json",
  "smallvec",

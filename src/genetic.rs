@@ -1,5 +1,7 @@
 use std::borrow::Borrow;
 
+use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     prohibited::Prohibited, solution::Solution,
@@ -17,7 +19,7 @@ impl<'a> Iterator for Genetic<'a> {
     type Item = Solution;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let best_child = self
+        let options = self
             .best
             .borrow()
             .keyboard()
@@ -36,24 +38,30 @@ impl<'a> Iterator for Genetic<'a> {
                     k.swap_random_letters_n_times(12).unwrap(),
                 ]
             })
-            .scan(self.best.borrow(), |best, k| {
-                let penalty = k.penalty(&self.dictionary, best.penalty());
-                self.keyboards_seen = self.keyboards_seen + 1;
-                let solution = k.to_solution(
+            .collect::<Vec<Keyboard>>();
+        let options_count = options.len();
+        let best_child = options
+            .into_par_iter()
+            .enumerate()
+            .map(|(index, k)| {
+                let penalty = k.penalty(&self.dictionary, self.best.penalty());
+                k.to_solution(
                     penalty,
                     format!(
-                        "gen:{} kbds:{}",
-                        self.current_generation, self.keyboards_seen
+                        "gen:{}, kbds:{}",
+                        self.current_generation,
+                        self.keyboards_seen as usize + index
                     ),
-                );
-                Some(solution)
+                )
             })
-            .min_by(|a, b| a.penalty().cmp(&b.penalty()))?;
+            .min_by(|a, b| a.penalty().cmp(&b.penalty()))
+            .unwrap();
         let sufficient_progress = (self.best.penalty().to_f32() - best_child.penalty().to_f32())
             > self.die_threshold.to_f32();
         if sufficient_progress {
             self.best = best_child.clone();
             self.current_generation = self.current_generation + 1;
+            self.keyboards_seen = self.keyboards_seen + options_count as u32;
             Some(best_child)
         } else {
             None
