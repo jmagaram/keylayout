@@ -7,6 +7,7 @@
 
 # Best multiple key from exhaustive search (FINISHED)
 
+2 keys > 1.5686𝕡 adgmnoprty' bcefhijklqsuvwxz
 26 keys > 0.000001𝕡 a b c d e f g h i j k l m n o p q r s t u v w x y z'
 25 keys > 0.000060𝕡 a b c d e f g h i j k l m n o p qz' r s t u v w x y
 24 keys > 0.000174𝕡 a b c d e f g h i j' k l m n o p qy r s t u v w xz
