@@ -52,7 +52,7 @@ fn dfs_pruning_preconfigured() {
 
 fn find_best_n_key() {
     let args = exhaustive_n_key::Args::new_from_prompts();
-    let best = exhaustive_n_key::find_best_n_key(args);
+    let best = exhaustive_n_key::best_n_key(args);
     match best {
         None => {
             println!("None found");
