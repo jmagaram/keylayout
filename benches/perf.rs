@@ -237,19 +237,19 @@ fn generate_unique_keyboards_with_dfs(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    // generate_big_subsets,
-    // generate_small_subsets,
-    // check_keyboard_for_invalid_pairs,
-    // generate_unique_keyboards_with_dfs,
-    // load_dictionary,
-    // calculate_penalty,
-    // set_bits,
-    // count_letters_in_key,
-    // iterate_letters_in_key,
-    // random_keyboards,
+    generate_big_subsets,
+    generate_small_subsets,
+    check_keyboard_for_invalid_pairs,
+    generate_unique_keyboards_with_dfs,
+    load_dictionary,
+    calculate_penalty,
+    set_bits,
+    count_letters_in_key,
+    iterate_letters_in_key,
+    random_keyboards,
     random_keyboards_limited_alphabet,
-    // distribute_keys,
-    // distribute_letters,
-    // random_subsets
+    distribute_keys,
+    distribute_letters,
+    random_subsets
 );
 criterion_main!(benches);
