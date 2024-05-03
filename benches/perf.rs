@@ -66,20 +66,6 @@ fn distribute_keys(c: &mut Criterion) {
     });
 }
 
-fn partition_sum(c: &mut Criterion) {
-    let source = Partitions {
-        sum: 27,
-        parts: 10,
-        min: 1,
-        max: 27,
-    };
-    c.bench_function("PARTITION SUM", |b| {
-        b.iter(|| {
-            black_box(source.calculate());
-        })
-    });
-}
-
 fn distribute_letters(c: &mut Criterion) {
     c.bench_function("DISTRIBUTE LETTERS", |b| {
         b.iter(|| {
@@ -263,7 +249,6 @@ criterion_group!(
     // random_keyboards,
     random_keyboards_limited_alphabet,
     // distribute_keys,
-    // partition_sum,
     // distribute_letters,
     // random_subsets
 );

@@ -1,8 +1,15 @@
 #![allow(dead_code)]
 
 use crate::{
-    dictionary::Dictionary, key::Key, letter::Letter, partitions::Partitions, penalty::Penalty,
-    prohibited::Prohibited, solution::Solution, tally::Tally, word::Word,
+    dictionary::Dictionary,
+    key::Key,
+    letter::Letter,
+    partitions::{self, Partitions},
+    penalty::Penalty,
+    prohibited::Prohibited,
+    solution::Solution,
+    tally::Tally,
+    word::Word,
 };
 use rand::Rng;
 use std::{fmt, iter};
@@ -166,7 +173,9 @@ impl Keyboard {
             "The layout sum must be the exact same as the the number of letters in the alphabet."
         );
         let mut rng = rand::thread_rng();
-        let layout_options = layout.calculate();
+        let layout_options = layout
+            .flatten(partitions::Goal::Combinations)
+            .collect::<Vec<Vec<u32>>>();
         iter::repeat_with(move || {
             let layout_index = rng.gen_range(0..layout_options.len());
             let layout = layout_options.get(layout_index).unwrap();
@@ -374,7 +383,7 @@ impl Keyboard {
             result
         } else {
             let result = key_sizes
-                .calculate_tree()
+                .permutations()
                 .flat_map(move |(key_size, key_sizes)| {
                     let min_letter = letters.min_letter().unwrap();
                     let remaining_letters = letters.remove(min_letter);
