@@ -1,9 +1,9 @@
 #[derive(Debug, Clone)]
 pub struct Partitions {
-    pub sum: u32,
-    pub parts: u32,
-    pub min: u32,
-    pub max: u32,
+    pub sum: u8,
+    pub parts: u8,
+    pub min: u8,
+    pub max: u8,
 }
 
 #[derive(Clone, Copy)]
@@ -23,17 +23,21 @@ impl Partitions {
     }
 
     fn has_solution(&self) -> bool {
-        self.min * self.parts <= self.sum && self.max * self.parts >= self.sum
+        let min = self.min as u32;
+        let max = self.max as u32;
+        let parts = self.parts as u32;
+        let sum = self.sum as u32;
+        min * parts <= sum && max * parts >= sum
     }
 
-    pub fn flatten(&self, goal: Goal) -> Box<dyn Iterator<Item = Vec<u32>>> {
+    pub fn flatten(&self, goal: Goal) -> Box<dyn Iterator<Item = Vec<u8>>> {
         if self.sum == 0 {
             let result = std::iter::empty();
-            let boxed_result: Box<dyn Iterator<Item = Vec<u32>>> = Box::new(result);
+            let boxed_result: Box<dyn Iterator<Item = Vec<u8>>> = Box::new(result);
             boxed_result
         } else if self.parts == 1 {
             let result = std::iter::once(vec![self.sum]);
-            let boxed_result: Box<dyn Iterator<Item = Vec<u32>>> = Box::new(result);
+            let boxed_result: Box<dyn Iterator<Item = Vec<u8>>> = Box::new(result);
             boxed_result
         } else {
             let results = self.clone().iterate(goal).flat_map(move |(n, rest)| {
@@ -43,7 +47,7 @@ impl Partitions {
                     w
                 })
             });
-            let boxed_result: Box<dyn Iterator<Item = Vec<u32>>> = Box::new(results);
+            let boxed_result: Box<dyn Iterator<Item = Vec<u8>>> = Box::new(results);
             boxed_result
         }
     }
@@ -51,12 +55,12 @@ impl Partitions {
     pub fn total_unique_keyboards(&self) -> u128 {
         use crate::tally::*;
         self.flatten(Goal::Combinations)
-            .map(|x| x.iter().map(|n| *n as u8).collect::<Vec<u8>>())
+            .map(|x| x.iter().map(|n| *n).collect::<Vec<u8>>())
             .map(|x| Tally::from_iter(x.into_iter()).unique_keyboards())
             .sum()
     }
 
-    fn subtract(&self, n: u32, goal: Goal) -> Option<Partitions> {
+    fn subtract(&self, n: u8, goal: Goal) -> Option<Partitions> {
         if n >= self.sum {
             None
         } else {
@@ -76,29 +80,29 @@ impl Partitions {
         }
     }
 
-    fn iterate<'a>(self, goal: Goal) -> Box<dyn Iterator<Item = (u32, Partitions)> + 'a> {
+    fn iterate<'a>(self, goal: Goal) -> Box<dyn Iterator<Item = (u8, Partitions)> + 'a> {
         assert!(self.has_solution(), "Can't partition the sum.");
         if self.sum == 0 && self.parts == 0 {
-            let result = std::iter::empty::<(u32, Partitions)>();
-            let boxed_result: Box<dyn Iterator<Item = (u32, Partitions)>> = Box::new(result);
+            let result = std::iter::empty::<(u8, Partitions)>();
+            let boxed_result: Box<dyn Iterator<Item = (u8, Partitions)>> = Box::new(result);
             boxed_result
         } else if self.sum > 0 && self.parts == 1 {
-            let result = std::iter::once::<(u32, Partitions)>((self.sum, Self::empty()));
-            let boxed_result: Box<dyn Iterator<Item = (u32, Partitions)>> = Box::new(result);
+            let result = std::iter::once::<(u8, Partitions)>((self.sum, Self::empty()));
+            let boxed_result: Box<dyn Iterator<Item = (u8, Partitions)>> = Box::new(result);
             boxed_result
         } else {
             let result = (self.min..=self.max)
                 .filter_map(move |i| self.subtract(i, goal.clone()).map(|p| (i, p)));
-            let boxed_result: Box<dyn Iterator<Item = (u32, Partitions)>> = Box::new(result);
+            let boxed_result: Box<dyn Iterator<Item = (u8, Partitions)>> = Box::new(result);
             boxed_result
         }
     }
 
-    pub fn permutations<'a>(self) -> Box<dyn Iterator<Item = (u32, Partitions)> + 'a> {
+    pub fn permutations<'a>(self) -> Box<dyn Iterator<Item = (u8, Partitions)> + 'a> {
         self.iterate(Goal::Permutations)
     }
 
-    pub fn combinations<'a>(self) -> Box<dyn Iterator<Item = (u32, Partitions)> + 'a> {
+    pub fn combinations<'a>(self) -> Box<dyn Iterator<Item = (u8, Partitions)> + 'a> {
         self.iterate(Goal::Combinations)
     }
 }

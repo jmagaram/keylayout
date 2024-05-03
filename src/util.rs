@@ -18,7 +18,8 @@ pub fn choose(n: u32, k: u32) -> u128 {
 /// generate the sequence of numbers with exactly 3 bits set, and then use those
 /// bit positions to select items from the vec. Based on this algorithm :
 /// https://www.geeksforgeeks.org/next-higher-number-with-same-number-of-set-bits
-pub fn same_set_bits(count: u32) -> impl Iterator<Item = u64> {
+pub fn same_set_bits(count: u8) -> impl Iterator<Item = u64> {
+    let count: u32 = count as u32;
     assert!(
         count >= 1 && count <= u32::BITS,
         "Expected the bit count to be {}..={}.",
@@ -120,7 +121,7 @@ mod tests {
     #[test]
     fn same_set_bits_ends_with_top_bits_filled() {
         for bits in [1, 5, 9, 24, 32] {
-            let expected_max = ((1 << bits) - 1) << (u32::BITS - bits);
+            let expected_max = ((1 << bits) - 1) << (u32::BITS - bits as u32);
             let actual_max = same_set_bits(bits).last().unwrap();
             assert_eq!(actual_max, expected_max);
         }
@@ -130,7 +131,7 @@ mod tests {
     fn same_set_bits_returns_numbers_with_same_count_of_bits() {
         for bits in [1, 5, 9, 12, 32] {
             assert!(
-                same_set_bits(bits).all(|n| n.count_ones() == bits),
+                same_set_bits(bits).all(|n| n.count_ones() == bits as u32),
                 "Expected every number to have exactly {} bits.",
                 bits
             );
@@ -141,7 +142,7 @@ mod tests {
     fn same_set_bits_returns_correct_count_of_results() {
         for bits in [1, 5, 26, 32] {
             let actual = same_set_bits(bits).count();
-            let expected: usize = choose(32, bits).try_into().unwrap();
+            let expected: usize = choose(32, bits as u32).try_into().unwrap();
             assert_eq!(actual, expected);
         }
     }

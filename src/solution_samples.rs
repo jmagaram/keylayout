@@ -20,9 +20,9 @@ pub struct Args<'a> {
     pub samples_per_key_count: usize,
     pub dictionary: &'a Dictionary,
     pub prohibited: &'a Prohibited,
-    pub key_count: RangeInclusive<u32>,
-    pub min_key_size: u32,
-    pub max_key_size: u32,
+    pub key_count: RangeInclusive<u8>,
+    pub min_key_size: u8,
+    pub max_key_size: u8,
     pub thread_count: u32,
 }
 
@@ -31,15 +31,15 @@ pub struct CsvOutput {
     index: usize,
     keyboard: String,
     keys: usize,
-    max_key_size: u32,
-    min_key_size: u32,
+    max_key_size: u8,
+    min_key_size: u8,
     penalty: f32,
-    count_1: u32,
-    count_2: u32,
-    count_3: u32,
-    count_4: u32,
-    count_5: u32,
-    count_6: u32,
+    count_1: u8,
+    count_2: u8,
+    count_3: u8,
+    count_4: u8,
+    count_5: u8,
+    count_6: u8,
 }
 
 impl CsvOutput {
@@ -61,7 +61,7 @@ impl CsvOutput {
 
     pub fn new(s: &Solution, index: usize) -> CsvOutput {
         let k = s.keyboard();
-        let tally = k.key_size_tally();
+        let tally = k.key_sizes();
         CsvOutput {
             index,
             keyboard: k.to_string(),
@@ -69,12 +69,12 @@ impl CsvOutput {
             keys: k.len(),
             max_key_size: k.max_key_size().unwrap(),
             min_key_size: k.min_key_size().unwrap(),
-            count_1: tally.count(&1),
-            count_2: tally.count(&2),
-            count_3: tally.count(&3),
-            count_4: tally.count(&4),
-            count_5: tally.count(&5),
-            count_6: tally.count(&6),
+            count_1: tally.count(&1) as u8,
+            count_2: tally.count(&2) as u8,
+            count_3: tally.count(&3) as u8,
+            count_4: tally.count(&4) as u8,
+            count_5: tally.count(&5) as u8,
+            count_6: tally.count(&6) as u8,
         }
     }
 }

@@ -89,22 +89,15 @@ impl Keyboard {
             .fold(Key::EMPTY, |total, i| total.union(*i))
     }
 
-    pub fn max_key_size(&self) -> Option<u32> {
+    pub fn max_key_size(&self) -> Option<u8> {
         self.keys.iter().map(|k| k.count_letters()).max()
     }
 
-    pub fn min_key_size(&self) -> Option<u32> {
+    pub fn min_key_size(&self) -> Option<u8> {
         self.keys.iter().map(|k| k.count_letters()).min()
     }
 
-    pub fn key_sizes(&self) -> Tally<u32> {
-        self.keys.iter().fold(Tally::new(), |mut total, i| {
-            total.increment(i.len());
-            total
-        })
-    }
-
-    pub fn key_size_tally(&self) -> Tally<u32> {
+    pub fn key_sizes(&self) -> Tally<u8> {
         self.keys.iter().fold(Tally::new(), |mut total, i| {
             total.increment(i.len());
             total
@@ -175,7 +168,7 @@ impl Keyboard {
         let mut rng = rand::thread_rng();
         let layout_options = layout
             .flatten(partitions::Goal::Combinations)
-            .collect::<Vec<Vec<u32>>>();
+            .collect::<Vec<Vec<u8>>>();
         iter::repeat_with(move || {
             let layout_index = rng.gen_range(0..layout_options.len());
             let layout = layout_options.get(layout_index).unwrap();

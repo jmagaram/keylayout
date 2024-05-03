@@ -221,8 +221,6 @@ fn generate_unique_keyboards_with_dfs(c: &mut Criterion) {
     c.bench_function("GENERATE UNIQUE KEYBOARDS", |b| {
         b.iter(|| {
             let mut unique = HashSet::new();
-            // let keyboards =
-            //     Keyboard::with_dfs_util_2(dict.alphabet(), &p, &prune).filter(|k| k.0.len() == 10);
             let keyboards = Keyboard::with_dfs(dict.alphabet(), &p, &prune)
                 .filter(|k| k.0.len() == p.parts as usize);
             for k in keyboards {

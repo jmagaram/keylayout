@@ -12,7 +12,7 @@ pub struct Key(u32);
 
 impl Key {
     pub const EMPTY: Key = Key(0);
-    const MAX_SIZE: u32 = Letter::ALPHABET_SIZE as u32;
+    const MAX_SIZE: u8 = Letter::ALPHABET_SIZE as u8;
 
     pub fn new(letters: &str) -> Key {
         Key::try_from(letters).unwrap()
@@ -22,7 +22,7 @@ impl Key {
         Key((1 << Letter::ALPHABET_SIZE) - 1)
     }
 
-    pub fn with_first_n_letters(count: u32) -> Key {
+    pub fn with_first_n_letters(count: u8) -> Key {
         if (count as usize) > Letter::ALPHABET_SIZE {
             panic!(
                 "A Key can have at most {} letters, but you asked for {}.",
@@ -69,11 +69,11 @@ impl Key {
         self.intersect(*other) == *other
     }
 
-    pub fn count_letters(&self) -> u32 {
-        util::set_bits(self.0).count() as u32
+    pub fn count_letters(&self) -> u8 {
+        util::set_bits(self.0).count() as u8
     }
 
-    pub fn len(&self) -> u32 {
+    pub fn len(&self) -> u8 {
         self.count_letters()
     }
 
@@ -129,7 +129,7 @@ impl Key {
         }
     }
 
-    pub fn random_subset(&self, size: RangeInclusive<u32>) -> Key {
+    pub fn random_subset(&self, size: RangeInclusive<u8>) -> Key {
         debug_assert!(
             *size.start() <= self.len(),
             "Can not get a minimum of {} random letters from a Key with only {} letters in it.",
@@ -163,7 +163,7 @@ impl Key {
     /// key sizes, such that the letters on all those keys match the letters on
     /// the source key. For example, the key "abcdef" with group sizes [3,1,2]
     /// could get split into cab, d, and ef.
-    pub fn random_subsets(&self, groupings: &Vec<u32>) -> impl Iterator<Item = Key> {
+    pub fn random_subsets(&self, groupings: &Vec<u8>) -> impl Iterator<Item = Key> {
         debug_assert!(
             !groupings.contains(&0),
             "Every subset size must be 1 or more."
@@ -184,7 +184,7 @@ impl Key {
     /// the source key. For example,the key "abcd" with size 2 generates "ab",
     /// "ac", "ad", "bc", "bd", and "cd". This is essentially choosing unique
     /// combinations of letters.
-    pub fn subsets_of_size(&self, size: u32) -> impl Iterator<Item = Key> {
+    pub fn subsets_of_size(&self, size: u8) -> impl Iterator<Item = Key> {
         assert!(
             size <= Key::MAX_SIZE,
             "Expected the subset size to be 0..={} (the maximum letters in the alphabet.",
@@ -220,7 +220,7 @@ impl Key {
     /// distributed across other keys. For example, if the source key contains
     /// a-z, and the `key_sizes` indicates 8 keys of size 3, and 3 keys of size
     /// 2, every way of distributing those letters is generated.
-    pub fn distribute(&self, key_sizes: Tally<u32>) -> impl Iterator<Item = Vec<Key>> + '_ {
+    pub fn distribute(&self, key_sizes: Tally<u8>) -> impl Iterator<Item = Vec<Key>> + '_ {
         let results = key_sizes
             .combinations()
             .into_iter()
@@ -342,7 +342,7 @@ impl fmt::Display for Key {
 }
 
 struct RandomSubsets {
-    groups: Vec<u32>,
+    groups: Vec<u8>,
     group_index: usize,
     remaining_letters: Key,
 }
@@ -367,7 +367,7 @@ impl Iterator for RandomSubsets {
 }
 
 struct DistributeLetters {
-    key_sizes: Vec<u32>,
+    key_sizes: Vec<u8>,
     letters: Key,
 }
 
@@ -697,7 +697,7 @@ mod tests {
     fn subsets_of_size_test() {
         fn test(items: &str) {
             let key = Key::new(items);
-            let ones_count = key.letters().count() as u32; // fix
+            let ones_count = key.letters().count() as u8;
 
             // subsets have correct number of items (no duplicates)
             (1..ones_count).for_each(|subset_size| {
@@ -764,7 +764,7 @@ mod tests {
         let data = ["", "a", "abc", "abcdefghijklmnopqrtsuvwxyz'"];
         for key in data {
             let source = Key::new(key);
-            let letter_count: u32 = key.len().try_into().unwrap();
+            let letter_count = key.len().try_into().unwrap();
             for min_size in 0..=letter_count {
                 for max_size in min_size..=letter_count {
                     let mut result = Key::EMPTY;
@@ -904,7 +904,7 @@ mod tests {
     #[test]
     fn distribute_letters_calculates_unique_results() {
         let data = [
-            vec![1],
+            vec![1u8],
             vec![1, 2],
             vec![2, 2, 3, 3],
             vec![1, 2, 3],
@@ -912,7 +912,7 @@ mod tests {
             vec![5, 5],
         ];
         for d in data {
-            let letter_count: u32 = d.iter().fold(0, |total, i| total + i);
+            let letter_count = d.iter().fold(0, |total, i| total + i);
             let key = Key::with_first_n_letters(letter_count);
             let key_sizes = Tally::from_iter(d);
             key.distribute(key_sizes)
@@ -938,7 +938,7 @@ mod tests {
             vec![5, 5],
         ];
         for d in data {
-            let letter_count: u32 = d.iter().fold(0, |total, i| total + i);
+            let letter_count = d.iter().fold(0, |total, i| total + i);
             let key = Key::with_first_n_letters(letter_count);
             let key_sizes = Tally::from_iter(d);
             let all_letters = key

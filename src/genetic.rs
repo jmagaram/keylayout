@@ -64,7 +64,7 @@ impl<'a> Iterator for Genetic<'a> {
 pub struct FindBestArgs<'a> {
     pub dictionary: &'a Dictionary,
     pub die_threshold: Penalty,
-    pub key_count: u32,
+    pub key_count: u8,
     pub prohibited: Prohibited,
 }
 

@@ -25,9 +25,9 @@ impl Pruneable for Keyboard {
 
 pub struct Args {
     dictionary_size: Option<usize>,
-    key_count: u32,
-    min_key_size: u32,
-    max_key_size: u32,
+    key_count: u8,
+    min_key_size: u8,
+    max_key_size: u8,
 }
 
 impl Args {
@@ -50,17 +50,17 @@ impl Args {
             4 => Some(5_000),
             _ => panic!("Do not know how to handle that input for dictionary size."),
         };
-        let key_count = Input::<u32>::new()
+        let key_count = Input::<u8>::new()
             .with_prompt("Total number of keys")
             .default(10)
             .interact_text()
             .unwrap();
-        let min_key_size = Input::<u32>::new()
+        let min_key_size = Input::<u8>::new()
             .with_prompt("Minimum letters per key")
             .default(2)
             .interact_text()
             .unwrap();
-        let max_key_size = Input::<u32>::new()
+        let max_key_size = Input::<u8>::new()
             .with_prompt("Maximum letters per key")
             .default(5)
             .interact_text()

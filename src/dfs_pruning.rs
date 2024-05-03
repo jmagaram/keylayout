@@ -270,7 +270,7 @@ pub mod statistics {
 pub struct SolveArgs {
     dictionary_size: Option<usize>,
     prohibited_pairs: u8,
-    max_key_size: u32,
+    max_key_size: u8,
     penalty_based_on_samples_with: penalty_goal::ProhibitedPairs,
     penalty_top_percent: u8,
     penalty_goal_from_key_count: u8,
@@ -354,7 +354,7 @@ impl SolveArgs {
             .default(40)
             .interact_text()
             .unwrap();
-        let max_key_size = Input::<u32>::new()
+        let max_key_size = Input::<u8>::new()
             .with_prompt("Maximum letters per key")
             .default(5)
             .interact_text()
