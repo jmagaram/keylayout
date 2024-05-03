@@ -55,3 +55,7 @@
 24 0.0002𝕡
 25 0.0001𝕡
 26 0.0000𝕡
+
+# Most popular letters
+
+etaoinshrdlcumwfgypbvkjxqz'
