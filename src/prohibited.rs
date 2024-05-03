@@ -1,21 +1,37 @@
-use crate::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty};
+use crate::{
+    dictionary::Dictionary, key::Key, keyboard::Keyboard, letter::Letter, penalty::Penalty,
+};
+use bitvec::prelude::*;
 use hashbrown::HashSet;
 
-pub struct Prohibited(HashSet<Key>);
+pub struct Prohibited {
+    cache: BitVec,
+    cache_size: u32,
+    set: HashSet<Key>,
+}
 
 impl Prohibited {
+    pub fn new_with_cache(cache_size: u32) -> Prohibited {
+        let cache = bitvec![0;1<<Letter::ALPHABET_SIZE];
+        Prohibited {
+            set: HashSet::new(),
+            cache_size,
+            cache,
+        }
+    }
+
     pub fn new() -> Prohibited {
-        Prohibited(HashSet::new())
+        Self::new_with_cache(0)
     }
 
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.set.len()
     }
 
     pub fn with_top_n_letter_pairs(dict: &Dictionary, top_n: usize) -> Prohibited {
         if dict.words().len() > 307_000 {
             let cache = "ai,st,ns,nt,io,fn,ds,ao,ey,eo,tw,bm,hw,nr,ae,bh,dt,ms,dr,rs,mw,fr,bw,dn,fs,mt,ei,hm,ft,rt,mn,lr,au,dm,ps,cs,ln,ls,lm,dl,gs,gn,lt,dg,iu,mp,ny,sy,gt,mr,et,ct,cw,bo,hn,er,sw,no,cm,ou,lp,as,hs,pt,hr,bt,dp,dk,bs,gl,my,cp,dw,bl,hl,fl,es,ch,cr,bp,fm,br,dy,cn,eh,de,cg,bc,ht,pr,is,ar,lw,el,hp,nw,eu,np,cd,bf,fw,bd,cf,fk,fh,ry,cl,ah,dh,op,or,bg,rv,pw,at,nv,rw,ac,kn,em,fp,ru,gr,ow,al,kt,km,oy,gm,ks,fg,ty,am,ad,ap,ep,bn,mo,gk,gh,ir,in,en,it,ce,kl,df,an,sv,mv,gp,hk,kr,kp,jm,di,wy,il,im,os,co,gw,ek,ot,eg,ci,fv,be,lo,lv,hy,ab,kv,do,tv,gy,dv,ef,ly,ip,ag,fy,bk,hi,ck,cv,bj,pv,ew,by,ay,kw,tx,bi,ho,cy,py,jp,su,af,iy,jt,fi,ak,dj,bv,js,jl,mu,rx,tu,nu,jr,nx,pu,sx,gi,go,cu,jn,vw,gj,gv,iv,aw,du,sz,dx,iw,lu,fo,av,dz,cj,fj,ex,hv,hu,hj,tz,ov,ax,lx,bu,ev,jw,px,ik,ky,gu,mx,cx,xy,ko,vy,uv,jk,fu,aj,bx,uw,ix,uy,jy,wx,ij,jv,gx,ox,jo,ej,ku,ux,vx,nz,mz,lz,hx,fx,kx,rz,bz,cz,ju,gz,hz,pz,jx,kz,qs,ez,fz,az,vz,yz,wz,gq,jz,dq,iz,nq,oz,e',cq,qr,aq,qt,mq,lq,pq,bq,iq,eq,uz,oq,a',fq,hq,kq,n',qw,qu,qv,xz,qy,jq,qx,r',l',qz,i',t',u',o',d',b',p',s',m',g',c',k',y',h',f',w',v',x',j',q',z'";
-            let mut result = Prohibited::new();
+            let mut result = Prohibited::new_with_cache(1 << Letter::ALPHABET_SIZE);
             let pairs = cache.split(",").map(|pair| Key::new(pair)).take(top_n);
             result.add_many(pairs);
             result
@@ -34,7 +50,7 @@ impl Prohibited {
                 let (_b_key, b_penalty) = b;
                 b_penalty.cmp(a_penalty)
             });
-            let mut result = Prohibited::new();
+            let mut result = Prohibited::new_with_cache(1 << Letter::ALPHABET_SIZE);
             result.add_many(
                 penalties
                     .into_iter()
@@ -46,7 +62,14 @@ impl Prohibited {
     }
 
     pub fn is_allowed(&self, other: Key) -> bool {
-        !self.0.iter().any(|p| other.contains_all(&p))
+        if other.to_u32() <= self.cache_size {
+            self.cache
+                .get(other.to_u32() as usize)
+                .as_deref()
+                .map_or(true, |x| false == *x)
+        } else {
+            !self.set.iter().any(|p| other.contains_all(&p))
+        }
     }
 
     pub fn add(&mut self, key: Key) {
@@ -54,22 +77,27 @@ impl Prohibited {
             panic!("Can not add an empty key to the list of prohibited keys.")
         }
         let subsets = self
-            .0
+            .set
             .iter()
             .filter(|i| key.contains_all(i) && key != **i)
             .map(|i| i.clone())
             .collect::<Vec<Key>>();
         let supersets = self
-            .0
+            .set
             .iter()
             .filter(|i| (**i).contains_all(&key) && key != **i)
             .map(|i| i.clone())
             .collect::<Vec<Key>>();
         for s in supersets {
-            self.0.remove(&s);
+            self.set.remove(&s);
         }
         if subsets.is_empty() {
-            self.0.insert(key);
+            self.set.insert(key);
+            for i in 1..=self.cache_size {
+                if i & key.to_u32() == key.to_u32() {
+                    self.cache.set(i as usize, true)
+                }
+            }
         }
     }
 
@@ -84,6 +112,21 @@ impl Prohibited {
 mod tests {
 
     use super::*;
+
+    #[test]
+    fn is_allowed_with_cache() {
+        let mut p = Prohibited::new_with_cache(1 << 7);
+        p.add(Key::new("ab"));
+        p.add(Key::new("ef"));
+
+        let is_allowed = ["a", "b", "e", "f", "x"];
+        is_allowed.iter().all(|k| p.is_allowed(Key::new(k)));
+
+        let is_prohibited = ["ab", "abc", "ef", "efg", "efgx"];
+        is_prohibited
+            .iter()
+            .all(|k| false == p.is_allowed(Key::new(k)));
+    }
 
     #[test]
     fn is_allowed() {
@@ -125,8 +168,8 @@ mod tests {
         let mut p = Prohibited::new();
         p.add(Key::new("ab"));
         p.add(Key::new("abc"));
-        assert_eq!(p.0.len(), 1);
-        assert_eq!(Key::new("ab"), p.0.into_iter().next().unwrap());
+        assert_eq!(p.set.len(), 1);
+        assert_eq!(Key::new("ab"), p.set.into_iter().next().unwrap());
     }
 
     #[test]
@@ -134,7 +177,7 @@ mod tests {
         let mut p = Prohibited::new();
         p.add(Key::new("abc"));
         p.add(Key::new("ab"));
-        assert_eq!(p.0.len(), 1);
-        assert_eq!(Key::new("ab"), p.0.into_iter().next().unwrap());
+        assert_eq!(p.set.len(), 1);
+        assert_eq!(Key::new("ab"), p.set.into_iter().next().unwrap());
     }
 }

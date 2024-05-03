@@ -33,6 +33,10 @@ impl Key {
         Key((1 << count) - 1)
     }
 
+    pub fn to_u32(&self) -> u32 {
+        self.0
+    }
+
     pub fn with_one_letter(r: Letter) -> Key {
         Key(1 << r.to_u8_index())
     }
