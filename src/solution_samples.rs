@@ -3,16 +3,7 @@ use crate::{
     prohibited::Prohibited, solution::Solution, vec_threads::VecThreads,
 };
 use humantime::{format_duration, FormattedDuration};
-use serde::Deserialize;
-use std::{
-    fmt,
-    fs::File,
-    io::{BufWriter, Read, Write},
-    ops::RangeInclusive,
-    sync::Arc,
-    thread,
-    time::Duration,
-};
+use std::{ops::RangeInclusive, sync::Arc, thread, time::Duration};
 
 trait DurationFormatter {
     fn round_to_seconds(&self) -> FormattedDuration;

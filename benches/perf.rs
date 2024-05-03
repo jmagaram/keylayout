@@ -72,7 +72,7 @@ fn distribute_letters(c: &mut Criterion) {
             let key = Key::with_every_letter();
             let key_sizes = Tally::from([3, 3, 3, 3, 3, 3, 3, 2, 2, 2]);
             let keyboard_count = 100;
-            let results = key.distribute(key_sizes).take(black_box(keyboard_count));
+            let _results = key.distribute(key_sizes).take(black_box(keyboard_count));
         })
     });
 }

@@ -37,16 +37,11 @@ impl Key {
         Key(1 << r.to_u8_index())
     }
 
-    pub fn with_letters(letters: impl Iterator<Item = Letter>) -> Key {
-        Key::from_iter(letters)
-    }
-
     pub fn split_by_letter(&self) -> impl Iterator<Item = Key> {
         self.letters().map(|letter| Key::with_one_letter(letter))
     }
 
     pub fn swap_random_letter(&self, other: &Key) -> Option<(Key, Key)> {
-        let mut rng = rand::thread_rng();
         let self_letter_to_remove = self.random_letter()?;
         let other_letter_to_remove = other.random_letter()?;
         let new_self = self
