@@ -23,6 +23,12 @@ impl<T> VecThreads<T> {
         data.push(keyboard);
     }
 
+    pub fn push_get_len(&mut self, keyboard: T) -> usize {
+        let mut data = self.0.lock().unwrap();
+        data.push(keyboard);
+        data.len()
+    }
+
     pub fn pop(&mut self) -> Option<T> {
         let mut data = self.0.lock().unwrap();
         data.pop()
