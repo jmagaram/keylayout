@@ -159,7 +159,16 @@ impl Args {
                     })
                     .filter(|k| k.len() == partitions.parts as usize)
                 {
-                    keyboards.push(k);
+                    let len = keyboards.push_get_len(k);
+                    if len >= 10_000_000 {
+                        // Approximately 4 gigabytes for 27 characters and 10 keys
+                        println!(
+                            "Thread: {:<2} | Sleeping, work queue reached {}",
+                            0,
+                            len.separate_with_underscores()
+                        );
+                        sleep(Duration::from_secs(60));
+                    }
                     let total_generated = generated.fetch_add(1, Ordering::Relaxed);
                     if total_generated.rem_euclid(100_000) == 0 {
                         println!(
