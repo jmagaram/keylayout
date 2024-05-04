@@ -1,4 +1,5 @@
 use crate::frequency::Frequency;
+use crate::key::Key;
 use crate::letter::Letter;
 use std::cmp::Ordering;
 use std::fmt;
@@ -37,6 +38,21 @@ impl Word {
                 Some(letter)
             }
         })
+    }
+
+    pub fn replace_letters(&self, find: impl Iterator<Item = Letter>, letter: Letter) -> Word {
+        let find_key = Key::from_iter(find);
+        let new_letters = self
+            .letters()
+            .map(|r| match find_key.contains(r) {
+                true => letter,
+                false => r,
+            })
+            .fold(String::new(), |mut total, i| {
+                total.push(i.to_char());
+                total
+            });
+        Self::new(new_letters.as_str(), self.frequency.to_f32())
     }
 
     pub fn frequency(&self) -> &Frequency {
@@ -264,5 +280,31 @@ mod tests {
         set.insert(b);
         set.insert(c);
         assert_eq!(2, set.len());
+    }
+
+    #[test]
+    fn replace_letters() {
+        let data = [
+            ("abc", "ab", 'x', "xxc"),
+            ("abc", "b", 'x', "axc"),
+            ("abc", "abc", 'x', "xxx"),
+            ("abc", "abcd", 'x', "xxx"),
+            ("abc", "q", 'x', "abc"),
+            ("abc", "", 'x', "abc"),
+        ];
+        for (source, find, replace_with, expected) in data {
+            let source_word = Word::try_from(source).unwrap();
+            let find_iter = find.chars().map(|r| Letter::new(r));
+            let replace_with_letter = Letter::new(replace_with);
+            let result = source_word.replace_letters(find_iter, replace_with_letter);
+            assert_eq!(
+                result.to_string(),
+                expected.to_string(),
+                "{},{},{}",
+                source,
+                find,
+                replace_with
+            )
+        }
     }
 }
