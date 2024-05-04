@@ -114,6 +114,9 @@ impl Args {
         }
     }
 
+    // Similar to the DFS pruning approach but I am able to parallelize this.
+    // The keyboards are generated quickly without penalty scoring, and then
+    // they are evaluated by multiple worker threads.
     pub fn solve(self) -> Option<Solution> {
         let args = self;
         use std::sync::atomic::*;
