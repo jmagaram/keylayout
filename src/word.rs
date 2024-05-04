@@ -283,6 +283,13 @@ mod tests {
     }
 
     #[test]
+    fn replace_letters_keeps_same_frequency() {
+        let source = Word::new("abc", 3.54);
+        let result = source.replace_letters(Key::new("b").letters(), Letter::new('c'));
+        assert_eq!(source.frequency(), result.frequency());
+    }
+
+    #[test]
     fn replace_letters() {
         let data = [
             ("abc", "ab", 'x', "xxc"),
