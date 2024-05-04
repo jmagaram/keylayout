@@ -324,6 +324,16 @@ impl FromIterator<Letter> for Key {
     }
 }
 
+impl From<Vec<Letter>> for Key {
+    fn from(value: Vec<Letter>) -> Self {
+        let mut k = Key::EMPTY;
+        for r in value.iter() {
+            k = k.add(*r);
+        }
+        k
+    }
+}
+
 impl TryFrom<&str> for Key {
     type Error = &'static str;
 
