@@ -59,5 +59,6 @@
 
 # Most popular letters
 
-letter frequency: eaisrnotlcdumhgpbykfvw'zjxq
-last letters by frequency: estdnryogalfhmikwupcxbvzjq'
+letter count: eaisrnotlcdumhgpbykfvw'zjxq
+last letters with frequency weighting: estdnryogalfhmikwupcxbvzjq'
+letters with frequency weighting: etaoinsrhldcumfgypwbvk'jxzq
