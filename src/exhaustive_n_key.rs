@@ -73,12 +73,12 @@ impl DictionaryChoice {
 }
 
 pub struct Args {
-    dictionary_choice: DictionaryChoice,
-    prohibited: Prohibited,
-    key_count: u8,
-    min_key_size: u8,
-    max_key_size: u8,
-    threads: u8,
+    pub dictionary_choice: DictionaryChoice,
+    pub prohibited: Prohibited,
+    pub key_count: u8,
+    pub min_key_size: u8,
+    pub max_key_size: u8,
+    pub threads: u8,
 }
 
 impl Args {
@@ -113,134 +113,163 @@ impl Args {
             prohibited: Prohibited::new(),
         }
     }
-}
 
-pub fn best_n_key(args: Args) -> Option<Solution> {
-    use std::sync::atomic::*;
-    let dictionary = Arc::new(args.dictionary_choice.get());
-    let partitions = Partitions {
-        sum: dictionary.alphabet().len(),
-        parts: args.key_count,
-        min: args.min_key_size,
-        max: args.max_key_size,
-    };
-    let total_keyboards = partitions.total_unique_keyboards();
-    let keyboards: VecThreads<Keyboard> = vec_threads::VecThreads::new();
-    let best: VecThreads<Solution> = vec_threads::VecThreads::new();
-    let evaluated = Arc::new(AtomicU64::new(0));
-    let generated = Arc::new(AtomicU64::new(0));
-    let started_at = Instant::now();
+    pub fn solve(self) -> Option<Solution> {
+        let args = self;
+        use std::sync::atomic::*;
+        let dictionary = Arc::new(args.dictionary_choice.get());
+        let partitions = Partitions {
+            sum: dictionary.alphabet().len(),
+            parts: args.key_count,
+            min: args.min_key_size,
+            max: args.max_key_size,
+        };
+        let keyboards: VecThreads<Keyboard> = vec_threads::VecThreads::new();
+        let best: VecThreads<Solution> = vec_threads::VecThreads::new();
+        let evaluated = Arc::new(AtomicU64::new(0));
+        let generated = Arc::new(AtomicU64::new(0));
+        let done_generating = Arc::new(AtomicBool::new(false));
+        let started_at = Instant::now();
 
-    let spawn_enumerator = |partitions: &Partitions,
-                            dictionary: &Arc<Dictionary>,
-                            generated: &Arc<AtomicU64>,
-                            keyboards: &VecThreads<Keyboard>| {
-        let partitions = partitions.clone();
-        let generated = generated.clone();
-        let mut keyboards = keyboards.clone();
-        let dictionary = dictionary.clone();
-        let enumerate = spawn(move || {
-            let prune = |k: &Keyboard| PruneableKeyboard {
-                keyboard: k.clone(),
-                should_prune: k.has_prohibited_keys(&args.prohibited),
-            };
-            for k in Keyboard::with_dfs(dictionary.alphabet(), &partitions, &prune)
-                .map(|p| p.keyboard)
-                .filter(|k| k.len() == partitions.parts as usize)
-            {
-                keyboards.push(k);
-                generated.fetch_add(1, Ordering::Relaxed);
-            }
-        });
-        enumerate
-    };
-
-    let spawn_evaluator = |dictionary: &Arc<Dictionary>,
-                           keyboards: &VecThreads<Keyboard>,
-                           best: &VecThreads<Solution>,
-                           evaluated: &Arc<AtomicU64>,
-                           generated: &Arc<AtomicU64>,
-                           thread_id: u8| {
-        let mut keyboards = keyboards.clone();
-        let dictionary = dictionary.clone();
-        let mut best = best.clone();
-        let evaluated = evaluated.clone();
-        let generated = generated.clone();
-        let evaluate = spawn(move || {
-            let mut best_penalty = Penalty::MAX;
-            loop {
-                match keyboards.pop() {
-                    None => {
-                        break;
+        let spawn_enumerator = |partitions: &Partitions,
+                                dictionary: &Arc<Dictionary>,
+                                generated: &Arc<AtomicU64>,
+                                keyboards: &VecThreads<Keyboard>,
+                                done_generating: &Arc<AtomicBool>| {
+            let partitions = partitions.clone();
+            let generated = generated.clone();
+            let done_generating = done_generating.clone();
+            let mut keyboards = keyboards.clone();
+            let dictionary = dictionary.clone();
+            let enumerate = spawn(move || {
+                let prune = |k: &Keyboard| {
+                    let should_prune = k.has_prohibited_keys(&args.prohibited);
+                    PruneableKeyboard {
+                        keyboard: k.clone(),
+                        should_prune,
                     }
-                    Some(keyboard) => {
-                        let current = evaluated.fetch_add(1, Ordering::SeqCst);
-                        let penalty = keyboard.penalty(&dictionary, best_penalty);
-                        if penalty < best_penalty {
-                            best_penalty = penalty;
-                            let solution = keyboard.to_solution(penalty, "".to_string());
-                            println!(
-                                "Thread: {:<2} | Solution:{}| {} of {} | {}",
-                                thread_id,
-                                solution,
-                                current.separate_with_underscores(),
-                                generated
-                                    .load(Ordering::Relaxed)
-                                    .separate_with_underscores(),
-                                started_at.elapsed().round_to_seconds()
-                            );
-                            best.push(solution);
-                        } else if current.rem_euclid(100_000) == 0 {
-                            println!(
-                                "Thread: {:<2} | Evaluating: {} of {} of {} | {}",
-                                thread_id,
-                                current.separate_with_underscores(),
-                                generated
-                                    .load(Ordering::Relaxed)
-                                    .separate_with_underscores(),
-                                total_keyboards.separate_with_underscores(),
-                                started_at.elapsed().round_to_seconds()
-                            )
+                };
+                for k in Keyboard::with_dfs(dictionary.alphabet(), &partitions, &prune)
+                    .filter_map(|p| match p.should_prune {
+                        true => None,
+                        false => Some(p.keyboard),
+                    })
+                    .filter(|k| k.len() == partitions.parts as usize)
+                {
+                    keyboards.push(k);
+                    let total_generated = generated.fetch_add(1, Ordering::Relaxed);
+                    if total_generated.rem_euclid(100_000) == 0 {
+                        println!(
+                            "Thread: {:<2} | Generated: {}",
+                            0,
+                            total_generated.separate_with_underscores()
+                        );
+                    }
+                }
+                done_generating.fetch_or(true, Ordering::Relaxed);
+            });
+            enumerate
+        };
+
+        let spawn_evaluator = |dictionary: &Arc<Dictionary>,
+                               keyboards: &VecThreads<Keyboard>,
+                               best: &VecThreads<Solution>,
+                               evaluated: &Arc<AtomicU64>,
+                               generated: &Arc<AtomicU64>,
+                               done_generating: &Arc<AtomicBool>,
+                               thread_id: u8| {
+            let mut keyboards = keyboards.clone();
+            let dictionary = dictionary.clone();
+            let mut best = best.clone();
+            let evaluated = evaluated.clone();
+            let generated = generated.clone();
+            let done_generating = done_generating.clone();
+            let evaluate = spawn(move || {
+                let mut best_penalty = Penalty::MAX;
+                loop {
+                    match keyboards.pop() {
+                        None => {
+                            if done_generating.load(Ordering::Relaxed) {
+                                println!("Thread: {:<2} | Ended", thread_id);
+                                break;
+                            } else {
+                                sleep(Duration::from_secs(30));
+                            }
+                        }
+                        Some(keyboard) => {
+                            let current = evaluated.fetch_add(1, Ordering::SeqCst);
+                            let penalty = keyboard.penalty(&dictionary, best_penalty);
+                            if penalty < best_penalty {
+                                best_penalty = penalty;
+                                let solution = keyboard.to_solution(penalty, "".to_string());
+                                println!(
+                                    "Thread: {:<2} | Solution:{}| {} of {} | {}",
+                                    thread_id,
+                                    solution,
+                                    current.separate_with_underscores(),
+                                    generated
+                                        .load(Ordering::Relaxed)
+                                        .separate_with_underscores(),
+                                    started_at.elapsed().round_to_seconds()
+                                );
+                                best.push(solution);
+                            } else if current.rem_euclid(100_000) == 0 {
+                                println!(
+                                    "Thread: {:<2} | Evaluating: {} of {} | {}",
+                                    thread_id,
+                                    current.separate_with_underscores(),
+                                    generated
+                                        .load(Ordering::Relaxed)
+                                        .separate_with_underscores(),
+                                    started_at.elapsed().round_to_seconds()
+                                )
+                            }
                         }
                     }
                 }
+            });
+            evaluate
+        };
+
+        let enumerator = spawn_enumerator(
+            &partitions,
+            &dictionary,
+            &generated,
+            &keyboards,
+            &done_generating,
+        );
+        let evaluators = (1..=args.threads)
+            .map(|thread_id| {
+                spawn_evaluator(
+                    &dictionary,
+                    &keyboards,
+                    &best,
+                    &evaluated,
+                    &generated,
+                    &done_generating,
+                    thread_id,
+                )
+            })
+            .collect::<Vec<JoinHandle<_>>>();
+
+        enumerator.join().unwrap();
+        for e in evaluators {
+            e.join().unwrap();
+        }
+
+        println!("");
+        let overall_best = best
+            .items()
+            .into_iter()
+            .min_by(|a, b| a.penalty().cmp(&b.penalty()));
+        match &overall_best {
+            None => {
+                println!("No solution found")
             }
-        });
-        evaluate
-    };
-
-    let enumerator = spawn_enumerator(&partitions, &dictionary, &generated, &keyboards);
-    sleep(Duration::from_secs(3));
-    let evaluators = (1..=args.threads)
-        .map(|thread_id| {
-            spawn_evaluator(
-                &dictionary,
-                &keyboards,
-                &best,
-                &evaluated,
-                &generated,
-                thread_id,
-            )
-        })
-        .collect::<Vec<JoinHandle<_>>>();
-
-    enumerator.join().unwrap();
-    for e in evaluators {
-        e.join().unwrap();
-    }
-
-    println!("");
-    let overall_best = best
-        .items()
-        .into_iter()
-        .min_by(|a, b| a.penalty().cmp(&b.penalty()));
-    match &overall_best {
-        None => {
-            println!("No solution found")
+            Some(best) => {
+                println!("{}", best)
+            }
         }
-        Some(best) => {
-            println!("{}", best)
-        }
+        overall_best
     }
-    overall_best
 }

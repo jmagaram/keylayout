@@ -2,6 +2,8 @@ use dictionary::Dictionary;
 use penalty::Penalty;
 use prohibited::Prohibited;
 
+use crate::{exhaustive_n_key::DictionaryChoice, key::Key, letter::Letter};
+
 mod dfs_pruning;
 mod dictionary;
 mod exhaustive_n_key;
@@ -40,6 +42,36 @@ fn save_random_keyboard_penalties() {
     }
 }
 
+fn custom() {
+    let letters = "estdnryogalfhmikwupcxbvzjq'";
+    let interesting = Key::from_iter(letters.chars().take(20).map(|r| Letter::new(r)));
+    let irrelevant = Key::from_iter(letters.chars().skip(20).map(|r| Letter::new(r)));
+    let irrelevant_replacement = Letter::new('z');
+    let dictionary = Dictionary::load().replace_letters(irrelevant, irrelevant_replacement);
+    let mut prohibited = Prohibited::new();
+    for i in interesting.letters() {
+        prohibited.add(Key::EMPTY.add(i).add(irrelevant_replacement));
+    }
+    let args = exhaustive_n_key::Args {
+        dictionary_choice: DictionaryChoice::Custom(dictionary),
+        key_count: 11,
+        max_key_size: 2,
+        min_key_size: 1,
+        threads: 8,
+        prohibited,
+    };
+    let best = args.solve();
+    match best {
+        None => {
+            println!("None found");
+        }
+        Some(k) => {
+            println!("{}", k);
+        }
+    }
+    println!("")
+}
+
 fn dfs_pruning() {
     let args = dfs_pruning::SolveArgs::new_from_prompts();
     dfs_pruning::solve(&args);
@@ -52,7 +84,7 @@ fn dfs_pruning_preconfigured() {
 
 fn find_best_n_key() {
     let args = exhaustive_n_key::Args::new_from_prompts();
-    let best = exhaustive_n_key::best_n_key(args);
+    let best = args.solve();
     match best {
         None => {
             println!("None found");
@@ -88,6 +120,7 @@ fn main() {
         .item("Genetic algorithm")
         .item("Find best N key")
         .item("Save random keyboard penalties to CSV")
+        .item("Custom")
         .default(0)
         .interact()
         .unwrap();
@@ -98,6 +131,7 @@ fn main() {
         2 => genetic_solver(),
         3 => find_best_n_key(),
         4 => save_random_keyboard_penalties(),
+        5 => custom(),
         _ => panic!("Did not know how to handle that selection."),
     }
 }
