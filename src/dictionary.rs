@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fs::File, io::BufReader};
 
 use crate::key::Key;
+use crate::letter::Letter;
 use crate::word::Word;
 
 #[derive(Clone)]
@@ -30,11 +31,19 @@ impl Dictionary {
 
     fn from_unique_sorted_words(words: Vec<Word>) -> Dictionary {
         let alphabet = words.iter().flat_map(|w| w.letters()).collect::<Key>();
-
         Dictionary {
             words_highest_frequency_first: words,
             alphabet,
         }
+    }
+
+    pub fn replace_letters(&self, find: Key, replace_with: Letter) -> Dictionary {
+        let words = self
+            .words_highest_frequency_first
+            .iter()
+            .map(|w| w.replace_letters(find.letters(), replace_with))
+            .collect::<Vec<Word>>();
+        Self::from_unique_sorted_words(words)
     }
 
     pub fn filter_top_n_words(&self, count: usize) -> Dictionary {
