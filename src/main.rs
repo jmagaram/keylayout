@@ -1,8 +1,7 @@
+use crate::{exhaustive_n_key::DictionaryChoice, key::Key, letter::Letter};
 use dictionary::Dictionary;
 use penalty::Penalty;
 use prohibited::Prohibited;
-
-use crate::{exhaustive_n_key::DictionaryChoice, key::Key, letter::Letter};
 
 mod dfs_pruning;
 mod dictionary;
@@ -25,12 +24,12 @@ mod vec_threads;
 mod word;
 
 fn save_random_keyboard_penalties() {
-    let dictionary = Dictionary::load();
+    let d = Dictionary::load();
     for prohibited_pairs in [0, 20, 40, 60, 80] {
         println!("Working on prohibited pairs: {}", prohibited_pairs);
-        let prohibited = Prohibited::with_top_n_letter_pairs(&dictionary, prohibited_pairs);
+        let prohibited = Prohibited::with_top_n_letter_pairs(&d, prohibited_pairs);
         let args = solution_samples::Args {
-            dictionary: &dictionary,
+            dictionary: &d,
             key_count: 10..=26,
             min_key_size: 1,
             max_key_size: 5,

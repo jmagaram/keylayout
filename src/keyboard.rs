@@ -647,7 +647,7 @@ mod tests {
                 let has_bad_letters = false;
                 KeyboardStatus {
                     keyboard: k.clone(),
-                    has_bad_letters: has_bad_letters,
+                    has_bad_letters,
                 }
             }
 
@@ -657,7 +657,7 @@ mod tests {
                 let has_bad_letters = k.has_prohibited_keys(&prohibited);
                 KeyboardStatus {
                     keyboard: k.clone(),
-                    has_bad_letters: has_bad_letters,
+                    has_bad_letters,
                 }
             }
         }
