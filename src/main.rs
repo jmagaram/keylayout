@@ -43,7 +43,7 @@ fn save_random_keyboard_penalties() {
 }
 
 fn custom() {
-    let letters = "estdnryogalfhmikwupcxbvzjq'";
+    let letters = "etaoinsrhldcumfgypwbvk'jxzq";
     let interesting = Key::from_iter(letters.chars().take(20).map(|r| Letter::new(r)));
     let irrelevant = Key::from_iter(letters.chars().skip(20).map(|r| Letter::new(r)));
     let irrelevant_replacement = Letter::new('z');

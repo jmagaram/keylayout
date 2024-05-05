@@ -60,5 +60,4 @@
 # Most popular letters
 
 letter count: eaisrnotlcdumhgpbykfvw'zjxq
-last letters with frequency weighting: estdnryogalfhmikwupcxbvzjq'
 letters with frequency weighting: etaoinsrhldcumfgypwbvk'jxzq
