@@ -53,18 +53,18 @@ fn save_random_keyboard_penalties() {
     }
 }
 
-fn custom() {
-    let args = exhaustive_n_key::PopularLettersArgs {
-        pair_up: "eaisrnotlcdumhgpbykfvw'zjxq".to_string(),
+fn pairs_then_infrequent() {
+    use exhaustive_n_key::*;
+    let args = PopularLetterPairingsArgs {
+        pair_up: "eaisrnotlcdumhgpbykf".to_string(),
+        infrequent_replacement: 'z',
     };
-    args.solve();
-}
-
-fn custom_part_2() {
-    let args = exhaustive_n_key::FillArgs {
-        start: "af,bn,cl,dh,ew,gr,im,ot,py,su".to_string(),
+    let best_pairings = args.solve();
+    let pairs = best_pairings.keyboard().filter_keys(|k| k.len() > 1);
+    let args = FillArgs {
+        start: pairs.to_string(),
         max_key_size: 6,
-        update_every: 10_000,
+        update_every: 100_000,
     };
     args.solve();
 }
@@ -139,7 +139,7 @@ fn main() {
         3 => find_best_n_key(),
         4 => save_random_keyboard_penalties(),
         5 => print_keyboard_score(),
-        6 => custom(),
+        6 => pairs_then_infrequent(),
         _ => panic!("Do not know how to handle that selection."),
     }
 }

@@ -97,6 +97,19 @@ impl Keyboard {
         self.keys.iter().map(|k| k.count_letters()).min()
     }
 
+    pub fn filter_keys<F>(&self, filter: F) -> Keyboard
+    where
+        F: Fn(&Key) -> bool,
+    {
+        Keyboard::with_keys(
+            self.keys
+                .iter()
+                .filter(|k| filter(k))
+                .map(|k| *k)
+                .collect::<Vec<Key>>(),
+        )
+    }
+
     pub fn key_sizes(&self) -> Tally<u8> {
         self.keys.iter().fold(Tally::new(), |mut total, i| {
             total.increment(i.len());
@@ -588,7 +601,7 @@ mod tests {
     #[ignore]
     fn display_penalty_for_specific_keyboard() {
         let dict = Dictionary::load();
-        let layout = "ajxz' biky cglov dfpu emq h n r sw t";
+        let layout = "afj bn cl dhx' evwz gr im kpy oqt su";
         let keyboard = Keyboard::with_layout(layout);
         let penalty = keyboard.penalty(&dict, Penalty::MAX);
         let solution = keyboard.to_solution(penalty, "".to_string());

@@ -366,29 +366,27 @@ impl FillArgs {
     }
 }
 
-pub struct PopularLettersArgs {
+pub struct PopularLetterPairingsArgs {
     pub pair_up: String,
+    pub infrequent_replacement: char,
 }
 
-impl PopularLettersArgs {
+impl PopularLetterPairingsArgs {
     // let letters = "etaoinsrhldcumfgypwbvk'jxzq"; // first
     // let letters = "eaisrnotlcdumhgpbykfvw'zjxq"; // trying now
     pub fn solve(&self) -> Solution {
-        let popular = Key::from_iter(
-            self.pair_up
-                .as_str()
-                .chars()
-                .take(20)
-                .map(|r| Letter::new(r)),
+        assert_eq!(
+            20,
+            self.pair_up.len(),
+            "Expected 20 popular characters to pair up."
         );
-        let infrequent = Key::from_iter(
-            self.pair_up
-                .as_str()
-                .chars()
-                .skip(20)
-                .map(|r| Letter::new(r)),
+        assert!(
+            self.pair_up.contains(self.infrequent_replacement) == false,
+            "The popular letters can not include the designated infrequenly letter replacement."
         );
-        let infrequent_replacement = Letter::new('z');
+        let popular = Key::from_iter(self.pair_up.as_str().chars().map(|r| Letter::new(r)));
+        let infrequent = Key::with_every_letter().except(popular);
+        let infrequent_replacement = Letter::new(self.infrequent_replacement);
         let dictionary = Dictionary::load().replace_letters(infrequent, infrequent_replacement);
         let mut prohibited = Prohibited::new();
         for popular_letter in popular.letters() {
@@ -403,6 +401,7 @@ impl PopularLettersArgs {
             prohibited,
         };
         let best = args.solve().unwrap();
+        println!("== FOUND BEST POPULAR LETTER PAIRINGS ==");
         println!("{}", best);
         println!("");
         best
