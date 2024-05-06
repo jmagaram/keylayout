@@ -2,13 +2,24 @@ use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, letter::Letter, penalty::Penalty,
 };
 use crossbeam_channel::*;
+use humantime::{format_duration, FormattedDuration};
 use std::{
     ops::Deref,
     sync::{Arc, Mutex},
     thread::{self},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use thousands::Separable;
+
+trait DurationFormatter {
+    fn round_to_seconds(&self) -> FormattedDuration;
+}
+
+impl DurationFormatter for Duration {
+    fn round_to_seconds(&self) -> FormattedDuration {
+        format_duration(Duration::from_secs(self.as_secs()))
+    }
+}
 
 pub struct Args {
     pub threads: u8,
@@ -136,6 +147,7 @@ impl Args {
         let best = Arc::new(Mutex::new(
             Keyboard::empty().to_solution(Penalty::MAX, "".to_string()),
         ));
+        let start_time = Instant::now();
         let done_generating = Arc::new(AtomicBool::new(false));
         let kbd_seen = Arc::new(AtomicU64::new(0));
         let (sdr, rcr) = bounded::<Keyboard>(1_000_000);
@@ -186,7 +198,11 @@ impl Args {
                                 *solution = new_solution;
                             }
                         } else if seen.rem_euclid(250_000) == 0 {
-                            println!("Evaluated: {}", seen.separate_with_underscores());
+                            println!(
+                                "Evaluated: {} in {}",
+                                seen.separate_with_underscores(),
+                                start_time.elapsed().round_to_seconds()
+                            );
                             if let Ok(solution) = best.lock().as_deref() {
                                 println!("{}", solution);
                             }

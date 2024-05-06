@@ -154,7 +154,7 @@ impl Keyboard {
             .filter_map(|(index, k)| {
                 if index == i_index {
                     Some(combined_key)
-                } else if (index == j_index) {
+                } else if index == j_index {
                     None
                 } else {
                     Some(*k)
