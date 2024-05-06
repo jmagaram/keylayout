@@ -1,7 +1,9 @@
-use crate::{exhaustive_n_key::DictionaryChoice, key::Key, letter::Letter};
 use dictionary::Dictionary;
+use humantime::{format_duration, FormattedDuration};
+use keyboard::Keyboard;
 use penalty::Penalty;
 use prohibited::Prohibited;
+use std::time::Duration;
 
 mod dfs_pruning;
 mod dictionary;
@@ -23,6 +25,16 @@ mod util;
 mod vec_threads;
 mod word;
 
+trait DurationFormatter {
+    fn round_to_seconds(&self) -> FormattedDuration;
+}
+
+impl DurationFormatter for Duration {
+    fn round_to_seconds(&self) -> FormattedDuration {
+        format_duration(Duration::from_secs(self.as_secs()))
+    }
+}
+
 fn save_random_keyboard_penalties() {
     let d = Dictionary::load();
     for prohibited_pairs in [0, 20, 40, 60, 80] {
@@ -42,33 +54,19 @@ fn save_random_keyboard_penalties() {
 }
 
 fn custom() {
-    let letters = "etaoinsrhldcumfgypwbvk'jxzq";
-    let interesting = Key::from_iter(letters.chars().take(20).map(|r| Letter::new(r)));
-    let irrelevant = Key::from_iter(letters.chars().skip(20).map(|r| Letter::new(r)));
-    let irrelevant_replacement = Letter::new('z');
-    let dictionary = Dictionary::load().replace_letters(irrelevant, irrelevant_replacement);
-    let mut prohibited = Prohibited::new();
-    for i in interesting.letters() {
-        prohibited.add(Key::EMPTY.add(i).add(irrelevant_replacement));
-    }
-    let args = exhaustive_n_key::Args {
-        dictionary_choice: DictionaryChoice::Custom(dictionary),
-        key_count: 11,
-        max_key_size: 2,
-        min_key_size: 1,
-        threads: 8,
-        prohibited,
+    let args = exhaustive_n_key::PopularLettersArgs {
+        pair_up: "eaisrnotlcdumhgpbykfvw'zjxq".to_string(),
     };
-    let best = args.solve();
-    match best {
-        None => {
-            println!("None found");
-        }
-        Some(k) => {
-            println!("{}", k);
-        }
-    }
-    println!("")
+    args.solve();
+}
+
+fn custom_part_2() {
+    let args = exhaustive_n_key::FillArgs {
+        start: "af,bn,cl,dh,ew,gr,im,ot,py,su".to_string(),
+        max_key_size: 6,
+        update_every: 10_000,
+    };
+    args.solve();
 }
 
 fn dfs_pruning() {
@@ -110,6 +108,15 @@ fn genetic_solver() {
     }
 }
 
+fn print_keyboard_score() {
+    let layout = "afj bn cl dhx' evwz gr im kpy oqt su";
+    let keyboard = Keyboard::with_layout(layout);
+    let dict_full = Dictionary::load();
+    let penalty = keyboard.penalty(&dict_full, Penalty::MAX);
+    let solution = keyboard.to_solution(penalty, "".to_string());
+    println!("{}", solution);
+}
+
 fn main() {
     use dialoguer::Select;
     let selection = Select::new()
@@ -119,6 +126,7 @@ fn main() {
         .item("Genetic algorithm")
         .item("Find best N key")
         .item("Save random keyboard penalties to CSV")
+        .item("Print keyboard score")
         .item("Custom")
         .default(0)
         .interact()
@@ -130,7 +138,8 @@ fn main() {
         2 => genetic_solver(),
         3 => find_best_n_key(),
         4 => save_random_keyboard_penalties(),
-        5 => custom(),
-        _ => panic!("Did not know how to handle that selection."),
+        5 => print_keyboard_score(),
+        6 => custom(),
+        _ => panic!("Do not know how to handle that selection."),
     }
 }

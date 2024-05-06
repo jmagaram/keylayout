@@ -1,4 +1,6 @@
+use crate::key::Key;
 use crate::keyboard::Pruneable;
+use crate::letter::Letter;
 use crate::partitions::Partitions;
 use crate::prohibited::Prohibited;
 use crate::vec_threads;
@@ -6,7 +8,8 @@ use crate::vec_threads::VecThreads;
 use crate::{dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, solution::Solution};
 use dialoguer::{Input, Select};
 use humantime::{format_duration, FormattedDuration};
-use std::sync::Arc;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use std::sync::{Arc, Mutex};
 use std::thread::{sleep, spawn, JoinHandle};
 use std::time::Duration;
 use std::time::Instant;
@@ -283,5 +286,125 @@ impl Args {
             }
         }
         overall_best
+    }
+}
+
+pub struct FillArgs {
+    pub start: String,
+    pub max_key_size: u8,
+    pub update_every: u64,
+}
+
+impl FillArgs {
+    pub fn solve(&self) {
+        let args = self;
+        use std::sync::atomic::*;
+        let now = Instant::now();
+        let count = Arc::new(AtomicU64::new(0));
+        let dictionary = Dictionary::load();
+        let existing_keys = args
+            .start
+            .as_str()
+            .split(',')
+            .map(|rr| Key::new(rr))
+            .collect::<Vec<Key>>();
+        let existing_letters = Key::new(&args.start.replace(',', ""));
+        let missing_letters = dictionary.alphabet().except(existing_letters);
+        let missing_letters_count = missing_letters.len();
+        let start = 0u128;
+        let end = 10u128.pow(missing_letters_count as u32);
+        let keyboards = (start..end)
+            .into_par_iter()
+            .map(|n| {
+                let kbd_inx = count.fetch_add(1, Ordering::Relaxed);
+                if kbd_inx.rem_euclid(args.update_every) == 0 {
+                    println!(
+                        "Created keyboard {} of {} in {}",
+                        kbd_inx.separate_with_underscores(),
+                        end.separate_with_underscores(),
+                        now.elapsed().round_to_seconds()
+                    );
+                }
+                let mut keys = existing_keys.clone();
+                let mut missing = missing_letters.clone();
+                (0usize..missing_letters_count as usize).for_each(|letter_index| {
+                    let letter = missing.min_letter().unwrap();
+                    missing = missing.remove(letter);
+                    let insert_at =
+                        n.div_euclid(10u128.pow(letter_index as u32)).rem_euclid(10) as usize;
+                    keys[insert_at] = keys[insert_at].add(letter);
+                });
+                Keyboard::with_keys(keys)
+            })
+            .filter(|k| k.max_key_size().unwrap() <= args.max_key_size);
+        let best: Arc<Mutex<Option<Solution>>> = Arc::new(Mutex::new(None));
+        let best_final = best.clone();
+        keyboards.for_each_with(best, |best, k| {
+            let best_penalty = best
+                .lock()
+                .unwrap()
+                .as_ref()
+                .map_or(Penalty::MAX, |s| s.penalty());
+            let penalty = k.penalty(&dictionary, best_penalty);
+            if penalty < best_penalty {
+                let solution = k.to_solution(penalty, "".to_string());
+                println!("{}", solution);
+                let mut best_solution = best.lock().unwrap();
+                *best_solution = Some(solution);
+            }
+        });
+        let best_final = best_final.lock().unwrap();
+        match best_final.as_ref() {
+            None => {
+                println!("No solution found");
+            }
+            Some(e) => {
+                println!("");
+                println!("{}", e);
+            }
+        };
+    }
+}
+
+pub struct PopularLettersArgs {
+    pub pair_up: String,
+}
+
+impl PopularLettersArgs {
+    // let letters = "etaoinsrhldcumfgypwbvk'jxzq"; // first
+    // let letters = "eaisrnotlcdumhgpbykfvw'zjxq"; // trying now
+    pub fn solve(&self) -> Solution {
+        let popular = Key::from_iter(
+            self.pair_up
+                .as_str()
+                .chars()
+                .take(20)
+                .map(|r| Letter::new(r)),
+        );
+        let infrequent = Key::from_iter(
+            self.pair_up
+                .as_str()
+                .chars()
+                .skip(20)
+                .map(|r| Letter::new(r)),
+        );
+        let infrequent_replacement = Letter::new('z');
+        let dictionary = Dictionary::load().replace_letters(infrequent, infrequent_replacement);
+        let mut prohibited = Prohibited::new();
+        for popular_letter in popular.letters() {
+            prohibited.add(Key::EMPTY.add(popular_letter).add(infrequent_replacement));
+        }
+        let args = Args {
+            dictionary_choice: DictionaryChoice::Custom(dictionary),
+            key_count: 11,
+            max_key_size: 2,
+            min_key_size: 1,
+            threads: 8,
+            prohibited,
+        };
+        let best = args.solve().unwrap();
+        println!("{}", best);
+        println!("");
+        best
     }
 }

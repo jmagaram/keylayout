@@ -57,7 +57,12 @@
 25 0.0001𝕡
 26 0.0000𝕡
 
-# Most popular letters
+# Other
 
-letter count: eaisrnotlcdumhgpbykfvw'zjxq
-letters with frequency weighting: etaoinsrhldcumfgypwbvk'jxzq
+most popular by letter count: eaisrnotlcdumhgpbykfvw'zjxq
+most popular with frequency weighting: etaoinsrhldcumfgypwbvk'jxzq
+
+after finding best 11 key with...
+etaoinsrhldcumfgypwb --- vk'jxzq
+...and then distributing the 7 letters without restriction...
+ 0.0252𝕡 afj bn cl dhx' evwz gr im kpy oqt su
