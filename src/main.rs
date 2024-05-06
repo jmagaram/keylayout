@@ -54,6 +54,10 @@ fn save_random_keyboard_penalties() {
     }
 }
 
+fn custom() {
+    println!("Not defined yet!");
+}
+
 fn combine_infrequent_pairs() {
     let args = pairing::Args {
         threads: 8,
@@ -121,6 +125,7 @@ fn main() {
         .item("Find best N key")
         .item("Save random keyboard penalties to CSV")
         .item("Print keyboard score")
+        .item("Recursively pair letters")
         .item("Custom")
         .default(0)
         .interact()
@@ -134,6 +139,7 @@ fn main() {
         4 => save_random_keyboard_penalties(),
         5 => print_keyboard_score(),
         6 => combine_infrequent_pairs(),
+        7 => custom(),
         _ => panic!("Do not know how to handle that selection."),
     }
 }
