@@ -14,6 +14,7 @@ use thousands::Separable;
 pub struct Args {
     pub threads: u8,
     pub max_key_size: u8,
+    pub pairings_to_ignore: u8,
 }
 
 #[derive(Clone)]
@@ -37,7 +38,7 @@ impl Pair {
                     let i = Letter::new(Letter::ALPHABET[i_index]);
                     let j = Letter::new(Letter::ALPHABET[j_index]);
                     let key = Key::EMPTY.add(i).add(j);
-                    let alphabet = (d_ref.alphabet());
+                    let alphabet = d_ref.alphabet();
                     let keyboard = Keyboard::with_keys(vec![key]).fill_missing(alphabet);
                     let penalty = keyboard.penalty(d_ref, Penalty::MAX);
                     Pair { i, j, penalty }
@@ -131,13 +132,18 @@ impl Args {
             Keyboard::empty().to_solution(Penalty::MAX, "".to_string()),
         ));
         let done_generating = Arc::new(AtomicBool::new(false));
-        let evaluation_count = Arc::new(AtomicU64::new(0));
+        let kbd_seen = Arc::new(AtomicU64::new(0));
         let (sdr, rcr) = bounded::<Keyboard>(1_000_000);
         let spawn_keyboard_generator = || {
             let sdr = sdr.clone();
             let d = d.clone();
             let done_generating_keyboards = done_generating.clone();
-            let pairs = Pair::all_by_penalty();
+            let mut pairs = Pair::all_by_penalty();
+            let pairs_to_consider = pairs.len() - self.pairings_to_ignore as usize;
+            pairs = pairs
+                .into_iter()
+                .take(pairs_to_consider)
+                .collect::<Vec<Pair>>();
             let max_key_size = self.max_key_size;
             spawn(move || {
                 let mut created: u128 = 0;
@@ -158,23 +164,28 @@ impl Args {
             let d = d.clone();
             let best = best.clone();
             let done_generating_keyboards = done_generating.clone();
-            let evaluation_count = evaluation_count.clone();
+            let kbd_seen = kbd_seen.clone();
             spawn(move || loop {
                 match rcr.recv_timeout(Duration::from_secs(60)) {
                     Ok(kbd) => {
                         let best_penalty = best.lock().map(|s| s.penalty()).unwrap_or(Penalty::MAX);
                         let penalty = kbd.penalty(&d, best_penalty);
-                        let count = evaluation_count.fetch_add(1, Ordering::Relaxed);
-                        if count.rem_euclid(100_000) == 0 {
-                            println!("Evaluated: {}", count.separate_with_underscores());
-                        }
+                        let seen = kbd_seen.fetch_add(1, Ordering::Relaxed);
                         if penalty < best_penalty {
                             if let Ok(solution) = best.lock().as_deref_mut() {
-                                let new_solution = kbd.to_solution(penalty, "".to_string());
+                                let new_solution = kbd.to_solution(
+                                    penalty,
+                                    format!("kbd {}", seen.separate_with_underscores()),
+                                );
                                 println!("{}", new_solution);
                                 *solution = new_solution;
                             }
-                        };
+                        } else if seen.rem_euclid(250_000) == 0 {
+                            println!("Evaluated: {}", seen.separate_with_underscores());
+                            if let Ok(solution) = best.lock().as_deref() {
+                                println!("{}", solution);
+                            }
+                        }
                     }
                     Err(_) => {
                         if done_generating_keyboards.load(Ordering::Relaxed) {

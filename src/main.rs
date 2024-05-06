@@ -57,7 +57,8 @@ fn save_random_keyboard_penalties() {
 fn combine_infrequent_pairs() {
     let args = pairing::Args {
         threads: 8,
-        max_key_size: 8,
+        max_key_size: 6,
+        pairings_to_ignore: 70,
     };
     args.solve();
 }
