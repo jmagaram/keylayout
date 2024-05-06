@@ -305,7 +305,7 @@ impl FillArgs {
         let existing_keys = args
             .start
             .as_str()
-            .split(',')
+            .split(' ')
             .map(|rr| Key::new(rr))
             .collect::<Vec<Key>>();
         let existing_letters = Key::new(&args.start.replace(',', ""));

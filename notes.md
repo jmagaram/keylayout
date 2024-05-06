@@ -59,10 +59,13 @@
 
 # Other
 
-most popular by letter count: eaisrnotlcdumhgpbykfvw'zjxq
-most popular with frequency weighting: etaoinsrhldcumfgypwbvk'jxzq
+eaisrnotlcdumhgpbykf vw'zjxq -> popular by letter count
+etaoinsrhldcumfgypwb vk'jxzq -> popular by letter count with frequency 
 
 after finding best 11 key with...
-etaoinsrhldcumfgypwb --- vk'jxzq
+etaoinsrhldcumfgypwb vk'jxzq
 ...and then distributing the 7 letters without restriction...
  0.0252𝕡 afj bn cl dhx' evwz gr im kpy oqt su
+
+Other:
+0.0249𝕡 akw bn cej dfq gmx hiv ly ot prz su'

@@ -127,6 +127,43 @@ impl Keyboard {
         self.letter_to_key_index[letter.to_usize_index()]
     }
 
+    pub fn combine_keys_with_letters(&self, i: Letter, j: Letter) -> (Keyboard, Key) {
+        let i_index = self
+            .keys
+            .iter()
+            .enumerate()
+            .find_map(|(index, k)| match k.contains(i) {
+                true => Some(index),
+                false => None,
+            })
+            .unwrap();
+        let j_index = self
+            .keys
+            .iter()
+            .enumerate()
+            .find_map(|(index, k)| match k.contains(j) {
+                true => Some(index),
+                false => None,
+            })
+            .unwrap();
+        let combined_key = self.keys[i_index].union(self.keys[j_index]);
+        let keys = self
+            .keys
+            .iter()
+            .enumerate()
+            .filter_map(|(index, k)| {
+                if index == i_index {
+                    Some(combined_key)
+                } else if (index == j_index) {
+                    None
+                } else {
+                    Some(*k)
+                }
+            })
+            .collect::<Vec<Key>>();
+        (Keyboard::with_keys(keys), combined_key)
+    }
+
     /// Returns the keys that need to be typed to enter a specific word. Each
     /// key is described by the letters on that key, and each key is separated
     /// by a comma. For example, to spell the word "the", the answer might be

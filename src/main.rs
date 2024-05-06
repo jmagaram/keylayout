@@ -14,6 +14,7 @@ mod key;
 mod keyboard;
 mod lazy_tree;
 mod letter;
+mod pairing;
 mod partitions;
 mod penalty;
 mod penalty_goal;
@@ -53,18 +54,10 @@ fn save_random_keyboard_penalties() {
     }
 }
 
-fn pairs_then_infrequent() {
-    use exhaustive_n_key::*;
-    let args = PopularLetterPairingsArgs {
-        pair_up: "eaisrnotlcdumhgpbykf".to_string(),
-        infrequent_replacement: 'z',
-    };
-    let best_pairings = args.solve();
-    let pairs = best_pairings.keyboard().filter_keys(|k| k.len() > 1);
-    let args = FillArgs {
-        start: pairs.to_string(),
-        max_key_size: 6,
-        update_every: 100_000,
+fn combine_infrequent_pairs() {
+    let args = pairing::Args {
+        threads: 8,
+        max_key_size: 8,
     };
     args.solve();
 }
@@ -139,7 +132,7 @@ fn main() {
         3 => find_best_n_key(),
         4 => save_random_keyboard_penalties(),
         5 => print_keyboard_score(),
-        6 => pairs_then_infrequent(),
+        6 => combine_infrequent_pairs(),
         _ => panic!("Do not know how to handle that selection."),
     }
 }

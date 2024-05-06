@@ -7,6 +7,7 @@ pub mod key;
 pub mod keyboard;
 pub mod lazy_tree;
 pub mod letter;
+pub mod pairing;
 pub mod partitions;
 pub mod penalty;
 pub mod penalty_goal;
