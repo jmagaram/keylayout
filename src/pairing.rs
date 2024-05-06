@@ -1,4 +1,5 @@
 use std::{
+    ops::Deref,
     sync::{Arc, Mutex},
     thread::{self},
     time::Duration,
@@ -15,6 +16,7 @@ pub struct Args {
     pub max_key_size: u8,
 }
 
+#[derive(Clone)]
 struct Pair {
     i: Letter,
     j: Letter,
@@ -59,37 +61,14 @@ impl Args {
     ) {
         if k.len() == 10 {
             *created = *created + 1;
-            if created.rem_euclid(100_000) == 0 {
+            if created.rem_euclid(1_000_000) == 0 {
                 println!("Generated: {}", created.separate_with_underscores());
             }
             channel.send(k).unwrap();
         } else {
             if let Some(pair) = pairs.get(pairs_index) {
                 let (k_smaller, combined) = k.combine_keys_with_letters(pair.i, pair.j);
-                let combined_before = k_smaller.len() == k.len();
-                if combined_before {
-                    Self::build_keyboards(
-                        pairs,
-                        pairs_index + 1,
-                        k,
-                        prohibited,
-                        channel,
-                        max_key_size,
-                        created,
-                    );
-                } else {
-                    let is_prohibited = prohibited.iter().any(|pro| combined.contains_all(pro));
-                    if !is_prohibited {
-                        Self::build_keyboards(
-                            pairs,
-                            pairs_index + 1,
-                            k_smaller,
-                            prohibited.clone(),
-                            channel,
-                            max_key_size,
-                            created,
-                        );
-                    }
+                if combined.len() > max_key_size {
                     let mut prohibited = prohibited;
                     prohibited.push(pair.as_key());
                     Self::build_keyboards(
@@ -101,6 +80,43 @@ impl Args {
                         max_key_size,
                         created,
                     );
+                } else {
+                    let combined_before = k_smaller.len() == k.len();
+                    if combined_before {
+                        Self::build_keyboards(
+                            pairs,
+                            pairs_index + 1,
+                            k,
+                            prohibited,
+                            channel,
+                            max_key_size,
+                            created,
+                        );
+                    } else {
+                        let is_prohibited = prohibited.iter().any(|pro| combined.contains_all(pro));
+                        if !is_prohibited {
+                            Self::build_keyboards(
+                                pairs,
+                                pairs_index + 1,
+                                k_smaller,
+                                prohibited.clone(),
+                                channel,
+                                max_key_size,
+                                created,
+                            );
+                        }
+                        let mut prohibited = prohibited;
+                        prohibited.push(pair.as_key());
+                        Self::build_keyboards(
+                            pairs,
+                            pairs_index + 1,
+                            k,
+                            prohibited,
+                            channel,
+                            max_key_size,
+                            created,
+                        );
+                    }
                 }
             }
         }
@@ -115,6 +131,7 @@ impl Args {
             Keyboard::empty().to_solution(Penalty::MAX, "".to_string()),
         ));
         let done_generating = Arc::new(AtomicBool::new(false));
+        let evaluation_count = Arc::new(AtomicU64::new(0));
         let (sdr, rcr) = bounded::<Keyboard>(1_000_000);
         let spawn_keyboard_generator = || {
             let sdr = sdr.clone();
@@ -141,11 +158,16 @@ impl Args {
             let d = d.clone();
             let best = best.clone();
             let done_generating_keyboards = done_generating.clone();
+            let evaluation_count = evaluation_count.clone();
             spawn(move || loop {
                 match rcr.recv_timeout(Duration::from_secs(60)) {
                     Ok(kbd) => {
                         let best_penalty = best.lock().map(|s| s.penalty()).unwrap_or(Penalty::MAX);
                         let penalty = kbd.penalty(&d, best_penalty);
+                        let count = evaluation_count.fetch_add(1, Ordering::Relaxed);
+                        if count.rem_euclid(100_000) == 0 {
+                            println!("Evaluated: {}", count.separate_with_underscores());
+                        }
                         if penalty < best_penalty {
                             if let Ok(solution) = best.lock().as_deref_mut() {
                                 let new_solution = kbd.to_solution(penalty, "".to_string());
@@ -170,5 +192,8 @@ impl Args {
         for i in evaluators.into_iter() {
             i.join().unwrap();
         }
+        let best_solution = best.lock().unwrap().deref().clone();
+        println!("====== BEST ======");
+        println!("{}", best_solution);
     }
 }
