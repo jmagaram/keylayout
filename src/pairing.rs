@@ -1,14 +1,13 @@
+use crate::{
+    dictionary::Dictionary, key::Key, keyboard::Keyboard, letter::Letter, penalty::Penalty,
+};
+use crossbeam_channel::*;
 use std::{
     ops::Deref,
     sync::{Arc, Mutex},
     thread::{self},
     time::Duration,
 };
-
-use crate::{
-    dictionary::Dictionary, key::Key, keyboard::Keyboard, letter::Letter, penalty::Penalty,
-};
-use crossbeam_channel::*;
 use thousands::Separable;
 
 pub struct Args {
@@ -123,6 +122,12 @@ impl Args {
         }
     }
 
+    // Starts with a keyboard with every letter having its own key. Then try to combine
+    // letters recursively until there are 10 keys. Evaulate the score of every 10 key
+    // keyboard and compare it to the best so far. Combining occurs by making a list of
+    // every possible 2 letter pair, sorted by best (like z') to worst. In the recursive
+    // process, every pair is accepted AND rejected, which generates a huge number of
+    // combinations.
     pub fn solve(&self) {
         use crossbeam_channel::*;
         use std::sync::atomic::*;
