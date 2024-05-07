@@ -367,6 +367,14 @@ impl Keyboard {
         penalty
     }
 
+    pub fn penalty_estimate(&self, parts: &HashMap<Key, Penalty>) -> Penalty {
+        self.keys()
+            .filter(|k| k.len() >= 2)
+            .flat_map(|k| k.subsets_of_size(2))
+            .filter_map(|k| parts.get(&k))
+            .fold(Penalty::ZERO, |total, i| total + *i)
+    }
+
     /// Given a keyboard that lacks specific letters in the alphabet, fills in
     /// additional keys with each letter on its own key.
     pub fn fill_missing(&self, alphabet: Key) -> Keyboard {
