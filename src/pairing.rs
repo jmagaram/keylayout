@@ -72,6 +72,32 @@ struct BuildKeyboardsArgs<'a> {
 }
 
 impl<'a> BuildKeyboardsArgs<'a> {
+    pub fn with_prohibited_pair(self, pair: &Pair) -> BuildKeyboardsArgs<'a> {
+        let mut prohibited = self.prohibited;
+        prohibited.push(pair.as_key());
+        BuildKeyboardsArgs {
+            pairs_index: self.pairs_index + 1,
+            prohibited,
+            ..self
+        }
+    }
+
+    pub fn with_next_pair_on_deck(self) -> BuildKeyboardsArgs<'a> {
+        BuildKeyboardsArgs {
+            pairs_index: self.pairs_index + 1,
+            ..self
+        }
+    }
+
+    pub fn with_smaller_keyboard(&self, keyboard: Keyboard) -> BuildKeyboardsArgs<'a> {
+        BuildKeyboardsArgs {
+            pairs_index: self.pairs_index + 1,
+            k: keyboard,
+            prohibited: self.prohibited.clone(),
+            ..*self
+        }
+    }
+
     pub fn build_keyboards(self: BuildKeyboardsArgs<'a>) {
         if self.k.len() == 10 {
             self.created.set(self.created.get() + 1);
@@ -86,47 +112,18 @@ impl<'a> BuildKeyboardsArgs<'a> {
             if let Some(pair) = self.pairs.get(self.pairs_index) {
                 let (k_smaller, combined) = self.k.combine_keys_with_letters(pair.i, pair.j);
                 if combined.len() > self.max_key_size {
-                    let mut prohibited_new = self.prohibited;
-                    prohibited_new.push(pair.as_key());
-                    let args = BuildKeyboardsArgs {
-                        pairs_index: self.pairs_index + 1,
-                        prohibited: prohibited_new,
-                        ..self
-                    };
-                    args.build_keyboards();
+                    self.with_prohibited_pair(pair).build_keyboards();
                 } else {
                     let combined_before = k_smaller.len() == self.k.len();
                     if combined_before {
-                        let created = self.created;
-                        let args = BuildKeyboardsArgs {
-                            pairs_index: self.pairs_index + 1,
-                            created,
-                            ..self
-                        };
-                        args.build_keyboards();
+                        self.with_next_pair_on_deck().build_keyboards();
                     } else {
                         let is_prohibited =
                             self.prohibited.iter().any(|pro| combined.contains_all(pro));
                         if !is_prohibited {
-                            let prohibited_clone = self.prohibited.clone();
-                            let args = BuildKeyboardsArgs {
-                                pairs_index: self.pairs_index + 1,
-                                k: k_smaller,
-                                prohibited: prohibited_clone,
-                                ..self
-                            };
-                            args.build_keyboards();
+                            self.with_smaller_keyboard(k_smaller).build_keyboards();
                         }
-                        let mut prohibited_new = self.prohibited;
-                        prohibited_new.push(pair.as_key());
-                        {
-                            let args = BuildKeyboardsArgs {
-                                pairs_index: self.pairs_index + 1,
-                                prohibited: prohibited_new,
-                                ..self
-                            };
-                            args.build_keyboards();
-                        }
+                        self.with_prohibited_pair(pair).build_keyboards();
                     }
                 }
             }
