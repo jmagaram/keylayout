@@ -60,73 +60,68 @@ impl Pair {
     }
 }
 
+struct BuildKeyboardsArgs<'a> {
+    pairs: &'a Vec<Pair>,
+    pairs_index: usize,
+    k: Keyboard,
+    prohibited: Vec<Key>,
+    channel: &'a Sender<Keyboard>,
+    max_key_size: u8,
+    created: &'a mut u128,
+}
+
 impl Args {
-    fn build_keyboards(
-        pairs: &Vec<Pair>,
-        pairs_index: usize,
-        k: Keyboard,
-        prohibited: Vec<Key>,
-        channel: &Sender<Keyboard>,
-        max_key_size: u8,
-        created: &mut u128,
-    ) {
-        if k.len() == 10 {
-            *created = *created + 1;
-            if created.rem_euclid(1_000_000) == 0 {
-                println!("Generated: {}", created.separate_with_underscores());
+    fn build_keyboards<'a>(args: BuildKeyboardsArgs<'a>) {
+        if args.k.len() == 10 {
+            *args.created = *args.created + 1;
+            if args.created.rem_euclid(1_000_000) == 0 {
+                println!("Generated: {}", args.created.separate_with_underscores());
             }
-            channel.send(k).unwrap();
+            args.channel.send(args.k).unwrap();
         } else {
-            if let Some(pair) = pairs.get(pairs_index) {
-                let (k_smaller, combined) = k.combine_keys_with_letters(pair.i, pair.j);
-                if combined.len() > max_key_size {
-                    let mut prohibited = prohibited;
-                    prohibited.push(pair.as_key());
-                    Self::build_keyboards(
-                        pairs,
-                        pairs_index + 1,
-                        k,
-                        prohibited,
-                        channel,
-                        max_key_size,
-                        created,
-                    );
+            if let Some(pair) = args.pairs.get(args.pairs_index) {
+                let (k_smaller, combined) = args.k.combine_keys_with_letters(pair.i, pair.j);
+                if combined.len() > args.max_key_size {
+                    let mut prohibited_new = args.prohibited;
+                    prohibited_new.push(pair.as_key());
+                    let args = BuildKeyboardsArgs {
+                        pairs_index: args.pairs_index + 1,
+                        prohibited: prohibited_new,
+                        ..args
+                    };
+                    Self::build_keyboards(args);
                 } else {
-                    let combined_before = k_smaller.len() == k.len();
+                    let combined_before = k_smaller.len() == args.k.len();
                     if combined_before {
-                        Self::build_keyboards(
-                            pairs,
-                            pairs_index + 1,
-                            k,
-                            prohibited,
-                            channel,
-                            max_key_size,
-                            created,
-                        );
+                        let args = BuildKeyboardsArgs {
+                            pairs_index: args.pairs_index + 1,
+                            ..args
+                        };
+                        Self::build_keyboards(args);
                     } else {
-                        let is_prohibited = prohibited.iter().any(|pro| combined.contains_all(pro));
+                        let created = args.created;
+                        let is_prohibited =
+                            args.prohibited.iter().any(|pro| combined.contains_all(pro));
                         if !is_prohibited {
-                            Self::build_keyboards(
-                                pairs,
-                                pairs_index + 1,
-                                k_smaller,
-                                prohibited.clone(),
-                                channel,
-                                max_key_size,
+                            let prohibited_clone = args.prohibited.clone();
+                            let args = BuildKeyboardsArgs {
+                                pairs_index: args.pairs_index + 1,
+                                k: k_smaller,
+                                prohibited: prohibited_clone,
                                 created,
-                            );
+                                ..args
+                            };
+                            Self::build_keyboards(args);
                         }
-                        let mut prohibited = prohibited;
-                        prohibited.push(pair.as_key());
-                        Self::build_keyboards(
-                            pairs,
-                            pairs_index + 1,
-                            k,
-                            prohibited,
-                            channel,
-                            max_key_size,
+                        let mut prohibited_new = args.prohibited;
+                        prohibited_new.push(pair.as_key());
+                        let args = BuildKeyboardsArgs {
+                            pairs_index: args.pairs_index + 1,
+                            prohibited: prohibited_new,
                             created,
-                        );
+                            ..args
+                        };
+                        Self::build_keyboards(args);
                     }
                 }
             }
@@ -164,15 +159,16 @@ impl Args {
             let max_key_size = self.max_key_size;
             spawn(move || {
                 let mut created: u128 = 0;
-                Self::build_keyboards(
-                    &pairs,
-                    0,
-                    Keyboard::with_every_letter_on_own_key(d.alphabet()),
-                    vec![],
-                    &sdr,
+                let args = BuildKeyboardsArgs {
+                    pairs: &pairs,
+                    pairs_index: 0,
+                    k: Keyboard::with_every_letter_on_own_key(d.alphabet()),
+                    prohibited: vec![],
+                    channel: &sdr,
                     max_key_size,
-                    &mut created,
-                );
+                    created: &mut created,
+                };
+                Self::build_keyboards(args);
                 done_generating_keyboards.fetch_or(true, Ordering::Relaxed)
             })
         };
