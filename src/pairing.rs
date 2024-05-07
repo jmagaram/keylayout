@@ -132,7 +132,7 @@ impl Args {
             let sdr = sdr.clone();
             let d = d.clone();
             let done_generating_keyboards = done_generating.clone();
-            let single_key_penalties = SingleKeyPenalties::new(&d, 2..=4);
+            let single_key_penalties = SingleKeyPenalties::new(&d, 2..=7.min(self.max_key_size));
             let pairs_to_consider = {
                 let mut pairs = single_key_penalties
                     .of_key_size(2)
