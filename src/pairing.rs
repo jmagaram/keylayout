@@ -4,6 +4,7 @@ use crate::{
 use crossbeam_channel::*;
 use humantime::{format_duration, FormattedDuration};
 use std::{
+    cell::Cell,
     ops::Deref,
     sync::{Arc, Mutex},
     thread::{self},
@@ -67,67 +68,73 @@ struct BuildKeyboardsArgs<'a> {
     prohibited: Vec<Key>,
     channel: &'a Sender<Keyboard>,
     max_key_size: u8,
-    created: &'a mut u128,
+    created: &'a Cell<u128>,
 }
 
-impl Args {
-    fn build_keyboards<'a>(args: BuildKeyboardsArgs<'a>) {
-        if args.k.len() == 10 {
-            *args.created = *args.created + 1;
-            if args.created.rem_euclid(1_000_000) == 0 {
-                println!("Generated: {}", args.created.separate_with_underscores());
+impl<'a> BuildKeyboardsArgs<'a> {
+    pub fn build_keyboards(self: BuildKeyboardsArgs<'a>) {
+        if self.k.len() == 10 {
+            self.created.set(self.created.get() + 1);
+            if self.created.get().rem_euclid(1_000_000) == 0 {
+                println!(
+                    "Generated: {}",
+                    self.created.get().separate_with_underscores()
+                );
             }
-            args.channel.send(args.k).unwrap();
+            self.channel.send(self.k).unwrap();
         } else {
-            if let Some(pair) = args.pairs.get(args.pairs_index) {
-                let (k_smaller, combined) = args.k.combine_keys_with_letters(pair.i, pair.j);
-                if combined.len() > args.max_key_size {
-                    let mut prohibited_new = args.prohibited;
+            if let Some(pair) = self.pairs.get(self.pairs_index) {
+                let (k_smaller, combined) = self.k.combine_keys_with_letters(pair.i, pair.j);
+                if combined.len() > self.max_key_size {
+                    let mut prohibited_new = self.prohibited;
                     prohibited_new.push(pair.as_key());
                     let args = BuildKeyboardsArgs {
-                        pairs_index: args.pairs_index + 1,
+                        pairs_index: self.pairs_index + 1,
                         prohibited: prohibited_new,
-                        ..args
+                        ..self
                     };
-                    Self::build_keyboards(args);
+                    args.build_keyboards();
                 } else {
-                    let combined_before = k_smaller.len() == args.k.len();
+                    let combined_before = k_smaller.len() == self.k.len();
                     if combined_before {
+                        let created = self.created;
                         let args = BuildKeyboardsArgs {
-                            pairs_index: args.pairs_index + 1,
-                            ..args
+                            pairs_index: self.pairs_index + 1,
+                            created,
+                            ..self
                         };
-                        Self::build_keyboards(args);
+                        args.build_keyboards();
                     } else {
-                        let created = args.created;
                         let is_prohibited =
-                            args.prohibited.iter().any(|pro| combined.contains_all(pro));
+                            self.prohibited.iter().any(|pro| combined.contains_all(pro));
                         if !is_prohibited {
-                            let prohibited_clone = args.prohibited.clone();
+                            let prohibited_clone = self.prohibited.clone();
                             let args = BuildKeyboardsArgs {
-                                pairs_index: args.pairs_index + 1,
+                                pairs_index: self.pairs_index + 1,
                                 k: k_smaller,
                                 prohibited: prohibited_clone,
-                                created,
-                                ..args
+                                ..self
                             };
-                            Self::build_keyboards(args);
+                            args.build_keyboards();
                         }
-                        let mut prohibited_new = args.prohibited;
+                        let mut prohibited_new = self.prohibited;
                         prohibited_new.push(pair.as_key());
-                        let args = BuildKeyboardsArgs {
-                            pairs_index: args.pairs_index + 1,
-                            prohibited: prohibited_new,
-                            created,
-                            ..args
-                        };
-                        Self::build_keyboards(args);
+                        {
+                            let args = BuildKeyboardsArgs {
+                                pairs_index: self.pairs_index + 1,
+                                prohibited: prohibited_new,
+                                ..self
+                            };
+                            args.build_keyboards();
+                        }
                     }
                 }
             }
         }
     }
+}
 
+impl Args {
     // Starts with a keyboard with every letter having its own key. Then try to combine
     // letters recursively until there are 10 keys. Evaulate the score of every 10 key
     // keyboard and compare it to the best so far. Combining occurs by making a list of
@@ -158,7 +165,7 @@ impl Args {
                 .collect::<Vec<Pair>>();
             let max_key_size = self.max_key_size;
             spawn(move || {
-                let mut created: u128 = 0;
+                let created = Cell::new(0);
                 let args = BuildKeyboardsArgs {
                     pairs: &pairs,
                     pairs_index: 0,
@@ -166,9 +173,9 @@ impl Args {
                     prohibited: vec![],
                     channel: &sdr,
                     max_key_size,
-                    created: &mut created,
+                    created: &created,
                 };
-                Self::build_keyboards(args);
+                args.build_keyboards();
                 done_generating_keyboards.fetch_or(true, Ordering::Relaxed)
             })
         };
