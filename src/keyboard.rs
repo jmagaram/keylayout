@@ -83,6 +83,10 @@ impl Keyboard {
         self.keys.len()
     }
 
+    pub fn keys<'a>(&'a self) -> impl Iterator<Item = Key> + 'a {
+        self.keys.iter().map(|k| *k)
+    }
+
     pub fn letters(&self) -> Key {
         self.keys
             .iter()
