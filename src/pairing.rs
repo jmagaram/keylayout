@@ -27,6 +27,7 @@ pub struct Args {
     pub threads: u8,
     pub max_key_size: u8,
     pub pairings_to_ignore: u8,
+    pub prune_threshold: Penalty,
 }
 
 struct BuildKeyboardsArgs<'a, F>
@@ -131,7 +132,7 @@ impl Args {
             let sdr = sdr.clone();
             let d = d.clone();
             let done_generating_keyboards = done_generating.clone();
-            let single_key_penalties = SingleKeyPenalties::new(&d, 2..=5);
+            let single_key_penalties = SingleKeyPenalties::new(&d, 2..=4);
             let pairs_to_consider = {
                 let mut pairs = single_key_penalties
                     .of_key_size(2)
@@ -146,14 +147,14 @@ impl Args {
             let max_key_size = self.max_key_size;
             let pruned: Cell<u64> = Cell::new(0);
             let pruned_at: RefCell<Tally<usize>> = RefCell::new(Tally::new());
+            let prune_threshold = self.prune_threshold;
             let prune = move |k: &Keyboard| {
                 let key_count = k.len();
                 let prune_from = 11;
                 let prune_to = 18;
-                let goal = 0.0250;
                 if key_count >= prune_from && key_count <= prune_to {
                     let estimate = k.penalty_estimate(&single_key_penalties);
-                    let should_prune = estimate.to_f32() >= goal;
+                    let should_prune = estimate >= prune_threshold;
                     if should_prune {
                         pruned_at.borrow_mut().increment(key_count);
                         pruned.set(pruned.get() + 1);
