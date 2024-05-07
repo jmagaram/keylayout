@@ -127,7 +127,7 @@ fn main() {
         .item("Print keyboard score")
         .item("Recursively pair letters")
         .item("Custom")
-        .default(0)
+        .default(6)
         .interact()
         .unwrap();
     println!();
