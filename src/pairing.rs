@@ -1,13 +1,14 @@
 use crate::{
-    dictionary::Dictionary, key::Key, keyboard::Keyboard, letter::Letter, penalty::Penalty,
+    dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty,
+    single_key_penalties::SingleKeyPenalties, tally::Tally,
 };
 use crossbeam_channel::*;
 use humantime::{format_duration, FormattedDuration};
 use std::{
-    cell::Cell,
+    cell::{Cell, RefCell},
     ops::Deref,
     sync::{Arc, Mutex},
-    thread::{self},
+    thread::{spawn, JoinHandle},
     time::{Duration, Instant},
 };
 use thousands::Separable;
@@ -28,53 +29,27 @@ pub struct Args {
     pub pairings_to_ignore: u8,
 }
 
-#[derive(Clone)]
-struct Pair {
-    i: Letter,
-    j: Letter,
-    penalty: Penalty,
-}
-
-impl Pair {
-    pub fn as_key(&self) -> Key {
-        Key::EMPTY.add(self.i).add(self.j)
-    }
-
-    pub fn all_by_penalty() -> Vec<Pair> {
-        let d = Dictionary::load();
-        let d_ref = &d;
-        let mut pairs = (0..Letter::ALPHABET_SIZE - 1)
-            .flat_map(|i_index| {
-                (i_index + 1..Letter::ALPHABET_SIZE).map(move |j_index| {
-                    let i = Letter::new(Letter::ALPHABET[i_index]);
-                    let j = Letter::new(Letter::ALPHABET[j_index]);
-                    let key = Key::EMPTY.add(i).add(j);
-                    let alphabet = d_ref.alphabet();
-                    let keyboard = Keyboard::with_keys(vec![key]).fill_missing(alphabet);
-                    let penalty = keyboard.penalty(d_ref, Penalty::MAX);
-                    Pair { i, j, penalty }
-                })
-            })
-            .collect::<Vec<Pair>>();
-        pairs.sort_by(|i, j| i.penalty.cmp(&j.penalty));
-        pairs
-    }
-}
-
-struct BuildKeyboardsArgs<'a> {
-    pairs: &'a Vec<Pair>,
+struct BuildKeyboardsArgs<'a, F>
+where
+    F: Fn(&Keyboard) -> bool,
+{
+    pairs: &'a Vec<Key>,
     pairs_index: usize,
     k: Keyboard,
     prohibited: Vec<Key>,
     channel: &'a Sender<Keyboard>,
     max_key_size: u8,
     created: &'a Cell<u128>,
+    prune: &'a F,
 }
 
-impl<'a> BuildKeyboardsArgs<'a> {
-    pub fn with_prohibited_pair(self, pair: &Pair) -> BuildKeyboardsArgs<'a> {
+impl<'a, F> BuildKeyboardsArgs<'a, F>
+where
+    F: Fn(&Keyboard) -> bool,
+{
+    pub fn with_prohibited_pair(self, pair: Key) -> BuildKeyboardsArgs<'a, F> {
         let mut prohibited = self.prohibited;
-        prohibited.push(pair.as_key());
+        prohibited.push(pair);
         BuildKeyboardsArgs {
             pairs_index: self.pairs_index + 1,
             prohibited,
@@ -82,14 +57,14 @@ impl<'a> BuildKeyboardsArgs<'a> {
         }
     }
 
-    pub fn with_next_pair_on_deck(self) -> BuildKeyboardsArgs<'a> {
+    pub fn with_next_pair_on_deck(self) -> BuildKeyboardsArgs<'a, F> {
         BuildKeyboardsArgs {
             pairs_index: self.pairs_index + 1,
             ..self
         }
     }
 
-    pub fn with_smaller_keyboard(&self, keyboard: Keyboard) -> BuildKeyboardsArgs<'a> {
+    pub fn with_smaller_keyboard(&self, keyboard: Keyboard) -> BuildKeyboardsArgs<'a, F> {
         BuildKeyboardsArgs {
             pairs_index: self.pairs_index + 1,
             k: keyboard,
@@ -98,7 +73,7 @@ impl<'a> BuildKeyboardsArgs<'a> {
         }
     }
 
-    pub fn build_keyboards(self: BuildKeyboardsArgs<'a>) {
+    pub fn build_keyboards(self: BuildKeyboardsArgs<'a, F>) {
         if self.k.len() == 10 {
             self.created.set(self.created.get() + 1);
             if self.created.get().rem_euclid(1_000_000) == 0 {
@@ -108,11 +83,14 @@ impl<'a> BuildKeyboardsArgs<'a> {
                 );
             }
             self.channel.send(self.k).unwrap();
-        } else {
+        } else if false == (*self.prune)(&self.k) {
             if let Some(pair) = self.pairs.get(self.pairs_index) {
-                let (k_smaller, combined) = self.k.combine_keys_with_letters(pair.i, pair.j);
+                let (k_smaller, combined) = self.k.combine_keys_with_letters(
+                    pair.letters().nth(0).unwrap(),
+                    pair.letters().nth(1).unwrap(),
+                );
                 if combined.len() > self.max_key_size {
-                    self.with_prohibited_pair(pair).build_keyboards();
+                    self.with_prohibited_pair(*pair).build_keyboards();
                 } else {
                     let combined_before = k_smaller.len() == self.k.len();
                     if combined_before {
@@ -123,7 +101,7 @@ impl<'a> BuildKeyboardsArgs<'a> {
                         if !is_prohibited {
                             self.with_smaller_keyboard(k_smaller).build_keyboards();
                         }
-                        self.with_prohibited_pair(pair).build_keyboards();
+                        self.with_prohibited_pair(*pair).build_keyboards();
                     }
                 }
             }
@@ -141,7 +119,6 @@ impl Args {
     pub fn solve(&self) {
         use crossbeam_channel::*;
         use std::sync::atomic::*;
-        use thread::*;
         let d = Arc::new(Dictionary::load());
         let best = Arc::new(Mutex::new(
             Keyboard::empty().to_solution(Penalty::MAX, "".to_string()),
@@ -154,23 +131,62 @@ impl Args {
             let sdr = sdr.clone();
             let d = d.clone();
             let done_generating_keyboards = done_generating.clone();
-            let mut pairs = Pair::all_by_penalty();
-            let pairs_to_consider = pairs.len() - self.pairings_to_ignore as usize;
-            pairs = pairs
-                .into_iter()
-                .take(pairs_to_consider)
-                .collect::<Vec<Pair>>();
+            let single_key_penalties = SingleKeyPenalties::new(&d, 2..=5);
+            let pairs_to_consider = {
+                let mut pairs = single_key_penalties
+                    .of_key_size(2)
+                    .collect::<Vec<(Key, Penalty)>>();
+                pairs.sort_by(|a, b| a.1.cmp(&b.1));
+                pairs
+                    .iter()
+                    .take(pairs.len() - self.pairings_to_ignore as usize)
+                    .map(|(k, _p)| *k)
+                    .collect::<Vec<Key>>()
+            };
             let max_key_size = self.max_key_size;
+            let pruned: Cell<u64> = Cell::new(0);
+            let pruned_at: RefCell<Tally<usize>> = RefCell::new(Tally::new());
+            let prune = move |k: &Keyboard| {
+                let key_count = k.len();
+                let prune_from = 11;
+                let prune_to = 18;
+                let goal = 0.0250;
+                if key_count >= prune_from && key_count <= prune_to {
+                    let estimate = k.penalty_estimate(&single_key_penalties);
+                    let should_prune = estimate.to_f32() >= goal;
+                    if should_prune {
+                        pruned_at.borrow_mut().increment(key_count);
+                        pruned.set(pruned.get() + 1);
+                        if pruned.get().rem_euclid(1_000_000) == 0 {
+                            println!("Pruned {}", pruned.get().separate_with_underscores());
+                            (prune_from..=prune_to).for_each(|key_count| {
+                                let total = pruned_at.borrow().count(&key_count);
+                                if total > 0 {
+                                    println!(
+                                        "Pruned size {:<2} : {}",
+                                        key_count,
+                                        total.separate_with_underscores()
+                                    );
+                                }
+                            });
+                        }
+                    }
+                    should_prune
+                } else {
+                    false
+                }
+            };
             spawn(move || {
                 let created = Cell::new(0);
                 let args = BuildKeyboardsArgs {
-                    pairs: &pairs,
+                    pairs: &pairs_to_consider,
                     pairs_index: 0,
                     k: Keyboard::with_every_letter_on_own_key(d.alphabet()),
                     prohibited: vec![],
                     channel: &sdr,
                     max_key_size,
                     created: &created,
+                    prune: &prune,
                 };
                 args.build_keyboards();
                 done_generating_keyboards.fetch_or(true, Ordering::Relaxed)

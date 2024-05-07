@@ -19,6 +19,7 @@ mod partitions;
 mod penalty;
 mod penalty_goal;
 mod prohibited;
+mod single_key_penalties;
 mod solution;
 mod solution_samples;
 mod tally;

@@ -12,6 +12,7 @@ pub mod partitions;
 pub mod penalty;
 pub mod penalty_goal;
 pub mod prohibited;
+pub mod single_key_penalties;
 pub mod solution;
 pub mod solution_samples;
 pub mod tally;

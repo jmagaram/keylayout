@@ -7,11 +7,11 @@ use crate::{
     partitions::{self, Partitions},
     penalty::Penalty,
     prohibited::Prohibited,
+    single_key_penalties::SingleKeyPenalties,
     solution::Solution,
     tally::Tally,
     word::Word,
 };
-use hashbrown::HashMap;
 use rand::Rng;
 use std::{fmt, iter};
 
@@ -368,12 +368,22 @@ impl Keyboard {
         penalty
     }
 
-    pub fn penalty_estimate(&self, parts: &HashMap<Key, Penalty>) -> Penalty {
-        self.keys()
-            .filter(|k| k.len() >= 2)
-            .flat_map(|k| k.subsets_of_size(2))
-            .filter_map(|k| parts.get(&k))
-            .fold(Penalty::ZERO, |total, i| total + *i)
+    pub fn penalty_estimate(&self, parts: &SingleKeyPenalties) -> Penalty {
+        if self.len() == 0 {
+            Penalty::ZERO
+        } else {
+            let cached_key_sum = (parts.min_key_size()..=parts.max_key_size())
+                .flat_map(|key_size| self.keys().filter(move |k| k.len() == key_size))
+                .filter_map(|k| parts.get(k))
+                .fold(Penalty::ZERO, |total, i| total + i);
+            let large_keys_sum = self
+                .keys()
+                .filter(|k| k.len() > parts.max_key_size())
+                .flat_map(|k| k.subsets_of_size(2))
+                .filter_map(|k| parts.get(k))
+                .fold(Penalty::ZERO, |total, i| total + i);
+            cached_key_sum + large_keys_sum
+        }
     }
 
     /// Given a keyboard that lacks specific letters in the alphabet, fills in
