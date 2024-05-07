@@ -11,6 +11,7 @@ use crate::{
     tally::Tally,
     word::Word,
 };
+use hashbrown::HashMap;
 use rand::Rng;
 use std::{fmt, iter};
 
