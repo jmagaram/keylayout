@@ -41,7 +41,9 @@ where
     channel: &'a Sender<Keyboard>,
     max_key_size: u8,
     created: &'a Cell<u128>,
+    created_tally: &'a RefCell<Tally<usize>>,
     prune: &'a F,
+    report_every_created: u128,
 }
 
 impl<'a, F> BuildKeyboardsArgs<'a, F>
@@ -75,32 +77,43 @@ where
     }
 
     pub fn build_keyboards(self: BuildKeyboardsArgs<'a, F>) {
-        if self.k.len() == 10 {
-            self.created.set(self.created.get() + 1);
-            if self.created.get().rem_euclid(1_000_000) == 0 {
-                println!(
-                    "Generated: {}",
-                    self.created.get().separate_with_underscores()
-                );
+        self.created.set(self.created.get() + 1);
+        self.created_tally.borrow_mut().increment(self.k.len());
+        if self.created.get().rem_euclid(self.report_every_created) == 0 {
+            println!("Created {}", self.created.get().separate_with_underscores());
+            (10..=26).for_each(|key_count| {
+                let total = self.created_tally.borrow().count(&key_count);
+                if total > 0 {
+                    println!(
+                        "Created size {:<2} : {}",
+                        key_count,
+                        total.separate_with_underscores()
+                    );
+                }
+            });
+        }
+        let k = &(&self).k;
+        if false == (*self.prune)(k) {
+            if k.len() == 10 {
+                self.channel.send(k.clone()).unwrap();
             }
-            self.channel.send(self.k).unwrap();
-        } else if false == (*self.prune)(&self.k) {
             if let Some(pair) = self.pairs.get(self.pairs_index) {
-                let (k_smaller, combined) = self.k.combine_keys_with_letters(
+                let (k_smaller, combined) = k.combine_keys_with_letters(
                     pair.letters().nth(0).unwrap(),
                     pair.letters().nth(1).unwrap(),
                 );
                 if combined.len() > self.max_key_size {
                     self.with_prohibited_pair(*pair).build_keyboards();
                 } else {
-                    let combined_before = k_smaller.len() == self.k.len();
+                    let combined_before = k_smaller.len() == k.len();
                     if combined_before {
                         self.with_next_pair_on_deck().build_keyboards();
                     } else {
                         let is_prohibited =
                             self.prohibited.iter().any(|pro| combined.contains_all(pro));
                         if !is_prohibited {
-                            self.with_smaller_keyboard(k_smaller).build_keyboards();
+                            self.with_smaller_keyboard(k_smaller.clone())
+                                .build_keyboards();
                         }
                         self.with_prohibited_pair(*pair).build_keyboards();
                     }
@@ -132,7 +145,7 @@ impl Args {
             let sdr = sdr.clone();
             let d = d.clone();
             let done_generating_keyboards = done_generating.clone();
-            let single_key_penalties = SingleKeyPenalties::new(&d, 2..=7.min(self.max_key_size));
+            let single_key_penalties = SingleKeyPenalties::new(&d, 2..=6.min(self.max_key_size));
             let pairs_to_consider = {
                 let mut pairs = single_key_penalties
                     .of_key_size(2)
@@ -150,7 +163,7 @@ impl Args {
             let prune_threshold = self.prune_threshold;
             let prune = move |k: &Keyboard| {
                 let key_count = k.len();
-                let prune_from = 11;
+                let prune_from = 10;
                 let prune_to = 18;
                 if key_count >= prune_from && key_count <= prune_to {
                     let estimate = k.penalty_estimate(&single_key_penalties);
@@ -158,7 +171,7 @@ impl Args {
                     if should_prune {
                         pruned_at.borrow_mut().increment(key_count);
                         pruned.set(pruned.get() + 1);
-                        if pruned.get().rem_euclid(1_000_000) == 0 {
+                        if pruned.get().rem_euclid(10_000_000) == 0 {
                             println!("Pruned {}", pruned.get().separate_with_underscores());
                             (prune_from..=prune_to).for_each(|key_count| {
                                 let total = pruned_at.borrow().count(&key_count);
@@ -179,6 +192,7 @@ impl Args {
             };
             spawn(move || {
                 let created = Cell::new(0);
+                let created_tally = RefCell::new(Tally::new());
                 let args = BuildKeyboardsArgs {
                     pairs: &pairs_to_consider,
                     pairs_index: 0,
@@ -187,7 +201,9 @@ impl Args {
                     channel: &sdr,
                     max_key_size,
                     created: &created,
+                    created_tally: &created_tally,
                     prune: &prune,
+                    report_every_created: 10_000_000,
                 };
                 args.build_keyboards();
                 done_generating_keyboards.fetch_or(true, Ordering::Relaxed)

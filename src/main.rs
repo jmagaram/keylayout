@@ -61,7 +61,7 @@ fn custom() {
 
 fn combine_infrequent_pairs() {
     let args = pairing::Args {
-        threads: 8,
+        threads: 4,
         max_key_size: 6,
         pairings_to_ignore: 70,
         prune_threshold: Penalty::new(0.0250),
