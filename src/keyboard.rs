@@ -372,8 +372,8 @@ impl Keyboard {
         if self.len() == 0 {
             Penalty::ZERO
         } else {
-            let cached_key_sum = (parts.min_key_size()..=parts.max_key_size())
-                .flat_map(|key_size| self.keys().filter(move |k| k.len() == key_size))
+            let cached_sum = self
+                .keys()
                 .filter_map(|k| parts.get(k))
                 .fold(Penalty::ZERO, |total, i| total + i);
             let large_keys_sum = self
@@ -382,7 +382,7 @@ impl Keyboard {
                 .flat_map(|k| k.subsets_of_size(2))
                 .filter_map(|k| parts.get(k))
                 .fold(Penalty::ZERO, |total, i| total + i);
-            cached_key_sum + large_keys_sum
+            cached_sum + large_keys_sum
         }
     }
 
