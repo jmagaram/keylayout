@@ -178,6 +178,18 @@ mod tests {
 
     #[test]
     #[ignore]
+    fn total_unique_keyboards_print() {
+        let p = Partitions {
+            sum: 27,
+            min: 1,
+            max: 6,
+            parts: 17,
+        };
+        println!("Total: {}", p.total_unique_keyboards());
+    }
+
+    #[test]
+    #[ignore]
     fn print_a_sample() {
         let sum = 8;
         let parts = 3;
