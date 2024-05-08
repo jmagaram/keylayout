@@ -10,16 +10,70 @@ use std::{
 };
 use thousands::Separable;
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct CsvOutput {
+    key: String,
+    penalty: f32,
+}
+
 pub struct SingleKeyPenalties {
     map: HashMap<Key, Penalty>,
     max_key_size: u8,
 }
 
 impl SingleKeyPenalties {
-    pub fn new(dictionary: &Dictionary, key_sizes: RangeInclusive<u8>) -> SingleKeyPenalties {
-        let max_key_size = key_sizes.clone().max().unwrap();
+    fn file_name(max_key_size: u8) -> String {
+        format!("single_key_penalties_{}.csv", max_key_size)
+    }
+
+    fn load_from_csv(file_name: &str) -> Result<Vec<CsvOutput>, csv::Error> {
+        let mut rdr = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .from_path(file_name)
+            .unwrap();
+        rdr.deserialize().collect::<Result<Vec<CsvOutput>, _>>()
+    }
+
+    pub fn load() -> SingleKeyPenalties {
+        let key_size = 6;
+        let file_name = Self::file_name(key_size);
+        Self::load_from(file_name.as_str())
+    }
+
+    pub fn load_from(file_name: &str) -> SingleKeyPenalties {
+        let map_items = Self::load_from_csv(file_name)
+            .unwrap()
+            .into_iter()
+            .map(|c| {
+                let k = Key::new(c.key.as_str());
+                let p = Penalty::new(c.penalty);
+                (k, p)
+            });
+        let map = HashMap::from_iter(map_items);
+        let max_key_size = map.keys().map(|k| k.len()).max().unwrap();
+        SingleKeyPenalties { map, max_key_size }
+    }
+
+    pub fn save_csv(&self) -> Result<(), csv::Error> {
+        let file_name = Self::file_name(self.max_key_size);
+        let mut wtr = csv::Writer::from_path(file_name.as_str()).unwrap();
+        let _write_result = self
+            .map
+            .iter()
+            .map(|(k, v)| CsvOutput {
+                key: k.to_string(),
+                penalty: v.to_f32(),
+            })
+            .map(|r| wtr.serialize(r))
+            .collect::<Result<(), csv::Error>>()?;
+        wtr.flush()?;
+        Ok(())
+    }
+
+    pub fn new(dictionary: &Dictionary, max_key_size: u8) -> SingleKeyPenalties {
         let count = Arc::new(AtomicU32::new(0));
         let alphabet = dictionary.alphabet();
+        let key_sizes = 2..=max_key_size;
         let total = key_sizes.clone().fold(0, |total, i| {
             total + choose(alphabet.len() as u32, i as u32)
         });

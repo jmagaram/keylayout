@@ -1,6 +1,6 @@
 use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty,
-    single_key_penalties::SingleKeyPenalties, tally::Tally,
+    penalty_goal::PenaltyGoals, single_key_penalties::SingleKeyPenalties, tally::Tally,
 };
 use crossbeam_channel::*;
 use humantime::{format_duration, FormattedDuration};
@@ -145,7 +145,14 @@ impl Args {
             let sdr = sdr.clone();
             let d = d.clone();
             let done_generating_keyboards = done_generating.clone();
-            let single_key_penalties = SingleKeyPenalties::new(&d, 2..=6.min(self.max_key_size));
+            let single_key_penalties = SingleKeyPenalties::load();
+            let mut penalty_goals = PenaltyGoals::none(d.alphabet());
+            penalty_goals.use_random_samples(
+                19..=22,
+                crate::penalty_goal::ProhibitedPairs::Num60,
+                0.25,
+                1.0,
+            );
             let pairs_to_consider = {
                 let mut pairs = single_key_penalties
                     .of_key_size(2)
@@ -165,8 +172,12 @@ impl Args {
                 let key_count = k.len();
                 let prune_from = 10;
                 let prune_to = 18;
-                if key_count >= prune_from && key_count <= prune_to {
-                    let estimate = k.penalty_estimate(&single_key_penalties);
+                if key_count >= prune_from && key_count <= 22 {
+                    let estimate = if key_count <= 18 {
+                        k.penalty_estimate(&single_key_penalties)
+                    } else {
+                        penalty_goals.get(key_count as u8).unwrap()
+                    };
                     let should_prune = estimate >= prune_threshold;
                     if should_prune {
                         pruned_at.borrow_mut().increment(key_count);

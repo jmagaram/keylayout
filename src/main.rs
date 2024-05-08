@@ -61,6 +61,12 @@ fn display_unique_keyboard_totals() {
     }
 }
 
+fn save_single_key_penalties() {
+    let d = Dictionary::load();
+    let p = SingleKeyPenalties::new(&d, 6);
+    p.save_csv().unwrap();
+}
+
 fn save_random_keyboard_penalties() {
     let d = Dictionary::load();
     for prohibited_pairs in [0, 20, 40, 60, 80] {
@@ -119,7 +125,7 @@ fn find_best_n_key() {
 fn genetic_solver() {
     let dict = Dictionary::load();
     let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
-    let single_key_penalties = SingleKeyPenalties::new(&dict, 2..=6);
+    let single_key_penalties = SingleKeyPenalties::load();
     let args = genetic::FindBestArgs {
         dictionary: &dict,
         die_threshold: Penalty::new(0.000001),
@@ -155,6 +161,7 @@ fn main() {
         .item("Genetic algorithm")
         .item("Find best N key")
         .item("Save random keyboard penalties to CSV")
+        .item("Save single key penalties to CSV")
         .item("Print keyboard score")
         .item("Recursively pair letters")
         .item("Display unique keyboard totals")
@@ -169,10 +176,11 @@ fn main() {
         2 => genetic_solver(),
         3 => find_best_n_key(),
         4 => save_random_keyboard_penalties(),
-        5 => print_keyboard_score(),
-        6 => combine_infrequent_pairs(),
-        7 => display_unique_keyboard_totals(),
-        8 => custom(),
+        5 => save_single_key_penalties(),
+        6 => print_keyboard_score(),
+        7 => combine_infrequent_pairs(),
+        8 => display_unique_keyboard_totals(),
+        9 => custom(),
         _ => panic!("Do not know how to handle that selection."),
     }
 }
