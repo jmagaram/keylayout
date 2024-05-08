@@ -4,15 +4,16 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterato
 
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
-    prohibited::Prohibited, solution::Solution,
+    prohibited::Prohibited, single_key_penalties::SingleKeyPenalties, solution::Solution,
 };
 
 struct Genetic<'a> {
     best: Solution,
-    dictionary: &'a Dictionary,
     current_generation: u32,
     die_threshold: Penalty,
     keyboards_seen: u32,
+    dictionary: &'a Dictionary,
+    single_key_penalties: &'a SingleKeyPenalties,
 }
 
 impl<'a> Iterator for Genetic<'a> {
@@ -29,12 +30,16 @@ impl<'a> Iterator for Genetic<'a> {
                 [
                     k.clone(),
                     k.swap_random_letters_n_times(2).unwrap(),
+                    k.swap_random_letters_n_times(2).unwrap(),
+                    k.swap_random_letters_n_times(2).unwrap(),
                     k.swap_random_letters_n_times(4).unwrap(),
                     k.swap_random_letters_n_times(4).unwrap(),
                     k.swap_random_letters_n_times(4).unwrap(),
                     k.swap_random_letters_n_times(8).unwrap(),
                     k.swap_random_letters_n_times(8).unwrap(),
                     k.swap_random_letters_n_times(8).unwrap(),
+                    k.swap_random_letters_n_times(12).unwrap(),
+                    k.swap_random_letters_n_times(12).unwrap(),
                     k.swap_random_letters_n_times(12).unwrap(),
                 ]
             })
@@ -44,7 +49,15 @@ impl<'a> Iterator for Genetic<'a> {
             .into_par_iter()
             .enumerate()
             .map(|(index, k)| {
-                let penalty = k.penalty(&self.dictionary, self.best.penalty());
+                let penalty = {
+                    let estimate = k.penalty_estimate(&self.single_key_penalties);
+                    if estimate < self.best.penalty() {
+                        let precise = k.penalty(self.dictionary, self.best.penalty());
+                        precise
+                    } else {
+                        estimate
+                    }
+                };
                 k.to_solution(
                     penalty,
                     format!(
@@ -74,6 +87,7 @@ pub struct FindBestArgs<'a> {
     pub die_threshold: Penalty,
     pub key_count: u8,
     pub prohibited: Prohibited,
+    pub single_key_penalties: &'a SingleKeyPenalties,
 }
 
 /// Tries to find the best keyboard using a genetic algorithm. Runs forever.
@@ -99,12 +113,14 @@ pub fn find_best<'a>(args: FindBestArgs<'a>) -> impl Iterator<Item = Option<Solu
         })
         .next()
         .unwrap();
+        let dictionary = Dictionary::load();
         let solution = Genetic {
             best: start,
             current_generation: 1,
             keyboards_seen: 1,
             die_threshold: args.die_threshold,
-            dictionary: args.dictionary,
+            single_key_penalties: args.single_key_penalties,
+            dictionary: &dictionary,
         }
         .last();
         match (solution, &best) {

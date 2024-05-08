@@ -26,6 +26,10 @@ impl Solution {
         &self.keyboard
     }
 
+    pub fn notes(&self) -> String {
+        self.notes.to_string()
+    }
+
     pub fn without_keys_with_one_letter(&self) -> Solution {
         Solution {
             keyboard: self.keyboard.without_keys_with_one_letter(),

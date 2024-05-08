@@ -3,6 +3,7 @@ use humantime::{format_duration, FormattedDuration};
 use keyboard::Keyboard;
 use penalty::Penalty;
 use prohibited::Prohibited;
+use single_key_penalties::SingleKeyPenalties;
 use std::time::Duration;
 
 mod dfs_pruning;
@@ -95,14 +96,19 @@ fn find_best_n_key() {
 fn genetic_solver() {
     let dict = Dictionary::load();
     let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
+    let single_key_penalties = SingleKeyPenalties::new(&dict, 2..=6);
     let args = genetic::FindBestArgs {
         dictionary: &dict,
         die_threshold: Penalty::new(0.0001),
         key_count: 10,
         prohibited,
+        single_key_penalties: &single_key_penalties,
     };
     for result in genetic::find_best(args) {
         if let Some(solution) = result {
+            let keyboard = solution.keyboard().clone();
+            let penalty = keyboard.penalty(&dict, Penalty::MAX);
+            let solution = keyboard.to_solution(penalty, solution.notes());
             println!("{}", solution);
         }
     }
