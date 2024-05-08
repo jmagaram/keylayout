@@ -28,6 +28,12 @@ impl<'a> Iterator for Genetic<'a> {
             .flat_map(|k| {
                 [
                     k.clone(),
+                    k.move_random_letter(),
+                    k.move_random_letter(),
+                    k.move_random_letter(),
+                    k.move_random_letter(),
+                    k.move_random_letter(),
+                    k.move_random_letter(),
                     k.swap_random_letters_n_times(2).unwrap(),
                     k.swap_random_letters_n_times(2).unwrap(),
                     k.swap_random_letters_n_times(2).unwrap(),
@@ -37,9 +43,6 @@ impl<'a> Iterator for Genetic<'a> {
                     k.swap_random_letters_n_times(8).unwrap(),
                     k.swap_random_letters_n_times(8).unwrap(),
                     k.swap_random_letters_n_times(8).unwrap(),
-                    k.swap_random_letters_n_times(12).unwrap(),
-                    k.swap_random_letters_n_times(12).unwrap(),
-                    k.swap_random_letters_n_times(12).unwrap(),
                 ]
             })
             .collect::<Vec<Keyboard>>();

@@ -265,6 +265,52 @@ impl Keyboard {
         }
     }
 
+    pub fn move_random_letter(&self) -> Keyboard {
+        assert!(
+            self.keys.len() > 1,
+            "Can not move any letters on a keyboard with 0 or 1 keys."
+        );
+        assert!(
+            self.letters().len() > 2,
+            "There must be more than 2 letters on the keyboard to move them around."
+        );
+        let mut rng = rand::thread_rng();
+        let from_index = std::iter::repeat_with(|| rng.gen_range(0..self.keys.len()))
+            .find(|i| self.keys[*i].len() > 1)
+            .unwrap();
+        let to_index = std::iter::repeat_with(|| rng.gen_range(0..self.keys.len()))
+            .find(|i| *i != from_index)
+            .unwrap();
+        let from_key = self.keys[from_index];
+        let letter_index_to_move = rng.gen_range(0..from_key.len());
+        let letter_to_move = from_key
+            .letters()
+            .enumerate()
+            .find_map(|(index, r)| {
+                if index == letter_index_to_move as usize {
+                    Some(r)
+                } else {
+                    None
+                }
+            })
+            .unwrap();
+        let keys = self
+            .keys
+            .iter()
+            .enumerate()
+            .map(|(index, k)| {
+                if index == from_index {
+                    k.remove(letter_to_move)
+                } else if index == to_index {
+                    k.add(letter_to_move)
+                } else {
+                    *k
+                }
+            })
+            .collect::<Vec<Key>>();
+        Keyboard::with_keys(keys)
+    }
+
     /// Randomly swaps 2 letters on the keyboard. May fail if the keyboard only
     /// has 1 key.
     pub fn swap_random_letters(&self) -> Result<Keyboard, &'static str> {

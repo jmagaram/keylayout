@@ -52,7 +52,11 @@ fn display_unique_keyboard_totals() {
                 max: max_key_size,
             };
             let total_keyboards = p.total_unique_keyboards();
-            println!("  keys: {:<2} {}",total_keys,total_keyboards.separate_with_underscores());
+            println!(
+                "  keys: {:<2} {}",
+                total_keys,
+                total_keyboards.separate_with_underscores()
+            );
         }
     }
 }
@@ -118,7 +122,7 @@ fn genetic_solver() {
     let single_key_penalties = SingleKeyPenalties::new(&dict, 2..=6);
     let args = genetic::FindBestArgs {
         dictionary: &dict,
-        die_threshold: Penalty::new(0.0001),
+        die_threshold: Penalty::new(0.000001),
         key_count: 10,
         prohibited,
         single_key_penalties: &single_key_penalties,
