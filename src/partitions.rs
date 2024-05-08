@@ -102,6 +102,7 @@ impl Partitions {
         self.iterate(Goal::Permutations)
     }
 
+    #[allow(dead_code)]
     pub fn combinations<'a>(self) -> Box<dyn Iterator<Item = (u8, Partitions)> + 'a> {
         self.iterate(Goal::Combinations)
     }

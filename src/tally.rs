@@ -47,6 +47,7 @@ where
         self.0.values().sum()
     }
 
+    #[allow(dead_code)]
     fn decrement_by(&mut self, item: T, n: u32) -> u32 {
         match self.0.get_mut(&item) {
             None => {
@@ -71,6 +72,7 @@ where
         }
     }
 
+    #[allow(dead_code)]
     pub fn decrement(&mut self, item: T) -> u32 {
         self.decrement_by(item, 1)
     }
@@ -78,6 +80,7 @@ where
     /// Generates all unique ways the items in the Tally can be distributed. For
     /// example, if the tally shows 2A and 1B, the unique combinations are AAB,
     /// ABA, and BAA.
+    #[allow(dead_code)]
     pub fn combinations(&self) -> Vec<Vec<T>>
     where
         T: Clone + Hash + Eq,
