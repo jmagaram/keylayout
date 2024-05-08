@@ -1,10 +1,12 @@
 use dictionary::Dictionary;
 use humantime::{format_duration, FormattedDuration};
 use keyboard::Keyboard;
+use partitions::Partitions;
 use penalty::Penalty;
 use prohibited::Prohibited;
 use single_key_penalties::SingleKeyPenalties;
 use std::time::Duration;
+use thousands::Separable;
 
 mod dfs_pruning;
 mod dictionary;
@@ -35,6 +37,23 @@ trait DurationFormatter {
 impl DurationFormatter for Duration {
     fn round_to_seconds(&self) -> FormattedDuration {
         format_duration(Duration::from_secs(self.as_secs()))
+    }
+}
+
+fn display_unique_keyboard_totals() {
+    for max_key_size in 3..=7 {
+        println!();
+        println!("Maximum key size: {}", max_key_size);
+        for total_keys in 10..=27 {
+            let p = Partitions {
+                sum: 27,
+                parts: total_keys,
+                min: 1,
+                max: max_key_size,
+            };
+            let total_keyboards = p.total_unique_keyboards();
+            println!("  keys: {:<2} {}",total_keys,total_keyboards.separate_with_underscores());
+        }
     }
 }
 
@@ -134,6 +153,7 @@ fn main() {
         .item("Save random keyboard penalties to CSV")
         .item("Print keyboard score")
         .item("Recursively pair letters")
+        .item("Display unique keyboard totals")
         .item("Custom")
         .default(6)
         .interact()
@@ -147,7 +167,8 @@ fn main() {
         4 => save_random_keyboard_penalties(),
         5 => print_keyboard_score(),
         6 => combine_infrequent_pairs(),
-        7 => custom(),
+        7 => display_unique_keyboard_totals(),
+        8 => custom(),
         _ => panic!("Do not know how to handle that selection."),
     }
 }
