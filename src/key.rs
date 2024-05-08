@@ -41,10 +41,6 @@ impl Key {
         Key(1 << r.to_u8_index())
     }
 
-    pub fn split_by_letter(&self) -> impl Iterator<Item = Key> {
-        self.letters().map(|letter| Key::with_one_letter(letter))
-    }
-
     pub fn swap_random_letter(&self, other: &Key) -> Option<(Key, Key)> {
         let self_letter_to_remove = self.random_letter()?;
         let other_letter_to_remove = other.random_letter()?;

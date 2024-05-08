@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 
-use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
@@ -11,7 +11,6 @@ struct Genetic<'a> {
     best: Solution,
     current_generation: u32,
     die_threshold: Penalty,
-    keyboards_seen: u32,
     dictionary: &'a Dictionary,
     single_key_penalties: &'a SingleKeyPenalties,
 }
@@ -20,7 +19,7 @@ impl<'a> Iterator for Genetic<'a> {
     type Item = Solution;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let options = self
+        let children = self
             .best
             .borrow()
             .keyboard()
@@ -44,28 +43,15 @@ impl<'a> Iterator for Genetic<'a> {
                 ]
             })
             .collect::<Vec<Keyboard>>();
-        let options_count = options.len();
-        let best_child = options
+        let best_child = children
             .into_par_iter()
-            .enumerate()
-            .map(|(index, k)| {
-                let penalty = {
-                    let estimate = k.penalty_estimate(&self.single_key_penalties);
-                    if estimate < self.best.penalty() {
-                        let precise = k.penalty(self.dictionary, self.best.penalty());
-                        precise
-                    } else {
-                        estimate
-                    }
-                };
-                k.to_solution(
-                    penalty,
-                    format!(
-                        "gen:{}, kbds:{}",
-                        self.current_generation,
-                        self.keyboards_seen as usize + index
-                    ),
-                )
+            .map(|k| {
+                let penalty = k.penalty_to_beat(
+                    self.dictionary,
+                    self.best.penalty(),
+                    self.single_key_penalties,
+                );
+                k.to_solution(penalty, format!("gen:{}", self.current_generation))
             })
             .min_by(|a, b| a.penalty().cmp(&b.penalty()))
             .unwrap();
@@ -74,7 +60,6 @@ impl<'a> Iterator for Genetic<'a> {
         if sufficient_progress {
             self.best = best_child.clone();
             self.current_generation = self.current_generation + 1;
-            self.keyboards_seen = self.keyboards_seen + options_count as u32;
             Some(best_child)
         } else {
             None
@@ -117,7 +102,6 @@ pub fn find_best<'a>(args: FindBestArgs<'a>) -> impl Iterator<Item = Option<Solu
         let solution = Genetic {
             best: start,
             current_generation: 1,
-            keyboards_seen: 1,
             die_threshold: args.die_threshold,
             single_key_penalties: args.single_key_penalties,
             dictionary: &dictionary,

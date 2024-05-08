@@ -368,6 +368,21 @@ impl Keyboard {
         penalty
     }
 
+    pub fn penalty_to_beat(
+        &self,
+        dictionary: &Dictionary,
+        to_beat: Penalty,
+        single_key_penalties: &SingleKeyPenalties,
+    ) -> Penalty {
+        let estimate = self.penalty_estimate(single_key_penalties);
+        if estimate <= to_beat {
+            let precise = self.penalty(dictionary, to_beat);
+            precise
+        } else {
+            estimate
+        }
+    }
+
     pub fn penalty_estimate(&self, parts: &SingleKeyPenalties) -> Penalty {
         if self.len() == 0 {
             Penalty::ZERO
