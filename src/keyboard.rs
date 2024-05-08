@@ -21,6 +21,11 @@ pub struct Keyboard {
     letter_to_key_index: [Option<usize>; Letter::ALPHABET_SIZE],
 }
 
+pub enum PenaltyKind {
+    Estimate,
+    Precise,
+}
+
 impl Keyboard {
     pub fn with_keys(keys: Vec<Key>) -> Keyboard {
         let mut letter_to_key_index: [Option<usize>; Letter::ALPHABET_SIZE] = Default::default();
@@ -419,13 +424,13 @@ impl Keyboard {
         dictionary: &Dictionary,
         to_beat: Penalty,
         single_key_penalties: &SingleKeyPenalties,
-    ) -> Penalty {
+    ) -> (Penalty, PenaltyKind) {
         let estimate = self.penalty_estimate(single_key_penalties);
         if estimate <= to_beat {
             let precise = self.penalty(dictionary, to_beat);
-            precise
+            (precise, PenaltyKind::Precise)
         } else {
-            estimate
+            (estimate, PenaltyKind::Estimate)
         }
     }
 
