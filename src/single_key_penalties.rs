@@ -1,12 +1,9 @@
 use crate::{dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty, util::choose};
 use hashbrown::HashMap;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use std::{
-    ops::RangeInclusive,
-    sync::{
-        atomic::{AtomicU32, Ordering},
-        Arc,
-    },
+use std::sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc,
 };
 use thousands::Separable;
 
