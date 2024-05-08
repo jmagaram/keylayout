@@ -1,11 +1,30 @@
-use std::borrow::Borrow;
-
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-
+use crate::keyboard::PenaltyKind;
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     prohibited::Prohibited, single_key_penalties::SingleKeyPenalties, solution::Solution,
 };
+use humantime::{format_duration, FormattedDuration};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use std::borrow::Borrow;
+use std::sync::mpsc::*;
+use std::thread;
+use std::time::{Duration, Instant};
+use thousands::Separable;
+
+trait DurationFormatter {
+    fn round_to_seconds(&self) -> FormattedDuration;
+}
+
+impl DurationFormatter for Duration {
+    fn round_to_seconds(&self) -> FormattedDuration {
+        format_duration(Duration::from_secs(self.as_secs()))
+    }
+}
+
+pub enum StatusMessage {
+    CalculatedEstimate,
+    CalulatedPrecise,
+}
 
 struct Genetic<'a> {
     best: Solution,
@@ -13,6 +32,7 @@ struct Genetic<'a> {
     die_threshold: Penalty,
     dictionary: &'a Dictionary,
     single_key_penalties: &'a SingleKeyPenalties,
+    sender: &'a Sender<StatusMessage>,
 }
 
 impl<'a> Iterator for Genetic<'a> {
@@ -49,11 +69,19 @@ impl<'a> Iterator for Genetic<'a> {
         let best_child = children
             .into_par_iter()
             .map(|k| {
-                let penalty = k.penalty_to_beat(
+                let (penalty, penalty_kind) = k.penalty_to_beat(
                     self.dictionary,
                     self.best.penalty(),
                     self.single_key_penalties,
                 );
+                match penalty_kind {
+                    PenaltyKind::Estimate => {
+                        self.sender.send(StatusMessage::CalculatedEstimate);
+                    }
+                    PenaltyKind::Precise => {
+                        self.sender.send(StatusMessage::CalulatedPrecise);
+                    }
+                }
                 k.to_solution(penalty, format!("gen:{}", self.current_generation))
             })
             .min_by(|a, b| a.penalty().cmp(&b.penalty()))
@@ -89,6 +117,37 @@ pub fn find_best<'a>(args: FindBestArgs<'a>) -> impl Iterator<Item = Option<Solu
         max: key_size_max,
     };
     let mut best: Option<Solution> = None;
+    let started = Instant::now();
+    let (sender, receiver) = channel::<StatusMessage>();
+    thread::spawn(move || {
+        let mut count_precise: u64 = 0;
+        let mut count_estimate: u64 = 0;
+        loop {
+            let msg = receiver.recv();
+            match msg {
+                Err(_) => {
+                    break;
+                }
+                Ok(msg) => {
+                    match msg {
+                        StatusMessage::CalculatedEstimate => {
+                            count_estimate = count_estimate + 1;
+                        }
+                        StatusMessage::CalulatedPrecise => {
+                            count_precise = count_precise + 1;
+                        }
+                    }
+                    let count_total = count_precise + count_estimate;
+                    if count_total.rem_euclid(100_000) == 0 {
+                        println!("Elapsed    {}", started.elapsed().round_to_seconds());
+                        println!("Evaluated  {}", count_total.separate_with_underscores());
+                        println!("  Precise  {}", count_precise.separate_with_underscores());
+                        println!("  Estimate {}", count_estimate.separate_with_underscores());
+                    }
+                }
+            }
+        }
+    });
     let results = std::iter::repeat_with(move || {
         let start = Keyboard::random(
             args.dictionary.alphabet(),
@@ -101,13 +160,13 @@ pub fn find_best<'a>(args: FindBestArgs<'a>) -> impl Iterator<Item = Option<Solu
         })
         .next()
         .unwrap();
-        let dictionary = Dictionary::load();
         let solution = Genetic {
             best: start,
             current_generation: 1,
             die_threshold: args.die_threshold,
             single_key_penalties: args.single_key_penalties,
-            dictionary: &dictionary,
+            dictionary: args.dictionary,
+            sender: &sender,
         }
         .last();
         match (solution, &best) {
