@@ -1,6 +1,6 @@
 use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty,
-    penalty_goal::PenaltyGoals, single_key_penalties::SingleKeyPenalties, tally::Tally,
+    single_key_penalties::SingleKeyPenalties, tally::Tally,
 };
 use crossbeam_channel::*;
 use humantime::{format_duration, FormattedDuration};
@@ -163,17 +163,17 @@ impl Args {
             let prune_threshold = self.prune_threshold;
             let prune = move |k: &Keyboard| {
                 let key_count = k.len();
-                let prune_from = 10;
-                let prune_to = 18;
-                if key_count >= prune_from && key_count <= prune_to {
+                if key_count >= 10 && key_count <= 18 {
+                    let factor = 0.85f32.powi(key_count as i32 - 10);
+                    let threshold_by_key_count = prune_threshold.to_f32() * factor;
                     let estimate = k.penalty_estimate(&single_key_penalties);
-                    let should_prune = estimate >= prune_threshold;
+                    let should_prune = estimate.to_f32() > threshold_by_key_count;
                     if should_prune {
                         pruned_at.borrow_mut().increment(key_count);
                         pruned.set(pruned.get() + 1);
                         if pruned.get().rem_euclid(10_000_000) == 0 {
                             println!("Pruned {}", pruned.get().separate_with_underscores());
-                            (prune_from..=prune_to).for_each(|key_count| {
+                            (10..=18).for_each(|key_count| {
                                 let total = pruned_at.borrow().count(&key_count);
                                 if total > 0 {
                                     println!(
