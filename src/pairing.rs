@@ -47,6 +47,7 @@ where
     created_tally: &'a RefCell<Tally<usize>>,
     prune: &'a F,
     report_every_created: u128,
+    start_time: Instant,
 }
 
 impl<'a, F> BuildKeyboardsArgs<'a, F>
@@ -83,7 +84,11 @@ where
         self.created.set(self.created.get() + 1);
         self.created_tally.borrow_mut().increment(self.k.len());
         if self.created.get().rem_euclid(self.report_every_created) == 0 {
-            println!("Created {}", self.created.get().separate_with_underscores());
+            println!(
+                "Created {} in {}",
+                self.created.get().separate_with_underscores(),
+                self.start_time.elapsed().round_to_seconds()
+            );
             (10..=26).for_each(|key_count| {
                 let total = self.created_tally.borrow().count(&key_count);
                 if total > 0 {
@@ -133,6 +138,7 @@ impl Args {
         max_key_size: u8,
         pairs_to_ignore: usize,
         ten_key_threshold: Penalty,
+        start_time: Instant,
     ) -> JoinHandle<bool> {
         let penalties = SingleKeyPenalties::load();
         let pairs = {
@@ -191,6 +197,7 @@ impl Args {
                 created_tally: &created_tally,
                 prune: &prune,
                 report_every_created: 10_000_000,
+                start_time,
             };
             args.build_keyboards();
             generated_all_keyboards.fetch_or(true, Ordering::Relaxed)
@@ -264,6 +271,7 @@ impl Args {
             self.max_key_size,
             70,
             self.prune_threshold,
+            start_time,
         );
         let evaluators = (1..=self.threads)
             .map(|_| {
