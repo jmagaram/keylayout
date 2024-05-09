@@ -99,8 +99,7 @@ where
         if false == (*self.prune)(k) {
             if k.len() == 10 {
                 self.channel.send(k.clone()).unwrap();
-            }
-            if let Some(pair) = self.pairs.get(self.pairs_index) {
+            } else if let Some(pair) = self.pairs.get(self.pairs_index) {
                 let (k_smaller, combined) = k.combine_keys_with_letters(
                     pair.letters().nth(0).unwrap(),
                     pair.letters().nth(1).unwrap(),
