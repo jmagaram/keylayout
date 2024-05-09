@@ -139,7 +139,6 @@ impl Args {
         ));
         let start_time = Instant::now();
         let done_generating = Arc::new(AtomicBool::new(false));
-        let kbd_seen = Arc::new(AtomicU64::new(0));
         let (sdr, rcr) = bounded::<Keyboard>(1_000_000);
         let spawn_keyboard_generator = || {
             let sdr = sdr.clone();
@@ -163,7 +162,9 @@ impl Args {
             let prune_threshold = self.prune_threshold;
             let prune = move |k: &Keyboard| {
                 let key_count = k.len();
-                if key_count >= 10 && key_count <= 18 {
+                let prune_from = 10;
+                let prune_to = 18;
+                if key_count >= prune_from && key_count <= prune_to {
                     let factor = 0.85f32.powi(key_count as i32 - 10);
                     let threshold_by_key_count = prune_threshold.to_f32() * factor;
                     let estimate = k.penalty_estimate(&single_key_penalties);
@@ -173,7 +174,7 @@ impl Args {
                         pruned.set(pruned.get() + 1);
                         if pruned.get().rem_euclid(10_000_000) == 0 {
                             println!("Pruned {}", pruned.get().separate_with_underscores());
-                            (10..=18).for_each(|key_count| {
+                            (prune_from..=prune_to).for_each(|key_count| {
                                 let total = pruned_at.borrow().count(&key_count);
                                 if total > 0 {
                                     println!(
@@ -209,6 +210,7 @@ impl Args {
                 done_generating_keyboards.fetch_or(true, Ordering::Relaxed)
             })
         };
+        let kbd_seen = Arc::new(AtomicU64::new(0));
         let spawn_keyboard_evaluator = || {
             let rcr = rcr.clone();
             let d = d.clone();
@@ -249,7 +251,7 @@ impl Args {
                 }
             })
         };
-        let generate_keyboards = spawn_keyboard_generator();
+        let generate_keyboards = spawn_keyboard_generator(); // make only 1!
         let evaluators = (1..=self.threads)
             .map(|_| spawn_keyboard_evaluator())
             .collect::<Vec<JoinHandle<_>>>();
