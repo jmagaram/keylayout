@@ -94,7 +94,7 @@ fn combine_infrequent_pairs() {
         threads: 6,
         max_key_size: 6,
         pairings_to_ignore: 70,
-        prune_threshold: Penalty::new(0.0275),
+        prune_threshold: Penalty::new(0.0250),
     };
     args.solve();
 }
