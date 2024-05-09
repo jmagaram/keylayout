@@ -7,6 +7,7 @@ use prohibited::Prohibited;
 use single_key_penalties::SingleKeyPenalties;
 use std::time::Duration;
 use thousands::Separable;
+use two_key_penalties::TwoKeyPenalties;
 
 mod dfs_pruning;
 mod dictionary;
@@ -26,6 +27,7 @@ mod single_key_penalties;
 mod solution;
 mod solution_samples;
 mod tally;
+mod two_key_penalties;
 mod util;
 mod vec_threads;
 mod word;
@@ -64,6 +66,12 @@ fn display_unique_keyboard_totals() {
 fn save_single_key_penalties() {
     let d = Dictionary::load();
     let p = SingleKeyPenalties::new(&d, 6);
+    p.save_csv().unwrap();
+}
+
+fn save_pairs_of_keys_penalties() {
+    let d = Dictionary::load();
+    let p = TwoKeyPenalties::new(&d);
     p.save_csv().unwrap();
 }
 
@@ -162,6 +170,7 @@ fn main() {
         .item("Find best N key")
         .item("Save random keyboard penalties to CSV")
         .item("Save single key penalties to CSV")
+        .item("Save pairs of keys penalties to CSV")
         .item("Print keyboard score")
         .item("Recursively pair letters")
         .item("Display unique keyboard totals")
@@ -177,10 +186,11 @@ fn main() {
         3 => find_best_n_key(),
         4 => save_random_keyboard_penalties(),
         5 => save_single_key_penalties(),
-        6 => print_keyboard_score(),
-        7 => combine_infrequent_pairs(),
-        8 => display_unique_keyboard_totals(),
-        9 => custom(),
+        6 => save_pairs_of_keys_penalties(),
+        7 => print_keyboard_score(),
+        8 => combine_infrequent_pairs(),
+        9 => display_unique_keyboard_totals(),
+        10 => custom(),
         _ => panic!("Do not know how to handle that selection."),
     }
 }

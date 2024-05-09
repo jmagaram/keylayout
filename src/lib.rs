@@ -16,6 +16,7 @@ pub mod single_key_penalties;
 pub mod solution;
 pub mod solution_samples;
 pub mod tally;
+pub mod two_key_penalties;
 pub mod util;
 pub mod vec_threads;
 pub mod word;
