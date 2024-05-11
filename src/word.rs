@@ -45,16 +45,12 @@ impl Word {
     pub fn difference(&self, other: &Word) -> LetterPairSet {
         match self.len() == other.len() {
             false => LetterPairSet::EMPTY,
-            true => {
-                let items =
-                    self.letters().zip(other.letters()).filter_map(
-                        |pair| match LetterPair::try_from(pair) {
-                            Ok(pair) => Some(pair),
-                            Err(_) => None,
-                        },
-                    );
-                LetterPairSet::new(items)
-            }
+            true => LetterPairSet::new(self.letters().zip(other.letters()).filter_map(|pair| {
+                match LetterPair::try_from(pair) {
+                    Ok(pair) => Some(pair),
+                    Err(_) => None,
+                }
+            })),
         }
     }
 
