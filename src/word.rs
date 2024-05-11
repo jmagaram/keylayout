@@ -43,16 +43,19 @@ impl Word {
     }
 
     pub fn difference(&self, other: &Word) -> LetterPairSet {
-        let should_take = self.len() == other.len();
-        let items = self
-            .letters()
-            .zip(other.letters())
-            .filter_map(|pair| match LetterPair::try_from(pair) {
-                Ok(pair) => Some(pair),
-                Err(_) => None,
-            })
-            .take_while(|_| should_take);
-        LetterPairSet::new(items)
+        match self.len() == other.len() {
+            false => LetterPairSet::EMPTY,
+            true => {
+                let items =
+                    self.letters().zip(other.letters()).filter_map(
+                        |pair| match LetterPair::try_from(pair) {
+                            Ok(pair) => Some(pair),
+                            Err(_) => None,
+                        },
+                    );
+                LetterPairSet::new(items)
+            }
+        }
     }
 
     pub fn replace_letters(&self, find: impl Iterator<Item = Letter>, letter: Letter) -> Word {
@@ -161,6 +164,7 @@ mod tests {
             ("abcde", "abcde", ""),
             ("azbzcz", "aybycy", "yz"),
             ("aaaaaps", "bbbbbpq", "ab,qs"),
+            ("aaa", "bcd", "ab,ac,ad"),
         ];
         for (a, b, expected) in data {
             let a = Word::new(a, 0.0);
