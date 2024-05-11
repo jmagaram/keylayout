@@ -1,6 +1,8 @@
 use crate::frequency::Frequency;
 use crate::key::Key;
 use crate::letter::Letter;
+use crate::letter_pair::LetterPair;
+use crate::letter_pair_set::LetterPairSet;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -38,6 +40,19 @@ impl Word {
                 Some(letter)
             }
         })
+    }
+
+    pub fn difference(&self, other: &Word) -> LetterPairSet {
+        let should_take = self.len() == other.len();
+        let items = self
+            .letters()
+            .zip(other.letters())
+            .filter_map(|pair| match LetterPair::try_from(pair) {
+                Ok(pair) => Some(pair),
+                Err(_) => None,
+            })
+            .take_while(|_| should_take);
+        LetterPairSet::new(items)
     }
 
     pub fn replace_letters(&self, find: impl Iterator<Item = Letter>, letter: Letter) -> Word {
@@ -128,6 +143,32 @@ mod tests {
     use std::{cmp::Ordering, collections::HashSet};
 
     use super::*;
+
+    #[test]
+    fn difference() {
+        let data = [
+            ("bat", "bit", "ai"),
+            ("bar", "ban", "nr"),
+            ("book", "boon", "kn"),
+            ("the", "bee", "bt,eh"),
+            ("happy", "happy", ""),
+            ("open", "opal", "ae,ln"),
+            ("been", "seep", "bs,np"),
+            ("been", "boon", "eo"),
+            ("a", "a", ""),
+            ("a", "b", "ab"),
+            ("mapper", "tappey", "mt,ry"),
+            ("abcde", "abcde", ""),
+            ("azbzcz", "aybycy", "yz"),
+            ("aaaaaps", "bbbbbpq", "ab,qs"),
+        ];
+        for (a, b, expected) in data {
+            let a = Word::new(a, 0.0);
+            let b = Word::new(b, 0.0);
+            let actual = a.difference(&b);
+            assert_eq!(expected.to_string(), actual.to_string(), "{},{}", a, b);
+        }
+    }
 
     #[test]
     fn longest_word_fits_in_u128() {
