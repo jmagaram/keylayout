@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::letter::Letter;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct LetterPair {
     a: Letter,
     b: Letter,
