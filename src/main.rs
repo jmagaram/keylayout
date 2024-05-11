@@ -9,6 +9,9 @@ use std::time::Duration;
 use thousands::Separable;
 use two_key_penalties::TwoKeyPenalties;
 
+use crate::conflicts::Conflicts;
+
+mod conflicts;
 mod dfs_pruning;
 mod dictionary;
 mod exhaustive_n_key;
@@ -18,6 +21,8 @@ mod key;
 mod keyboard;
 mod lazy_tree;
 mod letter;
+mod letter_pair;
+mod letter_pair_set;
 mod pairing;
 mod partitions;
 mod penalty;
@@ -94,7 +99,8 @@ fn save_random_keyboard_penalties() {
 }
 
 fn custom() {
-    println!("Not defined yet!");
+    let d = Dictionary::load();
+    let p = Conflicts::new(&d);
 }
 
 fn combine_infrequent_pairs() {

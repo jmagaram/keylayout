@@ -1,3 +1,4 @@
+pub mod conflicts;
 pub mod dfs_pruning;
 pub mod dictionary;
 pub mod exhaustive_n_key;
@@ -7,6 +8,8 @@ pub mod key;
 pub mod keyboard;
 pub mod lazy_tree;
 pub mod letter;
+pub mod letter_pair;
+pub mod letter_pair_set;
 pub mod pairing;
 pub mod partitions;
 pub mod penalty;
