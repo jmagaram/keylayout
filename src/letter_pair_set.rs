@@ -13,8 +13,20 @@ impl LetterPairSet {
         LetterPairSet(pairs)
     }
 
+    pub const EMPTY: LetterPairSet = LetterPairSet(vec![]);
+
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl FromIterator<LetterPair> for LetterPairSet {
+    fn from_iter<T: IntoIterator<Item = LetterPair>>(iter: T) -> Self {
+        LetterPairSet::new(iter.into_iter())
     }
 }
 
@@ -47,6 +59,13 @@ mod tests {
     fn duplicates_are_removed() {
         let pair = LetterPair::new(Letter::new('a'), Letter::new('b'));
         let set = LetterPairSet::new(vec![pair.clone(), pair.clone(), pair.clone()].into_iter());
+        assert_eq!("ab", set.to_string());
+    }
+
+    #[test]
+    fn from_iter() {
+        let pair = vec![LetterPair::new(Letter::new('a'), Letter::new('b'))];
+        let set = LetterPairSet::from_iter(pair);
         assert_eq!("ab", set.to_string());
     }
 
