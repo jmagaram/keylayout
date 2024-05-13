@@ -194,4 +194,12 @@ mod tests {
     fn alphabet_size_is_number_of_letters() {
         assert_eq!(Letter::ALPHABET_SIZE, Letter::ALPHABET.len());
     }
+
+    #[test]
+    fn ord_is_alphabetical() {
+        let a = Letter::new('a');
+        let b = Letter::new('b');
+        let min = a.min(b);
+        assert_eq!(min, a);
+    }
 }
