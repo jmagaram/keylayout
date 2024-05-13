@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     fmt::{self, Debug},
     ops::RangeInclusive,
 };
@@ -7,8 +8,34 @@ use rand::Rng;
 
 use crate::{lazy_tree::Seed, letter::Letter, prohibited::Prohibited, tally::Tally, util};
 
-#[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy, Default, Hash)]
+#[derive(Eq, Debug, Clone, Copy, Default, Hash)]
 pub struct Key(u32);
+
+impl Ord for Key {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let self_value = self.0;
+        let self_bits = util::set_bits(self_value);
+        let other_value = other.0;
+        let other_bits = util::set_bits(other_value);
+        self_bits
+            .zip(other_bits)
+            .find(|(a, b)| a != b)
+            .map(|(a, b)| a.cmp(&b))
+            .unwrap_or(Ordering::Equal)
+    }
+}
+
+impl PartialOrd for Key {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Key {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
 
 impl Key {
     pub const EMPTY: Key = Key(0);
@@ -971,6 +998,39 @@ mod tests {
         };
         for i in m.dfs() {
             println!("{}", i);
+        }
+    }
+
+    #[test]
+    fn ord_of_single_letter_is_alphabetical() {
+        let a = Key::with_one_letter(Letter::new('a'));
+        let b = Key::with_one_letter(Letter::new('b'));
+        let min = a.min(b);
+        assert_eq!(min, a);
+    }
+
+    #[test]
+    fn ord_is_alphabetical() {
+        let data = [
+            ("ab", "az"),
+            ("ab", "abc"),
+            ("ai", "bh"),
+            ("az", "by"),
+            ("ac", "ae"),
+            ("ghi", "ghz"),
+            ("abcd", "abczz"),
+        ];
+        for (small, big) in data {
+            let small = Key::new(small);
+            let big = Key::new(big);
+            let diff = small.min(big);
+            assert_eq!(
+                diff,
+                small,
+                "small:{} big:{}",
+                small.to_string(),
+                big.to_string()
+            );
         }
     }
 }
