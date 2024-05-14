@@ -1,84 +1,100 @@
+use crate::{dictionary::Dictionary, penalty::Penalty, word::Word};
 use std::{
     collections::{HashMap, HashSet},
     fs::OpenOptions,
     io::{BufWriter, Write},
 };
-
 use thousands::Separable;
 
-use crate::{dictionary::Dictionary, letter_pair_set::LetterPairSet, penalty::Penalty, word::Word};
+pub struct Conflicts(HashMap<String, TopWords>);
 
-pub struct Conflicts(HashMap<LetterPairSet, Penalty>);
+struct TopWords {
+    words: HashSet<Word>,
+    penalty: Penalty,
+}
 
-// score is...
-//    0 for most popular word
-//    freq * min (4, place in line)
+impl TopWords {
+    fn empty() -> TopWords {
+        TopWords {
+            words: HashSet::new(),
+            penalty: Penalty::ZERO,
+        }
+    }
+
+    fn add_word(&mut self, word: Word) {
+        if self.words.insert(word) {
+            if self.words.len() >= 4 {
+                let least_frequent = self
+                    .words
+                    .clone()
+                    .into_iter()
+                    .min_by(|a, b| a.frequency().cmp(&b.frequency()))
+                    .unwrap();
+                self.penalty =
+                    Penalty::new(self.penalty.to_f32() + least_frequent.frequency().to_f32() * 4.0);
+                self.words.remove(&least_frequent);
+            }
+        }
+    }
+
+    fn final_penalty(&self) -> Penalty {
+        let words = self.words.iter().collect::<Vec<&Word>>();
+        let partial: f32 = words
+            .into_iter()
+            .enumerate()
+            .map(|(index, w)| w.frequency().to_f32() * (index as f32))
+            .sum();
+        let total = self.penalty.to_f32() + partial;
+        Penalty::new(total)
+    }
+}
 
 impl Conflicts {
-    pub fn new(dictionary: &Dictionary) {
-        let mut result = HashMap::<String, HashSet<Word>>::new();
-        let mut hash_set_keys: usize = 0;
-        let mut hash_set_values: usize = 0;
-        let min_word_length = 1;
-        let max_word_length = Word::MAX_WORD_LENGTH;
-        let min_diff_pairs = 1;
-        let max_diff_pairs = 3;
-        for word_length in min_word_length..=max_word_length {
-            let words = dictionary
-                .words()
-                .iter()
-                .filter(|w| w.len() as usize == word_length)
-                .enumerate()
-                .collect::<Vec<(usize, &Word)>>();
-            for word_a_index in 0..words.len() - 1 {
-                for word_b_index in word_a_index + 1..words.len() {
-                    if hash_set_keys.rem_euclid(100_000) == 0 {
-                        println!("");
-                        println!("word len {}", word_length);
-                        println!("keys   {}", hash_set_keys.separate_with_underscores());
-                        println!("values {}", hash_set_values.separate_with_underscores());
-                    }
-                    let (_, word_a) = words[word_a_index];
-                    let (_, word_b) = words[word_b_index];
-                    let diff = word_a.difference(word_b);
+    pub fn new(dictionary: &Dictionary) -> Conflicts {
+        let mut result = HashMap::<String, TopWords>::new();
+        let max_keys = 3;
+        let max_letters = 4;
+        let words = dictionary.words();
+        for word_a_index in 0..words.len() - 1 {
+            println!("{}", word_a_index.separate_with_underscores());
+            for word_b_index in word_a_index + 1..words.len() {
+                let word_a = &words[word_a_index];
+                let word_b = &words[word_b_index];
+                let diff = word_a.letter_pair_difference(&word_b);
+                if diff.len() <= max_keys && diff.letter_count() <= max_letters {
                     let diff_as_string = diff.to_string();
-                    if diff.len() >= min_diff_pairs && diff.len() <= max_diff_pairs {
-                        let words = result.get_mut(&diff_as_string);
-                        match words {
-                            None => {
-                                let mut words = HashSet::new();
-                                words.insert(word_a.clone());
-                                words.insert(word_b.clone());
-                                result.insert(diff_as_string, words);
-                                hash_set_keys = hash_set_keys + 1;
-                                hash_set_values = hash_set_values + 2;
-                            }
-                            Some(words) => {
-                                let previous_count = words.len();
-                                words.insert(word_a.clone());
-                                words.insert(word_b.clone());
-                                let current_count = words.len();
-                                hash_set_values = hash_set_values + current_count - previous_count;
-                            }
+                    let words = result.get_mut(&diff_as_string);
+                    match words {
+                        None => {
+                            println!("{}", diff_as_string);
+                            let mut words = TopWords::empty();
+                            words.add_word(word_a.clone());
+                            words.add_word(word_b.clone());
+                            result.insert(diff_as_string, words);
+                        }
+                        Some(words) => {
+                            words.add_word(word_a.clone());
+                            words.add_word(word_b.clone());
                         }
                     }
                 }
             }
         }
-        // const FILE_NAME: &'static str = "./conflicts.txt";
-        // let write = OpenOptions::new()
-        //     .write(true)
-        //     .truncate(true)
-        //     .open(FILE_NAME);
-        // let mut writer = BufWriter::new(write.unwrap());
-        // for (diff, words) in result {
-        //     let set_as_string = words
-        //         .iter()
-        //         .map(|w| w.to_string())
-        //         .collect::<Vec<String>>()
-        //         .join(",");
-        //     writeln!(writer, "{}:{}", diff, set_as_string);
-        // }
-        // writer.flush();
+        Conflicts(result)
+    }
+
+    pub fn write_to_file(&self) {
+        const FILE_NAME: &'static str = "./conflicts.txt";
+        let write = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(FILE_NAME);
+        let mut writer = BufWriter::new(write.unwrap());
+        self.0.iter().for_each(|(k, v)| {
+            let penalty = v.final_penalty();
+            writeln!(writer, "{},{}", k, penalty).unwrap();
+            println!("{},{}", k, penalty);
+        });
+        writer.flush().unwrap();
     }
 }

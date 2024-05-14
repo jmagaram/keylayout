@@ -1,8 +1,7 @@
 use crate::frequency::Frequency;
 use crate::key::Key;
+use crate::key_set::KeySet;
 use crate::letter::Letter;
-use crate::letter_pair::LetterPair;
-use crate::letter_pair_set::LetterPairSet;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -42,16 +41,22 @@ impl Word {
         })
     }
 
-    pub fn difference(&self, other: &Word) -> LetterPairSet {
-        match self.len() == other.len() {
-            false => LetterPairSet::EMPTY,
-            true => LetterPairSet::new(self.letters().zip(other.letters()).filter_map(|pair| {
-                match LetterPair::try_from(pair) {
-                    Ok(pair) => Some(pair),
-                    Err(_) => None,
-                }
-            })),
-        }
+    pub fn different_pairs<'a>(
+        &'a self,
+        other: &Word,
+    ) -> impl Iterator<Item = (Letter, Letter)> + 'a {
+        let take_while = self.len() == other.len();
+        self.letters()
+            .zip(other.letters())
+            .filter_map(|(a, b)| match a == b {
+                true => None,
+                false => Some((a, b)),
+            })
+            .take_while(move |_| take_while)
+    }
+
+    pub fn letter_pair_difference(&self, other: &Word) -> KeySet {
+        KeySet::with_word_differences(self, other)
     }
 
     pub fn replace_letters(&self, find: impl Iterator<Item = Letter>, letter: Letter) -> Word {
@@ -139,36 +144,8 @@ impl PartialEq for Word {
 #[cfg(test)]
 mod tests {
 
-    use std::{cmp::Ordering, collections::HashSet};
-
     use super::*;
-
-    #[test]
-    fn difference() {
-        let data = [
-            ("bat", "bit", "ai"),
-            ("bar", "ban", "nr"),
-            ("book", "boon", "kn"),
-            ("the", "bee", "bt,eh"),
-            ("happy", "happy", ""),
-            ("open", "opal", "ae,ln"),
-            ("been", "seep", "bs,np"),
-            ("been", "boon", "eo"),
-            ("a", "a", ""),
-            ("a", "b", "ab"),
-            ("mapper", "tappey", "mt,ry"),
-            ("abcde", "abcde", ""),
-            ("azbzcz", "aybycy", "yz"),
-            ("aaaaaps", "bbbbbpq", "ab,qs"),
-            ("aaa", "bcd", "ab,ac,ad"),
-        ];
-        for (a, b, expected) in data {
-            let a = Word::new(a, 0.0);
-            let b = Word::new(b, 0.0);
-            let actual = a.difference(&b);
-            assert_eq!(expected.to_string(), actual.to_string(), "{},{}", a, b);
-        }
-    }
+    use std::{cmp::Ordering, collections::HashSet};
 
     #[test]
     fn longest_word_fits_in_u128() {

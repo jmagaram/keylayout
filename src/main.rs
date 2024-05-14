@@ -1,3 +1,4 @@
+use conflicts::Conflicts;
 use dictionary::Dictionary;
 use humantime::{format_duration, FormattedDuration};
 use keyboard::Keyboard;
@@ -5,11 +6,9 @@ use partitions::Partitions;
 use penalty::Penalty;
 use prohibited::Prohibited;
 use single_key_penalties::SingleKeyPenalties;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use thousands::Separable;
 use two_key_penalties::TwoKeyPenalties;
-
-use crate::conflicts::Conflicts;
 
 mod conflicts;
 mod dfs_pruning;
@@ -18,11 +17,10 @@ mod exhaustive_n_key;
 mod frequency;
 mod genetic;
 mod key;
+mod key_set;
 mod keyboard;
 mod lazy_tree;
 mod letter;
-mod letter_pair;
-mod letter_pair_set;
 mod pairing;
 mod partitions;
 mod penalty;
@@ -99,8 +97,9 @@ fn save_random_keyboard_penalties() {
 }
 
 fn custom() {
-    let d = Dictionary::load();
-    let p = Conflicts::new(&d);
+    let dict = Dictionary::load();
+    let c = Conflicts::new(&dict);
+    c.write_to_file();
 }
 
 fn combine_infrequent_pairs() {
