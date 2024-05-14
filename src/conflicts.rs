@@ -92,7 +92,7 @@ impl Conflicts {
         let mut writer = BufWriter::new(write.unwrap());
         self.0.iter().for_each(|(k, v)| {
             let penalty = v.final_penalty();
-            writeln!(writer, "{},{}", k, penalty).unwrap();
+            writeln!(writer, "{},{}", k, penalty.to_f32()).unwrap();
             println!("{},{}", k, penalty);
         });
         writer.flush().unwrap();
