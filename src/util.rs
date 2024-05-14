@@ -2,14 +2,19 @@ use std::iter;
 
 /// Calculates the factorial of `n`
 pub fn factorial(n: u128) -> u128 {
-    (1..=n).product()
+    let mut result = 1;
+    for i in 1..=n {
+        result = result * i;
+    }
+    result
 }
 
 /// Counts the number of ways to choose `k` from `n`.
 pub fn choose(n: u32, k: u32) -> u128 {
     let n = n as u128;
     let k = k as u128;
-    factorial(n) / factorial(n - k) / factorial(k)
+    let temp = ((n - k + 1)..=n).fold(1u128, |total, i| total * i);
+    temp / factorial(k)
 }
 
 /// Returns the sequence of numbers with `count` bits set, starting from the
