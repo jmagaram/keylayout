@@ -1,6 +1,7 @@
 use crate::{key::Key, letter::Letter, word::Word};
 use std::fmt::{self, Display};
 
+#[derive(Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct KeySet(Vec<Key>);
 
 impl KeySet {
@@ -10,6 +11,16 @@ impl KeySet {
         let mut keys = keys;
         keys.sort_unstable();
         KeySet(keys)
+    }
+
+    pub fn with_layout(layout: &str) -> KeySet {
+        let keys = layout
+            .split([',', ' '])
+            .map(|letters| {
+                Key::try_from(letters).expect("Expected each key to have valid letters and be separated by a single comma or space.")
+            })
+            .collect::<Vec<Key>>();
+        Self::with_unsorted(keys)
     }
 
     pub fn len(&self) -> usize {
@@ -177,5 +188,11 @@ mod tests {
                 word_a, word_b, expected, actual
             )
         }
+    }
+
+    #[test]
+    fn equality() {
+        assert!(KeySet::with_layout("abc def") == KeySet::with_layout("abc def"));
+        assert!(KeySet::with_layout("abc") != KeySet::with_layout("abc def"));
     }
 }
