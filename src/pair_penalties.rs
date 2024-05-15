@@ -1,4 +1,4 @@
-use crate::{dictionary::Dictionary, penalty::Penalty, util::choose, word::Word};
+use crate::{dictionary::Dictionary, key_set::KeySet, penalty::Penalty, util::choose, word::Word};
 use std::{
     collections::{HashMap, HashSet},
     fs::OpenOptions,
@@ -6,11 +6,52 @@ use std::{
 };
 use thousands::Separable;
 
-pub struct Conflicts(HashMap<String, HashSet<Word>>);
+pub struct PairPenalties(HashMap<KeySet, Penalty>);
 
-impl Conflicts {
-    pub fn empty() -> Conflicts {
-        Conflicts(HashMap::new())
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct CsvOutput {
+    pairs: String,
+    penalty: f32,
+}
+
+impl PairPenalties {
+    const FILE_NAME: &'static str = "./conflicts.csv";
+
+    fn load_from_csv(file_name: &str) -> Result<Vec<CsvOutput>, csv::Error> {
+        let mut rdr = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .from_path(file_name)
+            .unwrap();
+        rdr.deserialize().collect::<Result<Vec<CsvOutput>, _>>()
+    }
+
+    pub fn penalty(&self, key_set: &KeySet) -> Penalty {
+        self.0.get(key_set).map(|p| *p).unwrap_or(Penalty::ZERO)
+    }
+
+    pub fn load() -> PairPenalties {
+        Self::load_from(Self::FILE_NAME)
+    }
+
+    pub fn load_from(file_name: &str) -> PairPenalties {
+        let map_items = Self::load_from_csv(file_name)
+            .unwrap()
+            .into_iter()
+            .map(|c| {
+                let penalty = Penalty::new(c.penalty);
+                let key_set = KeySet::with_layout(c.pairs.as_str());
+                (key_set, penalty)
+            });
+        let map = HashMap::from_iter(map_items);
+        PairPenalties(map)
+    }
+}
+
+pub struct MakePairPenalties(HashMap<String, HashSet<Word>>);
+
+impl MakePairPenalties {
+    pub fn empty() -> MakePairPenalties {
+        MakePairPenalties(HashMap::new())
     }
 
     pub fn calculate(&mut self, max_keys: u8, max_letters: u8, dictionary: &Dictionary) {
@@ -71,9 +112,13 @@ impl Conflicts {
         Penalty::new(penalty_value)
     }
 
+    const FILE_NAME: &'static str = "./conflicts.csv";
+
     pub fn write_to_file(&self) {
-        const FILE_NAME: &'static str = "./conflicts.csv";
-        let write = OpenOptions::new().create(true).write(true).open(FILE_NAME);
+        let write = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(Self::FILE_NAME);
         let mut writer = BufWriter::new(write.unwrap());
         writeln!(writer, "pairs,penalty").unwrap();
         self.0.iter().for_each(|(pairs, words)| {
