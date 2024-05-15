@@ -4,3 +4,4 @@ flamegraph.svg
 justinkeypair.pem
 *.xlsx
 conflicts.csv
+pair_penalties.csv
