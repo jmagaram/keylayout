@@ -66,6 +66,10 @@ fn show_unique_keyboard_totals() {
     }
 }
 
+fn calculate_pair_penalties() {
+    let _ = pair_penalties_with_sqlite::run(None).unwrap();
+}
+
 fn custom() {
     println!("Loading...");
     let p = PairPenalties::load();
@@ -139,6 +143,7 @@ fn main() {
         ("Genetic algorithm", genetic),
         ("Find best N key", find_best_n_key),
         ("Print keyboard score", print_keyboard_score),
+        ("Calculate word pair penalties", calculate_pair_penalties),
         ("Show unique keyboard totals", show_unique_keyboard_totals),
     ];
     let selection = choices
