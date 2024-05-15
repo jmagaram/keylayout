@@ -2,6 +2,7 @@ use dictionary::Dictionary;
 use humantime::{format_duration, FormattedDuration};
 use key_set::KeySet;
 use keyboard::Keyboard;
+use pair_penalties::MakePairPenalties;
 use pair_penalties::PairPenalties;
 use partitions::Partitions;
 use penalty::Penalty;
@@ -71,15 +72,14 @@ fn calculate_pair_penalties() {
 }
 
 fn custom() {
-    println!("Loading...");
-    let p = PairPenalties::load();
-    println!("Done loading.");
-
-    let ks = KeySet::with_layout("ai");
-    println!("{}, {}", ks, p.penalty(&ks));
-
-    let ks = KeySet::with_layout("xy");
-    println!("{}, {}", ks, p.penalty(&ks));
+    let dictionary = Dictionary::load();
+    let make = MakePairPenalties {
+        dictionary,
+        max_keys: 3,
+        max_letters: 6,
+        file_name: "./pair_penalties.csv".to_string(),
+    };
+    make.calculate();
 }
 
 fn dfs_pruning() {

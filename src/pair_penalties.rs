@@ -47,19 +47,22 @@ impl PairPenalties {
     }
 }
 
-pub struct MakePairPenalties(HashMap<String, HashSet<Word>>);
+pub struct MakePairPenalties {
+    pub dictionary: Dictionary,
+    pub max_keys: u8,
+    pub max_letters: u8,
+    pub file_name: String,
+}
 
 impl MakePairPenalties {
-    pub fn empty() -> MakePairPenalties {
-        MakePairPenalties(HashMap::new())
-    }
-
-    pub fn calculate(&mut self, max_keys: u8, max_letters: u8, dictionary: &Dictionary) {
-        let words = dictionary.words();
+    pub fn calculate(&self) {
+        let mut result: HashMap<KeySet, HashSet<u32>> = HashMap::new();
+        let words = self.dictionary.words();
+        let words_len: u32 = words.len().try_into().unwrap();
         let total_pairs = choose(words.len().try_into().unwrap(), 2);
         let mut processed = 0u128;
-        for word_a_index in 0..words.len() - 1 {
-            for word_b_index in word_a_index + 1..words.len() {
+        for word_a_index in 0..words_len - 1 {
+            for word_b_index in word_a_index + 1..words_len {
                 processed = processed + 1;
                 if processed.rem_euclid(10_000_000) == 0 {
                     println!(
@@ -68,64 +71,67 @@ impl MakePairPenalties {
                         total_pairs.separate_with_underscores()
                     )
                 };
-                let word_a = &words[word_a_index];
-                let word_b = &words[word_b_index];
+                let word_a = &words[word_a_index as usize];
+                let word_b = &words[word_b_index as usize];
                 let diff = word_a.letter_pair_difference(&word_b);
                 if diff.len() > 0
-                    && diff.len() <= max_keys as usize
-                    && diff.letter_count() <= max_letters
+                    && diff.len() <= self.max_keys as usize
+                    && diff.letter_count() <= self.max_letters
                 {
-                    let diff_as_string = diff.to_string();
-                    let words = self.0.get_mut(&diff_as_string);
+                    let words = result.get_mut(&diff);
                     match words {
                         None => {
                             let mut words = HashSet::new();
-                            words.insert(word_a.clone());
-                            words.insert(word_b.clone());
-                            self.0.insert(diff_as_string, words);
-                            let key_count = self.0.len();
-                            if key_count.rem_euclid(100_000) == 0 {
-                                println!("Unique pairs: {}", key_count.separate_with_underscores());
-                            }
+                            words.insert(word_a_index);
+                            words.insert(word_b_index);
+                            result.insert(diff, words);
                         }
                         Some(words) => {
-                            words.insert(word_a.clone());
-                            words.insert(word_b.clone());
+                            words.insert(word_a_index);
+                            words.insert(word_b_index);
                         }
                     }
                 }
             }
         }
+        self.write_to_file(result);
     }
 
-    fn penalty(words: &HashSet<Word>) -> Penalty {
-        let mut words = words.iter().collect::<Vec<&Word>>();
-        words.sort_unstable_by(|a, b| b.frequency().cmp(&a.frequency()));
-        let penalty_value = words
-            .into_iter()
-            .enumerate()
-            .fold(0.0, |total, (index, w)| {
-                let multiplier = index.min(4) as f32;
-                let penalty = multiplier * w.frequency().to_f32();
-                total + penalty
-            });
-        Penalty::new(penalty_value)
-    }
-
-    const FILE_NAME: &'static str = "./conflicts.csv";
-
-    pub fn write_to_file(&self) {
+    fn write_to_file(&self, results: HashMap<KeySet, HashSet<u32>>) {
         let write = OpenOptions::new()
             .create(true)
             .write(true)
-            .open(Self::FILE_NAME);
+            .open(self.file_name.as_str());
         let mut writer = BufWriter::new(write.unwrap());
         writeln!(writer, "pairs,penalty").unwrap();
-        self.0.iter().for_each(|(pairs, words)| {
-            let penalty = Self::penalty(words);
+        results.into_iter().for_each(|(pairs, words)| {
+            let penalty = Self::penalty(self.dictionary.words(), &words);
             writeln!(writer, "{},{}", pairs, penalty.to_f32()).unwrap();
             println!("{},{}", pairs, penalty);
         });
         writer.flush().unwrap();
+    }
+
+    fn penalty(words: &Vec<Word>, word_indexes: &HashSet<u32>) -> Penalty {
+        let mut penalty_total = 0.0;
+        let max_word_len = words.iter().map(|w| w.len()).max().unwrap();
+        for word_len in 1..=max_word_len {
+            let mut words = word_indexes
+                .iter()
+                .map(|index| words[*index as usize].clone())
+                .filter(|w| w.len() == word_len)
+                .collect::<Vec<Word>>();
+            words.sort_unstable_by(|a, b| b.frequency().cmp(&a.frequency()));
+            let penalty_value = words
+                .into_iter()
+                .enumerate()
+                .fold(0.0, |total, (index, w)| {
+                    let multiplier = index.min(4) as f32;
+                    let penalty = multiplier * w.frequency().to_f32();
+                    total + penalty
+                });
+            penalty_total = penalty_total + penalty_value;
+        }
+        Penalty::new(penalty_total)
     }
 }
