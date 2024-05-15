@@ -1,4 +1,4 @@
-use crate::{dictionary::Dictionary, frequency::Frequency, penalty::Penalty, word::Word};
+use crate::{dictionary::Dictionary, penalty::Penalty, util::choose, word::Word};
 use std::{
     collections::{HashMap, HashSet},
     fs::OpenOptions,
@@ -6,75 +6,45 @@ use std::{
 };
 use thousands::Separable;
 
-pub struct Conflicts(HashMap<String, FrequentWords>);
-
-struct FrequentWords {
-    words: HashSet<Word>,
-    penalty: Penalty,
-}
-
-impl FrequentWords {
-    fn empty() -> FrequentWords {
-        FrequentWords {
-            words: HashSet::new(),
-            penalty: Penalty::ZERO,
-        }
-    }
-
-    fn insert(&mut self, word: Word) {
-        if self.words.insert(word) {
-            if self.words.len() > 4 {
-                let least_frequent = self
-                    .words
-                    .clone()
-                    .into_iter()
-                    .min_by(|a, b| a.frequency().cmp(&b.frequency()))
-                    .unwrap();
-                self.penalty =
-                    Penalty::new(self.penalty.to_f32() + least_frequent.frequency().to_f32() * 4.0);
-                self.words.remove(&least_frequent);
-            }
-        }
-    }
-
-    fn penalty(&self) -> Penalty {
-        let mut words = self.words.iter().collect::<Vec<&Word>>();
-        words.sort_unstable_by(|a, b| b.frequency().cmp(a.frequency()));
-        let partial: f32 = words
-            .into_iter()
-            .enumerate()
-            .map(|(index, w)| w.frequency().to_f32() * (index as f32))
-            .sum();
-        let total = self.penalty.to_f32() + partial;
-        Penalty::new(total)
-    }
-}
+pub struct Conflicts(HashMap<String, HashSet<Word>>);
 
 impl Conflicts {
-    pub fn new(dictionary: &Dictionary) -> Conflicts {
-        let mut result = HashMap::<String, FrequentWords>::new();
-        let max_keys = 3;
-        let max_letters = 6;
+    pub fn empty() -> Conflicts {
+        Conflicts(HashMap::new())
+    }
+
+    pub fn calculate(&mut self, max_keys: u8, max_letters: u8, dictionary: &Dictionary) {
         let words = dictionary.words();
+        let total_pairs = choose(words.len().try_into().unwrap(), 2);
+        let mut processed = 0u128;
         for word_a_index in 0..words.len() - 1 {
-            println!("{}", word_a_index.separate_with_underscores());
             for word_b_index in word_a_index + 1..words.len() {
+                processed = processed + 1;
+                if processed.rem_euclid(10_000_000) == 0 {
+                    println!(
+                        "Processed: {} of {}",
+                        processed.separate_with_underscores(),
+                        total_pairs.separate_with_underscores()
+                    )
+                };
                 let word_a = &words[word_a_index];
                 let word_b = &words[word_b_index];
                 let diff = word_a.letter_pair_difference(&word_b);
-                if diff.len() <= max_keys && diff.letter_count() <= max_letters {
+                if diff.len() > 0
+                    && diff.len() <= max_keys as usize
+                    && diff.letter_count() <= max_letters
+                {
                     let diff_as_string = diff.to_string();
-                    let words = result.get_mut(&diff_as_string);
+                    let words = self.0.get_mut(&diff_as_string);
                     match words {
                         None => {
-                            println!("{}", diff_as_string);
-                            let mut words = FrequentWords::empty();
+                            let mut words = HashSet::new();
                             words.insert(word_a.clone());
                             words.insert(word_b.clone());
-                            result.insert(diff_as_string, words);
-                            let key_count = result.len();
-                            if key_count.rem_euclid(10_000) == 0 {
-                                println!("Keys: {}", key_count.separate_with_underscores());
+                            self.0.insert(diff_as_string, words);
+                            let key_count = self.0.len();
+                            if key_count.rem_euclid(100_000) == 0 {
+                                println!("Unique pairs: {}", key_count.separate_with_underscores());
                             }
                         }
                         Some(words) => {
@@ -85,64 +55,32 @@ impl Conflicts {
                 }
             }
         }
-        Conflicts(result)
+    }
+
+    fn penalty(words: &HashSet<Word>) -> Penalty {
+        let mut words = words.iter().collect::<Vec<&Word>>();
+        words.sort_unstable_by(|a, b| b.frequency().cmp(&a.frequency()));
+        let penalty_value = words
+            .into_iter()
+            .enumerate()
+            .fold(0.0, |total, (index, w)| {
+                let multiplier = index.min(4) as f32;
+                let penalty = multiplier * w.frequency().to_f32();
+                total + penalty
+            });
+        Penalty::new(penalty_value)
     }
 
     pub fn write_to_file(&self) {
-        const FILE_NAME: &'static str = "./conflicts.txt";
-        let write = OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(FILE_NAME);
+        const FILE_NAME: &'static str = "./conflicts.csv";
+        let write = OpenOptions::new().create(true).write(true).open(FILE_NAME);
         let mut writer = BufWriter::new(write.unwrap());
-        self.0.iter().for_each(|(k, v)| {
-            let penalty = v.penalty();
-            writeln!(writer, "{},{}", k, penalty.to_f32()).unwrap();
-            println!("{},{}", k, penalty);
+        writeln!(writer, "pairs,penalty").unwrap();
+        self.0.iter().for_each(|(pairs, words)| {
+            let penalty = Self::penalty(words);
+            writeln!(writer, "{},{}", pairs, penalty.to_f32()).unwrap();
+            println!("{},{}", pairs, penalty);
         });
         writer.flush().unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[test]
-    fn frequent_words() {
-        let mut target = FrequentWords::empty();
-        assert_eq!(target.penalty(), Penalty::ZERO);
-
-        let data = [
-            ("abc", 9.0, 0.0),
-            ("abc", 9.0, 0.0),
-            ("big", 6.0, 6.0),
-            ("big", 6.0, 6.0),
-            ("happy", 4.0, 14.0),
-            ("clown", 3.0, 23.0),
-        ];
-        for (word, freq, expected) in data {
-            target.insert(Word::new(word, freq));
-            assert_eq!(
-                target.penalty(),
-                Penalty::new(expected),
-                "word: {}, frequency: {}, expected: {}",
-                word,
-                freq,
-                expected
-            );
-        }
-        // target.insert(Word::new("abc", 9.0));
-        // target.insert(Word::new("abc", 9.0));
-        // assert_eq!(target.penalty(), Penalty::ZERO); // only 1 word, high frequency
-
-        // target.insert(Word::new("def", 2.0));
-        // target.insert(Word::new("def", 2.0));
-        // assert_eq!(target.penalty(), Penalty::new(2.0)); // two words
-
-        // target.insert(Word::new("def", 2.0));
-        // target.insert(Word::new("def", 2.0));
-        // assert_eq!(target.penalty(), Penalty::new(2.0)); // two words
     }
 }

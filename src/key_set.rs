@@ -93,7 +93,7 @@ impl Display for KeySet {
                 .iter()
                 .map(|k| k.to_string())
                 .collect::<Vec<String>>()
-                .join(",")
+                .join(" ")
         )
     }
 }
@@ -105,15 +105,15 @@ mod tests {
     #[test]
     fn display() {
         let data = [
-            ("ab,cd", "ab,cd"),
-            ("cd,ab", "ab,cd"),
+            ("ab,cd", "ab cd"),
+            ("cd,ab", "ab cd"),
             ("ab,bc", "abc"),
             ("ac,bc", "abc"),
             ("bc,ab", "abc"),
             ("ab,bc,cd", "abcd"),
             ("dc,cb,ba", "abcd"),
-            ("ab,bc,xy,yz", "abc,xyz"),
-            ("zy,yx,cb,ba", "abc,xyz"),
+            ("ab,bc,xy,yz", "abc xyz"),
+            ("zy,yx,cb,ba", "abc xyz"),
         ];
         for (insert, expected) in data {
             let actual = insert
@@ -156,11 +156,11 @@ mod tests {
         let data = [
             ("hit", "hit", ""),
             ("hit", "hat", "ai"),
-            ("hit", "bat", "ai,bh"),
-            ("hit", "mob", "bt,hm,io"),
+            ("hit", "bat", "ai bh"),
+            ("hit", "mob", "bt hm io"),
             ("aaa", "bbb", "ab"),
             ("book", "beek", "eo"),
-            ("bookii", "beekjj", "eo,ij"),
+            ("bookii", "beekjj", "eo ij"),
             ("a", "b", "ab"),
             ("a", "a", ""),
             ("ab", "a", ""),

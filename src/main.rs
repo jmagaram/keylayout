@@ -6,9 +6,8 @@ use partitions::Partitions;
 use penalty::Penalty;
 use prohibited::Prohibited;
 use single_key_penalties::SingleKeyPenalties;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use thousands::Separable;
-use two_key_penalties::TwoKeyPenalties;
 
 mod conflicts;
 mod dfs_pruning;
@@ -22,6 +21,7 @@ mod keyboard;
 mod lazy_tree;
 mod letter;
 mod pairing;
+mod pairs;
 mod partitions;
 mod penalty;
 mod penalty_goal;
@@ -30,7 +30,6 @@ mod single_key_penalties;
 mod solution;
 mod solution_samples;
 mod tally;
-mod two_key_penalties;
 mod util;
 mod vec_threads;
 mod word;
@@ -72,12 +71,6 @@ fn save_single_key_penalties() {
     p.save_csv().unwrap();
 }
 
-fn save_pairs_of_keys_penalties() {
-    let d = Dictionary::load();
-    let p = TwoKeyPenalties::new(&d);
-    p.save_csv().unwrap();
-}
-
 fn save_random_keyboard_penalties() {
     let d = Dictionary::load();
     for prohibited_pairs in [0, 20, 40, 60, 80] {
@@ -97,9 +90,10 @@ fn save_random_keyboard_penalties() {
 }
 
 fn custom() {
-    let dict = Dictionary::load();
-    let c = Conflicts::new(&dict);
-    c.write_to_file();
+    let d = Dictionary::load();
+    let mut conflicts = Conflicts::empty();
+    conflicts.calculate(3, 6, &d);
+    conflicts.write_to_file();
 }
 
 fn combine_infrequent_pairs() {
@@ -175,7 +169,6 @@ fn main() {
         .item("Find best N key")
         .item("Save random keyboard penalties to CSV")
         .item("Save single key penalties to CSV")
-        .item("Save pairs of keys penalties to CSV")
         .item("Print keyboard score")
         .item("Recursively pair letters")
         .item("Display unique keyboard totals")
@@ -191,11 +184,10 @@ fn main() {
         3 => find_best_n_key(),
         4 => save_random_keyboard_penalties(),
         5 => save_single_key_penalties(),
-        6 => save_pairs_of_keys_penalties(),
-        7 => print_keyboard_score(),
-        8 => combine_infrequent_pairs(),
-        9 => display_unique_keyboard_totals(),
-        10 => custom(),
+        6 => print_keyboard_score(),
+        7 => combine_infrequent_pairs(),
+        8 => display_unique_keyboard_totals(),
+        9 => custom(),
         _ => panic!("Do not know how to handle that selection."),
     }
 }
