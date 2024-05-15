@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rusqlite::{Connection, Result};
 use thousands::Separable;
 
-use crate::{dictionary::Dictionary, word::Word};
+use crate::{dictionary::Dictionary, util::choose, word::Word};
 
 const PATH: &str = "./storage.db3";
 
@@ -56,30 +56,33 @@ pub fn run(dictionary_size: Option<usize>) -> Result<()> {
     vacuum()?;
     write_dictionary(dictionary_size)?;
     let words = load_words()?;
+    let total_items = choose(words.len().try_into().unwrap(), 2);
+    let mut processed: u128 = 0;
     let mut conn = Connection::open(PATH)?;
     let max_keys = 3;
     let max_letters = 6;
     for word_a_index in 0..words.len() - 1 {
-        println!(
-            "{} of {}",
-            word_a_index.separate_with_underscores(),
-            words.len().separate_with_underscores()
-        );
         let mut tx = conn.transaction()?;
         for word_b_index in word_a_index + 1..words.len() {
+            processed = processed + 1;
+            if processed.rem_euclid(100_000) == 0 {
+                println!(
+                    "{} of {}",
+                    processed.separate_with_underscores(),
+                    total_items.separate_with_underscores()
+                );
+            }
             let (word_a_id, word_a) = words[word_a_index].clone();
             let (word_b_id, word_b) = words[word_b_index].clone();
             let diff = word_a.letter_pair_difference(&word_b);
             if diff.len() >= 1 && diff.len() <= max_keys && diff.letter_count() <= max_letters {
                 let letter_count = diff.letter_count();
                 let diff_as_string = diff.to_string();
-                let word_a_string = word_a.to_string();
-                let word_b_string = word_b.to_string();
-                tx.execute(
+                let _ = tx.execute(
                     "INSERT INTO conflict (pair, word_id, letter_count) VALUES (?1, ?2, ?3)",
                     (&diff_as_string, &word_a_id, &letter_count),
                 );
-                tx.execute(
+                let _ = tx.execute(
                     "INSERT INTO conflict (pair, word_id, letter_count) VALUES (?1, ?2, ?3)",
                     (&diff_as_string, &word_b_id, &letter_count),
                 );
