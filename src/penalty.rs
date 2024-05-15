@@ -1,4 +1,4 @@
-use std::{fmt, ops::Add};
+use std::{fmt, iter::Sum, ops::Add};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy, Default)]
 pub struct Penalty(f32);
@@ -30,6 +30,12 @@ impl Penalty {
 
     pub const ZERO: Penalty = Penalty(0.0);
     pub const MAX: Penalty = Penalty(std::f32::MAX);
+}
+
+impl Sum for Penalty {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Penalty::ZERO, |total, i| total + i)
+    }
 }
 
 impl TryFrom<f32> for Penalty {
