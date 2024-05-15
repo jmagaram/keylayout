@@ -45,7 +45,7 @@ impl DurationFormatter for Duration {
     }
 }
 
-fn display_unique_keyboard_totals() {
+fn show_unique_keyboard_totals() {
     for max_key_size in 3..=7 {
         println!();
         println!("Maximum key size: {}", max_key_size);
@@ -66,30 +66,6 @@ fn display_unique_keyboard_totals() {
     }
 }
 
-fn save_single_key_penalties() {
-    let d = Dictionary::load();
-    let p = SingleKeyPenalties::new(&d, 6);
-    p.save_csv().unwrap();
-}
-
-fn save_random_keyboard_penalties() {
-    let d = Dictionary::load();
-    for prohibited_pairs in [0, 20, 40, 60, 80] {
-        println!("Working on prohibited pairs: {}", prohibited_pairs);
-        let prohibited = Prohibited::with_top_n_letter_pairs(&d, prohibited_pairs);
-        let args = solution_samples::Args {
-            dictionary: &d,
-            key_count: 10..=26,
-            min_key_size: 1,
-            max_key_size: 5,
-            prohibited: &prohibited,
-            samples_per_key_count: 5000,
-            thread_count: 4,
-        };
-        args.save_to_csv().unwrap();
-    }
-}
-
 fn custom() {
     println!("Loading...");
     let p = PairPenalties::load();
@@ -100,16 +76,6 @@ fn custom() {
 
     let ks = KeySet::with_layout("xy");
     println!("{}, {}", ks, p.penalty(&ks));
-}
-
-fn combine_infrequent_pairs() {
-    let args = pairing::Args {
-        threads: 6,
-        max_key_size: 6,
-        pairings_to_ignore: 70,
-        prune_threshold: Penalty::new(0.0250),
-    };
-    args.solve();
 }
 
 fn dfs_pruning() {
@@ -135,7 +101,7 @@ fn find_best_n_key() {
     }
 }
 
-fn genetic_solver() {
+fn genetic() {
     let dict = Dictionary::load();
     let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
     let single_key_penalties = SingleKeyPenalties::load();
@@ -167,33 +133,32 @@ fn print_keyboard_score() {
 
 fn main() {
     use dialoguer::Select;
-    let selection = Select::new()
-        .with_prompt("What do you want to do?")
-        .item("DFS search")
-        .item("DFS preconfigured")
-        .item("Genetic algorithm")
-        .item("Find best N key")
-        .item("Save random keyboard penalties to CSV")
-        .item("Save single key penalties to CSV")
-        .item("Print keyboard score")
-        .item("Recursively pair letters")
-        .item("Display unique keyboard totals")
-        .item("Custom")
-        .default(6)
+    let choices: Vec<(&str, fn() -> ())> = vec![
+        ("DFS search", dfs_pruning),
+        ("DFS preconfigured", dfs_pruning_preconfigured),
+        ("Genetic algorithm", genetic),
+        ("Find best N key", find_best_n_key),
+        ("Print keyboard score", print_keyboard_score),
+        ("Show unique keyboard totals", show_unique_keyboard_totals),
+    ];
+    let selection = choices
+        .iter()
+        .map(|(c, _)| c)
+        .fold(
+            Select::new().with_prompt("What do you want to do?"),
+            |menu, item| menu.item(item),
+        )
+        .default(2)
         .interact()
         .unwrap();
-    println!();
-    match selection {
-        0 => dfs_pruning(),
-        1 => dfs_pruning_preconfigured(),
-        2 => genetic_solver(),
-        3 => find_best_n_key(),
-        4 => save_random_keyboard_penalties(),
-        5 => save_single_key_penalties(),
-        6 => print_keyboard_score(),
-        7 => combine_infrequent_pairs(),
-        8 => display_unique_keyboard_totals(),
-        9 => custom(),
-        _ => panic!("Do not know how to handle that selection."),
+    let command = choices.iter().nth(selection).map(|(_, f)| f);
+    match command {
+        Some(f) => {
+            f();
+            println!();
+        }
+        None => {
+            panic!("Do not know how to handle that selection.");
+        }
     }
 }
