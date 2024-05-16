@@ -15,7 +15,7 @@ struct CsvOutput {
 }
 
 impl PairPenalties {
-    const FILE_NAME: &'static str = "./conflicts.csv";
+    const FILE_NAME: &'static str = "./pair_penalties.csv";
 
     fn load_from_csv(file_name: &str) -> Result<Vec<CsvOutput>, csv::Error> {
         let mut rdr = csv::ReaderBuilder::new()
