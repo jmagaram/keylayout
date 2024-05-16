@@ -14,23 +14,26 @@ use crate::{dictionary::Dictionary, util::choose, word::Word};
 const PATH: &str = "./pair_penalties.db3";
 
 pub fn delete_dictionary() -> Result<()> {
-    println!("Deleting dictionary...");
     let conn = Connection::open(PATH)?;
+    println!("Delete dictionary...");
     conn.execute("DELETE FROM word", ())?;
+    println!("Delete dictionary - done!");
     Ok(())
 }
 
 pub fn vacuum() -> Result<()> {
-    println!("Vacuum...");
     let conn = Connection::open(PATH)?;
+    println!("Vacuum...");
     conn.execute("VACUUM", ())?;
+    println!("Vacuum - done!");
     Ok(())
 }
 
 pub fn delete_conflict() -> Result<()> {
-    println!("Deleting conflicts...");
     let conn = Connection::open(PATH)?;
+    println!("Delete pair penalties...");
     conn.execute("DELETE FROM conflict", ())?;
+    println!("Delete pair penalties - done!");
     Ok(())
 }
 
@@ -65,7 +68,9 @@ SELECT MIN(rowid) FROM conflict GROUP BY word_id, pair
 );
 "#;
     let conn = Connection::open(PATH).unwrap();
+    println!("Removing pair penalty duplicates...");
     conn.execute(statement, []);
+    println!("Removing pair penalty duplicates - done!");
 }
 
 pub fn load_words() -> Result<Vec<(usize, Word)>> {
@@ -101,10 +106,8 @@ pub fn run(dictionary_size: Option<usize>) {
                 let processed_count = processed.fetch_add(1, Ordering::Relaxed);
                 if processed_count > 0 && processed_count.rem_euclid(1_000_000_000) == 0 {
                     thread::spawn(|| {
-                        println!("Cleaning...");
                         remove_conflict_duplicates();
                         vacuum();
-                        println!("Done cleaning.");
                     });
                 }
                 if processed_count.rem_euclid(10_000_000) == 0 {
@@ -151,5 +154,6 @@ pub fn write_dictionary(count: Option<usize>) -> Result<()> {
         )?;
     }
     tx.commit()?;
+    println!("Writing dictionary - done!");
     Ok(())
 }
