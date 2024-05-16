@@ -46,6 +46,40 @@ impl DurationFormatter for Duration {
     }
 }
 
+fn penalty_estimate_comparison() {
+    let dict = Dictionary::load();
+    let single_keys = SingleKeyPenalties::load();
+    let pair_penalties = PairPenalties::load();
+    let k = Keyboard::with_layout("os").fill_missing(dict.alphabet());
+    let precise = k.penalty(&dict, Penalty::MAX);
+    let estim1 = k.penalty_estimate(&single_keys);
+    let estim2 = k.penalty_estimate2(&pair_penalties);
+    println!("");
+    println!("actual: {}", precise);
+    println!("old   : {}", estim1);
+    println!("new   : {}", estim2);
+    // let dict = Dictionary::load();
+    // let layout = Partitions {
+    //     sum: 27,
+    //     parts: 10,
+    //     min: 2,
+    //     max: 4,
+    // };
+    // let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
+    // let single_keys = SingleKeyPenalties::load();
+    // let pair_penalties = PairPenalties::load();
+    // let k = Keyboard::with_layout("os").fill_missing(dict.alphabet());
+    // for k in Keyboard::random(dict.alphabet(), layout, &prohibited).take(1) {
+    //     let precise = k.penalty(&dict, Penalty::MAX);
+    //     let estim1 = k.penalty_estimate(&single_keys);
+    //     let estim2 = k.penalty_estimate2(&pair_penalties);
+    //     println!("");
+    //     println!("actual: {}", precise);
+    //     println!("old   : {}", estim1);
+    //     println!("new   : {}", estim2);
+    // }
+}
+
 fn show_unique_keyboard_totals() {
     for max_key_size in 3..=7 {
         println!();
@@ -67,19 +101,23 @@ fn show_unique_keyboard_totals() {
     }
 }
 
-fn calculate_pair_penalties() {
-    let _ = pair_penalties_with_sqlite::run(None).unwrap();
+fn calculate_penalties_with_sql() {
+    pair_penalties_with_sqlite::run(None);
+}
+
+fn calculate_penalties_in_memory() {
+    let dictionary = Dictionary::load().filter_top_n_words(5_000);
+    let make = MakePairPenalties {
+        dictionary,
+        max_keys: 2,
+        max_letters: 4,
+        file_name: "./test_pair_penalties.csv".to_string(),
+    };
+    make.calculate();
 }
 
 fn custom() {
-    let dictionary = Dictionary::load();
-    let make = MakePairPenalties {
-        dictionary,
-        max_keys: 3,
-        max_letters: 6,
-        file_name: "./pair_penalties.csv".to_string(),
-    };
-    make.calculate();
+    println!("Undefined custom action");
 }
 
 fn dfs_pruning() {
@@ -143,8 +181,11 @@ fn main() {
         ("Genetic algorithm", genetic),
         ("Find best N key", find_best_n_key),
         ("Print keyboard score", print_keyboard_score),
-        ("Calculate word pair penalties", calculate_pair_penalties),
+        ("Calculate penalties with sql", calculate_penalties_with_sql),
+        ("Calculate penalties in mem", calculate_penalties_in_memory),
         ("Show unique keyboard totals", show_unique_keyboard_totals),
+        ("Penalty estimate comparisons", penalty_estimate_comparison),
+        ("Custom", custom),
     ];
     let selection = choices
         .iter()
@@ -153,7 +194,7 @@ fn main() {
             Select::new().with_prompt("What do you want to do?"),
             |menu, item| menu.item(item),
         )
-        .default(2)
+        .default(8)
         .interact()
         .unwrap();
     let command = choices.iter().nth(selection).map(|(_, f)| f);
