@@ -22,3 +22,5 @@ pub mod tally;
 pub mod util;
 pub mod vec_threads;
 pub mod word;
+pub mod word_differences;
+pub mod word_overlap;

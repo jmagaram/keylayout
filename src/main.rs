@@ -10,6 +10,11 @@ use prohibited::Prohibited;
 use single_key_penalties::SingleKeyPenalties;
 use std::time::Duration;
 use thousands::Separable;
+use word_differences::MakeWordDifferences;
+use word_differences::WordDifferences;
+use word_overlap::WordOverlap;
+
+use crate::estimator::Overlaps;
 
 mod dfs_pruning;
 mod dictionary;
@@ -35,6 +40,8 @@ mod tally;
 mod util;
 mod vec_threads;
 mod word;
+mod word_differences;
+mod word_overlap;
 
 trait DurationFormatter {
     fn round_to_seconds(&self) -> FormattedDuration;
