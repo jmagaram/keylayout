@@ -11,15 +11,20 @@ use keylayout::{
     prohibited::Prohibited,
     tally::Tally,
     util,
+    word_overlap::WordOverlap,
 };
 
 fn calculate_penalty(c: &mut Criterion) {
     let d = Dictionary::load();
     let layout = vec![3, 3, 3, 3, 3, 3, 3, 2, 2, 2];
+    let dict_small = Dictionary::load().filter_top_n_words(100_000);
+    let overlaps = WordOverlap::load_from_csv(&dict_small, "./word_overlaps.csv");
     c.bench_function("CALCULATE PENALTY", |b| {
         b.iter(|| {
             let keys = d.alphabet().random_subsets(&layout).collect::<Vec<Key>>();
-            let _keyboard = Keyboard::with_keys(keys).penalty(&d, black_box(Penalty::MAX));
+            let keyboard = Keyboard::with_keys(keys);
+            // let _keyboard = keyboard.penalty(&d, black_box(Penalty::MAX));
+            let _keyboard = keyboard.penalty_estimate2(&overlaps, false);
             ()
         })
     });
@@ -235,19 +240,19 @@ fn generate_unique_keyboards_with_dfs(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    generate_big_subsets,
-    generate_small_subsets,
-    check_keyboard_for_invalid_pairs,
-    generate_unique_keyboards_with_dfs,
-    load_dictionary,
+    // generate_big_subsets,
+    // generate_small_subsets,
+    // check_keyboard_for_invalid_pairs,
+    // generate_unique_keyboards_with_dfs,
+    // load_dictionary,
     calculate_penalty,
-    set_bits,
-    count_letters_in_key,
-    iterate_letters_in_key,
-    random_keyboards,
-    random_keyboards_limited_alphabet,
-    distribute_keys,
-    distribute_letters,
-    random_subsets
+    // set_bits,
+    // count_letters_in_key,
+    // iterate_letters_in_key,
+    // random_keyboards,
+    // random_keyboards_limited_alphabet,
+    // distribute_keys,
+    // distribute_letters,
+    // random_subsets
 );
 criterion_main!(benches);

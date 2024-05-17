@@ -53,11 +53,11 @@ fn penalty_estimate_comparison() {
         let kludge = k.penalty_estimate(&single_keys);
         let two_pr = k.penalty_estimate2(&overlaps, true);
         let one_pr = k.penalty_estimate2(&overlaps, false);
-        let one_pair_penalties = k.penalty_estimate3(&overlap_penalties);
+        let two_pair_penalties = k.penalty_estimate3(&overlap_penalties);
         println!("");
         println!("precise: {}", precise);
         println!("kludge:  {}", kludge);
-        println!("simp pr: {}", one_pair_penalties);
+        println!("simp pr: {}", two_pair_penalties);
         println!("new 2pr: {}", two_pr);
         println!("new 1pr: {}", one_pr);
         println!("small:   {}", small_dict);
@@ -90,7 +90,7 @@ fn calculate_overlaps_with_sql() {
 }
 
 fn calculate_overlaps() {
-    let d = Dictionary::load();
+    let d = Dictionary::load().filter_top_n_words(100_000);
     let overlap_penalties = OverlapPenalties::build(&d);
     let file_name = "./overlap_penalties.csv";
     overlap_penalties.save_to_csv(file_name).unwrap();

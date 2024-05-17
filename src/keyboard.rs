@@ -5,6 +5,7 @@ use crate::{
     key::Key,
     key_set::KeySet,
     letter::Letter,
+    overlap_penalties::OverlapPenalties,
     partitions::{self, Partitions},
     penalty::Penalty,
     prohibited::Prohibited,
@@ -16,7 +17,6 @@ use crate::{
 };
 use rand::Rng;
 use std::{collections::HashSet, fmt, iter};
-use thousands::Separable;
 
 #[derive(Clone)]
 pub struct Keyboard {
@@ -450,6 +450,29 @@ impl Keyboard {
         } else {
             (estimate, PenaltyKind::Estimate)
         }
+    }
+
+    // Does not work; overcalculates substantially.
+    pub fn penalty_estimate3(&self, overlap: &OverlapPenalties) -> Penalty {
+        let pairs = self
+            .keys()
+            .filter(|k| k.len() >= 2)
+            .flat_map(|k| k.subsets_of_size(2))
+            .collect::<Vec<Key>>();
+        let mut total = Penalty::ZERO;
+        let pairs_count = pairs.len();
+        for p in &pairs {
+            total = total + overlap.penalty_for(&KeySet::with_keys(vec![*p]));
+        }
+        for i in 0..pairs_count - 1 {
+            for j in i + 1..pairs_count {
+                let a = pairs.get(i).unwrap();
+                let b = pairs.get(j).unwrap();
+                let keyset = KeySet::with_keys(vec![*a, *b]);
+                total = total + overlap.penalty_for(&keyset);
+            }
+        }
+        total
     }
 
     // This doesn't really help. The resultant dictionary is about 80k words
