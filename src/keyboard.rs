@@ -437,7 +437,12 @@ impl Keyboard {
         }
     }
 
-    pub fn penalty_estimate2(&self, overlap: &WordOverlap) -> Penalty {
+    // This doesn't really help. The resultant dictionary is about 80k words
+    // even if you only look at single pairs. And so the time to evaluate it is
+    // not much better than looking at a partial dictionary scan. This could be
+    // optimized, but it isn't going to make much of a difference. Need a totally
+    // different approach for working with word overlaps.
+    pub fn penalty_estimate2(&self, overlap: &WordOverlap, include_two_pairs: bool) -> Penalty {
         let mut words = HashSet::new();
         let pairs = self
             .keys()
@@ -451,13 +456,15 @@ impl Keyboard {
                 words.insert(*w);
             }
         }
-        for i in 0..pairs_len - 1 {
-            for j in i + 1..pairs_len {
-                let i_pair = pairs.get(i).unwrap();
-                let j_pair = pairs.get(j).unwrap();
-                let key_set = KeySet::with_pairs(vec![i_pair.clone(), j_pair.clone()]);
-                for w in overlap.words_for_pairs(&key_set) {
-                    words.insert(*w);
+        if include_two_pairs {
+            for i in 0..pairs_len - 1 {
+                for j in i + 1..pairs_len {
+                    let i_pair = pairs.get(i).unwrap();
+                    let j_pair = pairs.get(j).unwrap();
+                    let key_set = KeySet::with_pairs(vec![i_pair.clone(), j_pair.clone()]);
+                    for w in overlap.words_for_pairs(&key_set) {
+                        words.insert(*w);
+                    }
                 }
             }
         }
@@ -466,9 +473,7 @@ impl Keyboard {
             .map(|word_index| overlap.word_from_index(word_index).unwrap().clone())
             .collect::<Vec<Word>>();
         words.sort_by(|a, b| b.frequency().cmp(&a.frequency()));
-        let words_len = words.len();
         let d = Dictionary::from_unique_sorted_words(words);
-        println!("Dictionary size: {}", words_len.separate_with_underscores());
         self.penalty(&d, Penalty::MAX)
     }
 
