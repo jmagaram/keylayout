@@ -13,6 +13,24 @@ impl KeySet {
         KeySet(keys)
     }
 
+    pub fn with_keys(keys: Vec<Key>) -> KeySet {
+        Self::with_unsorted(keys)
+    }
+
+    pub fn with_pairs(pairs: Vec<Key>) -> KeySet {
+        let mut result = KeySet::EMPTY;
+        for p in pairs {
+            debug_assert!(
+                p.count_letters() == 2,
+                "Expected each pair to have exactly 2 letters."
+            );
+            let i = p.min_letter().unwrap();
+            let j = p.max_letter().unwrap();
+            result = result.with_letters_on_same_key(i, j);
+        }
+        result
+    }
+
     pub fn with_layout(layout: &str) -> KeySet {
         let keys = layout
             .split([',', ' '])

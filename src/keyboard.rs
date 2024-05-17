@@ -3,6 +3,7 @@
 use crate::{
     dictionary::Dictionary,
     key::Key,
+    key_set::KeySet,
     letter::Letter,
     partitions::{self, Partitions},
     penalty::Penalty,
@@ -11,9 +12,11 @@ use crate::{
     solution::Solution,
     tally::Tally,
     word::Word,
+    word_overlap::WordOverlap,
 };
 use rand::Rng;
-use std::{fmt, iter};
+use std::{collections::HashSet, fmt, iter};
+use thousands::Separable;
 
 #[derive(Clone)]
 pub struct Keyboard {
@@ -434,6 +437,41 @@ impl Keyboard {
         }
     }
 
+    pub fn penalty_estimate2(&self, overlap: &WordOverlap) -> Penalty {
+        let mut words = HashSet::new();
+        let pairs = self
+            .keys()
+            .filter(|k| k.len() >= 2)
+            .flat_map(|k| k.subsets_of_size(2))
+            .collect::<Vec<Key>>();
+        let pairs_len = pairs.len();
+        for p in pairs.iter() {
+            let key_set = KeySet::with_keys(vec![*p]);
+            for w in overlap.words_for_pairs(&key_set) {
+                words.insert(*w);
+            }
+        }
+        for i in 0..pairs_len - 1 {
+            for j in i + 1..pairs_len {
+                let i_pair = pairs.get(i).unwrap();
+                let j_pair = pairs.get(j).unwrap();
+                let key_set = KeySet::with_pairs(vec![i_pair.clone(), j_pair.clone()]);
+                for w in overlap.words_for_pairs(&key_set) {
+                    words.insert(*w);
+                }
+            }
+        }
+        let mut words = words
+            .into_iter()
+            .map(|word_index| overlap.word_from_index(word_index).unwrap().clone())
+            .collect::<Vec<Word>>();
+        words.sort_by(|a, b| b.frequency().cmp(&a.frequency()));
+        let words_len = words.len();
+        let d = Dictionary::from_unique_sorted_words(words);
+        println!("Dictionary size: {}", words_len.separate_with_underscores());
+        self.penalty(&d, Penalty::MAX)
+    }
+
     pub fn penalty_estimate(&self, parts: &SingleKeyPenalties) -> Penalty {
         if self.len() == 0 {
             Penalty::ZERO
@@ -747,6 +785,28 @@ mod tests {
         let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
         for k in Keyboard::random(dict.alphabet(), layout, &prohibited).take(20) {
             println!("{}", k);
+        }
+    }
+
+    #[test]
+    fn penalty_estimate_comparison() {
+        let dict = Dictionary::load();
+        let layout = Partitions {
+            sum: 27,
+            parts: 10,
+            min: 2,
+            max: 4,
+        };
+        let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
+        let single_keys = SingleKeyPenalties::load();
+        for k in Keyboard::random(dict.alphabet(), layout, &prohibited).take(20) {
+            let precise = k.penalty(&dict, Penalty::MAX);
+            let estim1 = k.penalty_estimate(&single_keys);
+            // let estim2 = k.penalty_estimate2(&pair_penalties);
+            println!("");
+            println!("actual: {}", precise);
+            println!("old   : {}", estim1);
+            // println!("new   : {}", estim2);
         }
     }
 

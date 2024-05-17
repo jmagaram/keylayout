@@ -2,11 +2,12 @@ use crate::{dictionary::Dictionary, key_set::KeySet, util::choose, word::Word};
 use std::collections::{HashMap, HashSet};
 use thousands::Separable;
 
-type WordIndex = u32;
+pub type WordIndex = u32;
 
 pub struct WordOverlap {
     words: Vec<Word>,
     pairs: HashMap<KeySet, HashSet<WordIndex>>,
+    empty: HashSet<WordIndex>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -55,11 +56,19 @@ impl WordOverlap {
                 }
             }
         }
-        WordOverlap { words, pairs }
+        WordOverlap {
+            words,
+            pairs,
+            empty: HashSet::new(),
+        }
     }
 
-    fn word_from_index(&self, index: WordIndex) -> Option<&Word> {
+    pub fn word_from_index(&self, index: WordIndex) -> Option<&Word> {
         self.words.get(index as usize)
+    }
+
+    pub fn words_for_pairs(&self, pairs: &KeySet) -> &HashSet<WordIndex> {
+        self.pairs.get(pairs).unwrap_or(&self.empty)
     }
 
     pub fn print(&self) {
@@ -111,19 +120,24 @@ impl WordOverlap {
             if progress.rem_euclid(10_000) == 0 {
                 println!("{}", progress.separate_with_underscores())
             }
-            let word_index = words_to_index.get(&row.word).unwrap();
-            let keys = KeySet::with_layout(&row.pairs);
-            match pairs.get_mut(&keys) {
-                Some(set) => {
-                    set.insert(*word_index);
-                }
-                None => {
-                    let mut set = HashSet::new();
-                    set.insert(*word_index);
-                    pairs.insert(keys, set);
+            if let Some(word_index) = words_to_index.get(&row.word) {
+                let keys = KeySet::with_layout(&row.pairs);
+                match pairs.get_mut(&keys) {
+                    Some(set) => {
+                        set.insert(*word_index);
+                    }
+                    None => {
+                        let mut set = HashSet::new();
+                        set.insert(*word_index);
+                        pairs.insert(keys, set);
+                    }
                 }
             }
         }
-        WordOverlap { words, pairs }
+        WordOverlap {
+            words,
+            pairs,
+            empty: HashSet::new(),
+        }
     }
 }

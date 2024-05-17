@@ -1,20 +1,13 @@
 use dictionary::Dictionary;
 use humantime::{format_duration, FormattedDuration};
-use key_set::KeySet;
 use keyboard::Keyboard;
-use pair_penalties::MakePairPenalties;
-use pair_penalties::PairPenalties;
 use partitions::Partitions;
 use penalty::Penalty;
 use prohibited::Prohibited;
 use single_key_penalties::SingleKeyPenalties;
 use std::time::Duration;
 use thousands::Separable;
-use word_differences::MakeWordDifferences;
-use word_differences::WordDifferences;
 use word_overlap::WordOverlap;
-
-use crate::estimator::Overlaps;
 
 mod dfs_pruning;
 mod dictionary;
@@ -26,8 +19,6 @@ mod key_set;
 mod keyboard;
 mod lazy_tree;
 mod letter;
-mod pair_penalties;
-mod pair_penalties_with_sqlite;
 mod pairing;
 mod partitions;
 mod penalty;
@@ -40,8 +31,8 @@ mod tally;
 mod util;
 mod vec_threads;
 mod word;
-mod word_differences;
 mod word_overlap;
+mod word_overlap_sqlite;
 
 trait DurationFormatter {
     fn round_to_seconds(&self) -> FormattedDuration;
@@ -55,36 +46,25 @@ impl DurationFormatter for Duration {
 
 fn penalty_estimate_comparison() {
     let dict = Dictionary::load();
+    let dict_small = Dictionary::load().filter_top_n_words(100_000);
+    let overlaps = WordOverlap::load_from_csv(&dict, "./word_overlaps.csv");
+    let layout = Partitions {
+        sum: 27,
+        parts: 10,
+        min: 2,
+        max: 4,
+    };
+    let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
     let single_keys = SingleKeyPenalties::load();
-    let pair_penalties = PairPenalties::load();
-    let k = Keyboard::with_layout("os").fill_missing(dict.alphabet());
-    let precise = k.penalty(&dict, Penalty::MAX);
-    let estim1 = k.penalty_estimate(&single_keys);
-    let estim2 = k.penalty_estimate2(&pair_penalties);
-    println!("");
-    println!("actual: {}", precise);
-    println!("old   : {}", estim1);
-    println!("new   : {}", estim2);
-    // let dict = Dictionary::load();
-    // let layout = Partitions {
-    //     sum: 27,
-    //     parts: 10,
-    //     min: 2,
-    //     max: 4,
-    // };
-    // let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
-    // let single_keys = SingleKeyPenalties::load();
-    // let pair_penalties = PairPenalties::load();
-    // let k = Keyboard::with_layout("os").fill_missing(dict.alphabet());
-    // for k in Keyboard::random(dict.alphabet(), layout, &prohibited).take(1) {
-    //     let precise = k.penalty(&dict, Penalty::MAX);
-    //     let estim1 = k.penalty_estimate(&single_keys);
-    //     let estim2 = k.penalty_estimate2(&pair_penalties);
-    //     println!("");
-    //     println!("actual: {}", precise);
-    //     println!("old   : {}", estim1);
-    //     println!("new   : {}", estim2);
-    // }
+    for k in Keyboard::random(dict.alphabet(), layout, &prohibited).take(50) {
+        let precise = k.penalty(&dict, Penalty::MAX);
+        let estim1 = k.penalty_estimate(&single_keys);
+        let estim2 = k.penalty_estimate2(&overlaps);
+        println!("");
+        println!("actual: {}", precise);
+        println!("old   : {}", estim1);
+        println!("new   : {}", estim2);
+    }
 }
 
 fn show_unique_keyboard_totals() {
@@ -108,19 +88,17 @@ fn show_unique_keyboard_totals() {
     }
 }
 
-fn calculate_penalties_with_sql() {
-    pair_penalties_with_sqlite::run(None);
+fn calculate_overlaps_with_sql() {
+    word_overlap_sqlite::run(None);
 }
 
-fn calculate_penalties_in_memory() {
-    let dictionary = Dictionary::load().filter_top_n_words(5_000);
-    let make = MakePairPenalties {
-        dictionary,
-        max_keys: 2,
-        max_letters: 4,
-        file_name: "./test_pair_penalties.csv".to_string(),
-    };
-    make.calculate();
+fn calculate_overlaps_with_memory() {
+    let dictionary = Dictionary::load().filter_top_n_words(20_000);
+    let file_name = "./word_overlaps_one_pair.csv";
+    let overlap = WordOverlap::calculate(&dictionary, 1);
+    overlap.save_to_csv(file_name).unwrap();
+    let overlap_read = WordOverlap::load_from_csv(&dictionary, file_name);
+    overlap_read.print();
 }
 
 fn custom() {
@@ -188,8 +166,8 @@ fn main() {
         ("Genetic algorithm", genetic),
         ("Find best N key", find_best_n_key),
         ("Print keyboard score", print_keyboard_score),
-        ("Calculate penalties with sql", calculate_penalties_with_sql),
-        ("Calculate penalties in mem", calculate_penalties_in_memory),
+        ("Word overlap with sql", calculate_overlaps_with_sql),
+        ("Word overlap in mem", calculate_overlaps_with_memory),
         ("Show unique keyboard totals", show_unique_keyboard_totals),
         ("Penalty estimate comparisons", penalty_estimate_comparison),
         ("Custom", custom),
@@ -201,7 +179,7 @@ fn main() {
             Select::new().with_prompt("What do you want to do?"),
             |menu, item| menu.item(item),
         )
-        .default(8)
+        .default(9)
         .interact()
         .unwrap();
     let command = choices.iter().nth(selection).map(|(_, f)| f);
