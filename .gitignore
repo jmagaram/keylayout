@@ -9,3 +9,5 @@ pair_penalties.csv
 *.db3-journal
 storage.sqbpro
 word_overlaps_200k.csv
+word_overlaps.csv
+word_overlaps.csv.zip
