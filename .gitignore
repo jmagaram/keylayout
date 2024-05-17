@@ -8,3 +8,4 @@ pair_penalties.csv
 *.db3
 *.db3-journal
 storage.sqbpro
+word_overlaps_200k.csv
