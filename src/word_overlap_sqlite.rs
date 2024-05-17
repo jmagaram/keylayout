@@ -29,7 +29,7 @@ CREATE INDEX "pair_common_inx" ON "conflict" ("pair" ASC, "common" ASC);
 
 "#;
     let conn = Connection::open(PATH).unwrap();
-    conn.execute(script, []).unwrap();
+    conn.execute_batch(script).unwrap();
 }
 
 pub fn vacuum() -> Result<()> {
