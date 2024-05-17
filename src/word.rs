@@ -59,6 +59,27 @@ impl Word {
         KeySet::with_word_differences(self, other)
     }
 
+    pub fn overlap(&self, other: &Word, placeholder: char) -> Option<String> {
+        if self.len() == other.len() {
+            Some(
+                self.to_string()
+                    .chars()
+                    .zip(other.to_string().chars())
+                    .map(|(a, b)| {
+                        if a == b {
+                            a.to_string()
+                        } else {
+                            placeholder.to_string()
+                        }
+                    })
+                    .collect::<Vec<String>>()
+                    .join(""),
+            )
+        } else {
+            None
+        }
+    }
+
     pub fn replace_letters(&self, find: impl Iterator<Item = Letter>, letter: Letter) -> Word {
         let find_key = Key::from_iter(find);
         let new_letters = self
@@ -298,6 +319,27 @@ mod tests {
         set.insert(b);
         set.insert(c);
         assert_eq!(2, set.len());
+    }
+
+    #[test]
+    fn overlap() {
+        let data = [
+            ("book", "beek", '_', Some("b__k")),
+            ("bit", "bat", '_', Some("b_t")),
+            ("moist", "moose", '_', Some("mo_s_")),
+            ("book", "the", '_', None),
+            ("a", "a", '_', Some("a")),
+            ("the", "the", '_', Some("the")),
+            ("the", "and", '_', Some("___")),
+            ("the", "happy", '_', None),
+        ];
+        for (a, b, placeholder, expect) in data {
+            let word_a = Word::new(a, 0.0);
+            let word_b = Word::new(b, 0.0);
+            let actual = word_a.overlap(&word_b, placeholder);
+            let expected = expect.map(|s| s.to_string());
+            assert_eq!(actual, expected);
+        }
     }
 
     #[test]
