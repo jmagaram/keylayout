@@ -1,52 +1,20 @@
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use rusqlite::{Connection, Result};
-use std::{
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
-    thread,
-};
-use thousands::Separable;
-
 use crate::{dictionary::Dictionary, util::choose, word::Word};
+use rusqlite::{Connection, Result};
+use thousands::Separable;
 
 const PATH: &str = "./pair_penalties.db3";
 
-pub fn delete_dictionary() -> Result<()> {
-    let conn = Connection::open(PATH)?;
-    println!("Delete dictionary...");
-    conn.execute("DELETE FROM word", ())?;
-    println!("Delete dictionary - done!");
-    Ok(())
-}
-
-pub fn vacuum() -> Result<()> {
-    let conn = Connection::open(PATH)?;
-    println!("Vacuum...");
-    conn.execute("VACUUM", ())?;
-    println!("Vacuum - done!");
-    Ok(())
-}
-
-pub fn delete_conflict() -> Result<()> {
-    let conn = Connection::open(PATH)?;
-    println!("Delete pair penalties...");
-    conn.execute("DELETE FROM conflict", ())?;
-    println!("Delete pair penalties - done!");
-    Ok(())
-}
-
 fn create_database() {
-    // Can have duplicates; should be cleaned up
     let make_conflict_table = r#"
 CREATE TABLE "conflict" (
-  "word_id" INTEGER NOT NULL,
   "pair" TEXT NOT NULL,
+  "word_id" INTEGER NOT NULL,
   "letter_count" INTEGER NOT NULL,
   FOREIGN KEY("word_id") REFERENCES "word"("word_id")
 ); 
 "#;
+    let pair_index = r#"CREATE INDEX "pair_index" ON "conflict" ("pair");"#;
+    let letter_count_index = r#"CREATE INDEX "letter_count_index" ON "conflict" ("letter_count");"#;
     let make_word_table = r#"
 CREATE TABLE "word" (
   "word_id" INTEGER NOT NULL,
@@ -56,8 +24,18 @@ CREATE TABLE "word" (
 ); 
 "#;
     let conn = Connection::open(PATH).unwrap();
-    conn.execute(make_word_table, []);
-    conn.execute(make_conflict_table, []);
+    conn.execute(make_word_table, []).unwrap();
+    conn.execute(make_conflict_table, []).unwrap();
+    conn.execute(pair_index, []).unwrap();
+    conn.execute(letter_count_index, []).unwrap();
+}
+
+pub fn vacuum() -> Result<()> {
+    let conn = Connection::open(PATH)?;
+    println!("Vacuum...");
+    conn.execute("VACUUM", ())?;
+    println!("Vacuum - done!");
+    Ok(())
 }
 
 fn remove_conflict_duplicates() {
@@ -69,7 +47,7 @@ SELECT MIN(rowid) FROM conflict GROUP BY word_id, pair
 "#;
     let conn = Connection::open(PATH).unwrap();
     println!("Removing pair penalty duplicates...");
-    conn.execute(statement, []);
+    let _ = conn.execute(statement, []);
     println!("Removing pair penalty duplicates - done!");
 }
 
@@ -94,47 +72,42 @@ pub fn run(dictionary_size: Option<usize>) {
     write_dictionary(dictionary_size).unwrap();
     let words = load_words().unwrap();
     let total_items = choose(words.len().try_into().unwrap(), 2);
-    let processed: Arc<AtomicU64> = Arc::new(AtomicU64::new(0));
+    let mut processed: u64 = 0;
     let max_keys = 3;
     let max_letters = 6;
-    (0..words.len() - 1)
-        .into_par_iter()
-        .for_each_with(processed, |processed, word_a_index| {
-            let mut conn = Connection::open(PATH).unwrap();
-            let tx = conn.transaction().unwrap();
-            for word_b_index in word_a_index + 1..words.len() {
-                let processed_count = processed.fetch_add(1, Ordering::Relaxed);
-                if processed_count > 0 && processed_count.rem_euclid(1_000_000_000) == 0 {
-                    thread::spawn(|| {
-                        remove_conflict_duplicates();
-                        vacuum();
-                    });
-                }
-                if processed_count.rem_euclid(10_000_000) == 0 {
-                    println!(
-                        "SQL {} of {}",
-                        processed_count.separate_with_underscores(),
-                        total_items.separate_with_underscores()
-                    );
-                }
-                let (word_a_id, word_a) = words[word_a_index].clone();
-                let (word_b_id, word_b) = words[word_b_index].clone();
-                let diff = word_a.letter_pair_difference(&word_b);
-                if diff.len() >= 1 && diff.len() <= max_keys && diff.letter_count() <= max_letters {
-                    let letter_count = diff.letter_count();
-                    let diff_as_string = diff.to_string();
-                    let _ = tx.execute(
-                        "INSERT INTO conflict (pair, word_id, letter_count) VALUES (?1, ?2, ?3)",
-                        (&diff_as_string, &word_a_id, &letter_count),
-                    );
-                    let _ = tx.execute(
-                        "INSERT INTO conflict (pair, word_id, letter_count) VALUES (?1, ?2, ?3)",
-                        (&diff_as_string, &word_b_id, &letter_count),
-                    );
-                }
+    for word_a_index in 0..words.len() - 1 {
+        let mut conn = Connection::open(PATH).unwrap();
+        let tx = conn.transaction().unwrap();
+        for word_b_index in word_a_index + 1..words.len() {
+            processed = processed + 1;
+            if processed.rem_euclid(10_000_000) == 0 {
+                println!(
+                    "SQL {} of {}",
+                    processed.separate_with_underscores(),
+                    total_items.separate_with_underscores()
+                );
             }
-            tx.commit().unwrap();
-        });
+            if processed.rem_euclid(5_000_000_000) == 0 {
+                remove_conflict_duplicates();
+            }
+            let (word_a_id, word_a) = words[word_a_index].clone();
+            let (word_b_id, word_b) = words[word_b_index].clone();
+            let diff = word_a.letter_pair_difference(&word_b);
+            if diff.len() >= 1 && diff.len() <= max_keys && diff.letter_count() <= max_letters {
+                let letter_count = diff.letter_count();
+                let diff_as_string = diff.to_string();
+                let _ = tx.execute(
+                    "INSERT INTO conflict (pair, word_id, letter_count) VALUES (?1, ?2, ?3)",
+                    (&diff_as_string, &word_a_id, &letter_count),
+                );
+                let _ = tx.execute(
+                    "INSERT INTO conflict (pair, word_id, letter_count) VALUES (?1, ?2, ?3)",
+                    (&diff_as_string, &word_b_id, &letter_count),
+                );
+            }
+        }
+        tx.commit().unwrap();
+    }
     remove_conflict_duplicates();
     vacuum().unwrap();
 }
