@@ -113,13 +113,9 @@ impl WordOverlap {
             words_to_index.insert(words.get(i).map(|w| w.to_string()).unwrap(), i as u32);
         }
         let mut pairs: HashMap<KeySet, HashSet<WordIndex>> = HashMap::new();
-        let mut progress: u64 = 0;
+        println!("Loading word overlaps...");
         for row in rdr.deserialize::<CsvRow>() {
             let row = row.unwrap();
-            progress = progress + 1;
-            if progress.rem_euclid(10_000) == 0 {
-                println!("{}", progress.separate_with_underscores())
-            }
             if let Some(word_index) = words_to_index.get(&row.word) {
                 let keys = KeySet::with_layout(&row.pairs);
                 match pairs.get_mut(&keys) {
@@ -134,6 +130,7 @@ impl WordOverlap {
                 }
             }
         }
+        println!("Done loading word overlaps.");
         WordOverlap {
             words,
             pairs,
