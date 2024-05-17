@@ -1,4 +1,16 @@
-use std::iter;
+use std::{iter, time::Duration};
+
+use humantime::{format_duration, FormattedDuration};
+
+pub trait DurationFormatter {
+    fn round_to_seconds(&self) -> FormattedDuration;
+}
+
+impl DurationFormatter for Duration {
+    fn round_to_seconds(&self) -> FormattedDuration {
+        format_duration(Duration::from_secs(self.as_secs()))
+    }
+}
 
 /// Calculates the factorial of `n`
 pub fn factorial(n: u128) -> u128 {
