@@ -165,11 +165,22 @@ fn print_keyboard_score() {
     println!("{}", solution);
 }
 
+fn pairings() {
+    let args = pairing::Args {
+        threads: 4,
+        max_key_size: 5,
+        pairings_to_ignore: 75,
+        prune_threshold: Penalty::new(0.246),
+    };
+    args.solve();
+}
+
 fn main() {
     use dialoguer::Select;
     let choices: Vec<(&str, fn() -> ())> = vec![
         ("DFS search", dfs_pruning),
         ("DFS preconfigured", dfs_pruning_preconfigured),
+        ("DFS using pairing technique", pairings),
         ("Genetic algorithm", genetic),
         ("Find best N key", find_best_n_key),
         ("Print keyboard score", print_keyboard_score),

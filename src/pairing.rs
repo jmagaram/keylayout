@@ -1,6 +1,7 @@
 use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty,
     single_key_penalties::SingleKeyPenalties, solution::Solution, tally::Tally,
+    word_overlap::WordOverlap,
 };
 use crossbeam_channel::*;
 use humantime::{format_duration, FormattedDuration};
@@ -141,6 +142,8 @@ impl Args {
         start_time: Instant,
     ) -> JoinHandle<bool> {
         let penalties = SingleKeyPenalties::load();
+        let small_dict = Dictionary::load().filter_top_n_words(100_000);
+        let overlaps = WordOverlap::load_from_csv(&small_dict, "./word_overlaps_200k.csv");
         let pairs = {
             let mut pairs = penalties.of_key_size(2).collect::<Vec<(Key, Penalty)>>();
             pairs.sort_by(|a, b| a.1.cmp(&b.1));
@@ -159,7 +162,8 @@ impl Args {
             if key_count >= prune_from && key_count <= prune_to {
                 let factor = 0.85f32.powi(key_count as i32 - 10);
                 let threshold_for_key_count = ten_key_threshold.to_f32() * factor;
-                let estimate = k.penalty_estimate(&penalties);
+                // let estimate = k.penalty_estimate(&penalties);
+                let estimate = k.penalty_estimate2(&overlaps, false);
                 let should_prune = estimate.to_f32() > threshold_for_key_count;
                 if should_prune {
                     pruned_at.borrow_mut().increment(key_count);
