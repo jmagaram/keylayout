@@ -1,6 +1,7 @@
 use dictionary::Dictionary;
 use humantime::{format_duration, FormattedDuration};
 use keyboard::Keyboard;
+use overlap_penalties::OverlapPenalties;
 use partitions::Partitions;
 use penalty::Penalty;
 use prohibited::Prohibited;
@@ -19,6 +20,7 @@ mod key_set;
 mod keyboard;
 mod lazy_tree;
 mod letter;
+mod overlap_penalties;
 mod pairing;
 mod partitions;
 mod penalty;
@@ -96,17 +98,16 @@ fn calculate_overlaps_with_sql() {
     word_overlap_sqlite::run(None);
 }
 
-fn calculate_overlaps_with_memory() {
-    let dictionary = Dictionary::load().filter_top_n_words(200_000);
-    let file_name = "./word_overlaps_200k.csv";
-    let overlap = WordOverlap::calculate(&dictionary, 2);
-    overlap.save_to_csv(file_name).unwrap();
-    let overlap_read = WordOverlap::load_from_csv(&dictionary, file_name);
-    overlap_read.print();
+fn calculate_overlaps() {
+    let d = Dictionary::load();
+    let overlap_penalties = OverlapPenalties::build(&d);
+    let file_name = "./overlap_penalties.csv";
+    overlap_penalties.save_to_csv(file_name).unwrap();
+    let _ = OverlapPenalties::load_from_csv(file_name);
 }
 
 fn custom() {
-    println!("Undefined custom action");
+    println!("No custom action defined yet.");
 }
 
 fn dfs_pruning() {
@@ -184,8 +185,8 @@ fn main() {
         ("Genetic algorithm", genetic),
         ("Find best N key", find_best_n_key),
         ("Print keyboard score", print_keyboard_score),
-        ("Word overlap with sql", calculate_overlaps_with_sql),
-        ("Word overlap in mem", calculate_overlaps_with_memory),
+        ("Word overlaps with sql", calculate_overlaps_with_sql),
+        ("Word overlaps in mem", calculate_overlaps),
         ("Show unique keyboard totals", show_unique_keyboard_totals),
         ("Penalty estimate comparisons", penalty_estimate_comparison),
         ("Custom", custom),

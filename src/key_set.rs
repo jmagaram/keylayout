@@ -1,7 +1,7 @@
 use crate::{key::Key, letter::Letter, word::Word};
 use std::fmt::{self, Display};
 
-#[derive(Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct KeySet(Vec<Key>);
 
 impl KeySet {

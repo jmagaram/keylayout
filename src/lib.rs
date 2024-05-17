@@ -8,6 +8,7 @@ pub mod key_set;
 pub mod keyboard;
 pub mod lazy_tree;
 pub mod letter;
+pub mod overlap_penalties;
 pub mod pairing;
 pub mod partitions;
 pub mod penalty;
