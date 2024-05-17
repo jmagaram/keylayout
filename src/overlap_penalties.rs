@@ -73,9 +73,13 @@ impl OverlapPenalties {
                 let penalty = Penalty::new(
                     m.iter()
                         .map(|(_common, words)| {
-                            words
+                            let mut words = words
                                 .iter()
                                 .map(|w| w.frequency().to_f32())
+                                .collect::<Vec<f32>>();
+                            words.sort_by(|a, b| b.partial_cmp(&a).unwrap());
+                            words
+                                .iter()
                                 .enumerate()
                                 .map(|(index, f)| index.min(4) as f32 * f)
                                 .fold(0.0, |total, i| total + i)
