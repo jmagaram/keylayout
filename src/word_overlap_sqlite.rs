@@ -1,33 +1,47 @@
+use std::time::{Duration, Instant};
+
 use crate::{dictionary::Dictionary, util::choose, word::Word};
+use humantime::{format_duration, FormattedDuration};
 use rusqlite::{Connection, Result};
 use thousands::Separable;
+
+trait DurationFormatter {
+    fn round_to_seconds(&self) -> FormattedDuration;
+}
+
+impl DurationFormatter for Duration {
+    fn round_to_seconds(&self) -> FormattedDuration {
+        format_duration(Duration::from_secs(self.as_secs()))
+    }
+}
 
 const PATH: &str = "./pair_penalties.db3";
 
 fn create_database() {
-    let make_conflict_table = r#"
-CREATE TABLE "conflict" (
-  "pair" TEXT NOT NULL,
-  "word_id" INTEGER NOT NULL,
-  "letter_count" INTEGER NOT NULL,
-  FOREIGN KEY("word_id") REFERENCES "word"("word_id")
-); 
-"#;
-    let pair_index = r#"CREATE INDEX "pair_index" ON "conflict" ("pair");"#;
-    let letter_count_index = r#"CREATE INDEX "letter_count_index" ON "conflict" ("letter_count");"#;
-    let make_word_table = r#"
+    let script = r#"
 CREATE TABLE "word" (
   "word_id" INTEGER NOT NULL,
   "word" TEXT NOT NULL UNIQUE,
   "frequency" NUMERIC NOT NULL,
   PRIMARY KEY("word_id")
 ); 
+
+CREATE TABLE "conflict" (
+  "pair" TEXT NOT NULL,
+  "word_id" INTEGER NOT NULL,
+  "common" TEXT NOT NULL,
+  "letter_count" INTEGER NOT NULL,
+  FOREIGN KEY("word_id") REFERENCES "word"("word_id")
+);
+
+CREATE INDEX "pair_inx" ON "conflict" ("pair" ASC);
+CREATE INDEX "common_inx" ON "conflict" ("common" ASC);
+CREATE INDEX "letter_count_inx" ON "conflict" ("letter_count" ASC);
+CREATE INDEX "pair_common_inx" ON "conflict" ("pair" ASC, "common" ASC);
+
 "#;
     let conn = Connection::open(PATH).unwrap();
-    conn.execute(make_word_table, []).unwrap();
-    conn.execute(make_conflict_table, []).unwrap();
-    conn.execute(pair_index, []).unwrap();
-    conn.execute(letter_count_index, []).unwrap();
+    conn.execute(script, []).unwrap();
 }
 
 pub fn vacuum() -> Result<()> {
@@ -42,7 +56,7 @@ fn remove_conflict_duplicates() {
     let statement = r#"
 DELETE FROM conflict
 WHERE rowid NOT IN (
-SELECT MIN(rowid) FROM conflict GROUP BY word_id, pair
+SELECT MIN(rowid) FROM conflict GROUP BY word_id, pair, common
 );
 "#;
     let conn = Connection::open(PATH).unwrap();
@@ -73,8 +87,9 @@ pub fn run(dictionary_size: Option<usize>) {
     let words = load_words().unwrap();
     let total_items = choose(words.len().try_into().unwrap(), 2);
     let mut processed: u64 = 0;
-    let max_keys = 3;
-    let max_letters = 6;
+    let started = Instant::now();
+    let max_keys = 2;
+    let max_letters = 4;
     for word_a_index in 0..words.len() - 1 {
         let mut conn = Connection::open(PATH).unwrap();
         let tx = conn.transaction().unwrap();
@@ -82,9 +97,10 @@ pub fn run(dictionary_size: Option<usize>) {
             processed = processed + 1;
             if processed.rem_euclid(10_000_000) == 0 {
                 println!(
-                    "SQL {} of {}",
+                    "SQL {} of {} in {}",
                     processed.separate_with_underscores(),
-                    total_items.separate_with_underscores()
+                    total_items.separate_with_underscores(),
+                    started.elapsed().round_to_seconds()
                 );
             }
             if processed.rem_euclid(5_000_000_000) == 0 {
@@ -94,15 +110,16 @@ pub fn run(dictionary_size: Option<usize>) {
             let (word_b_id, word_b) = words[word_b_index].clone();
             let diff = word_a.letter_pair_difference(&word_b);
             if diff.len() >= 1 && diff.len() <= max_keys && diff.letter_count() <= max_letters {
+                let common = word_a.overlap(&word_b, '_').unwrap();
                 let letter_count = diff.letter_count();
                 let diff_as_string = diff.to_string();
                 let _ = tx.execute(
-                    "INSERT INTO conflict (pair, word_id, letter_count) VALUES (?1, ?2, ?3)",
-                    (&diff_as_string, &word_a_id, &letter_count),
+                    "INSERT INTO conflict (pair, word_id, common, letter_count) VALUES (?1, ?2, ?3, ?4)",
+                    (&diff_as_string, &word_a_id, &common, &letter_count),
                 );
                 let _ = tx.execute(
-                    "INSERT INTO conflict (pair, word_id, letter_count) VALUES (?1, ?2, ?3)",
-                    (&diff_as_string, &word_b_id, &letter_count),
+                    "INSERT INTO conflict (pair, word_id, common, letter_count) VALUES (?1, ?2, ?3, ?4)",
+                    (&diff_as_string, &word_b_id, &common, &letter_count),
                 );
             }
         }
