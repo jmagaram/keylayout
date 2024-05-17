@@ -47,7 +47,7 @@ impl DurationFormatter for Duration {
 fn penalty_estimate_comparison() {
     let dict = Dictionary::load();
     let dict_small = Dictionary::load().filter_top_n_words(100_000);
-    let overlaps = WordOverlap::load_from_csv(&dict, "./word_overlaps.csv");
+    let overlaps = WordOverlap::load_from_csv(&dict_small, "./word_overlaps_200k.csv");
     let layout = Partitions {
         sum: 27,
         parts: 10,
@@ -58,12 +58,16 @@ fn penalty_estimate_comparison() {
     let single_keys = SingleKeyPenalties::load();
     for k in Keyboard::random(dict.alphabet(), layout, &prohibited).take(50) {
         let precise = k.penalty(&dict, Penalty::MAX);
-        let estim1 = k.penalty_estimate(&single_keys);
-        let estim2 = k.penalty_estimate2(&overlaps);
+        let small_dict = k.penalty(&dict_small, Penalty::MAX);
+        let kludge = k.penalty_estimate(&single_keys);
+        let two_pr = k.penalty_estimate2(&overlaps, true);
+        let one_pr = k.penalty_estimate2(&overlaps, false);
         println!("");
-        println!("actual: {}", precise);
-        println!("old   : {}", estim1);
-        println!("new   : {}", estim2);
+        println!("precise:  {}", precise);
+        println!("kludge:     {}", kludge);
+        println!("new 2pr: {}", two_pr);
+        println!("new 1pr: {}", one_pr);
+        println!("small:   {}", small_dict);
     }
 }
 
@@ -93,8 +97,8 @@ fn calculate_overlaps_with_sql() {
 }
 
 fn calculate_overlaps_with_memory() {
-    let dictionary = Dictionary::load().filter_top_n_words(150_000);
-    let file_name = "./word_overlaps_one_pair.csv";
+    let dictionary = Dictionary::load().filter_top_n_words(200_000);
+    let file_name = "./word_overlaps_200k.csv";
     let overlap = WordOverlap::calculate(&dictionary, 2);
     overlap.save_to_csv(file_name).unwrap();
     let overlap_read = WordOverlap::load_from_csv(&dictionary, file_name);

@@ -440,8 +440,11 @@ impl Keyboard {
     // This doesn't really help. The resultant dictionary is about 80k words
     // even if you only look at single pairs. And so the time to evaluate it is
     // not much better than looking at a partial dictionary scan. This could be
-    // optimized, but it isn't going to make much of a difference. Need a totally
-    // different approach for working with word overlaps.
+    // optimized, but it isn't going to make much of a difference. Need a
+    // totally different approach for working with word overlaps.
+    //
+    // If you use a dictionary of about 100k words, the scoring time is about
+    // 63% faster than doing a full precise calculation.
     pub fn penalty_estimate2(&self, overlap: &WordOverlap, include_two_pairs: bool) -> Penalty {
         let mut words = HashSet::new();
         let pairs = self
@@ -473,6 +476,10 @@ impl Keyboard {
             .map(|word_index| overlap.word_from_index(word_index).unwrap().clone())
             .collect::<Vec<Word>>();
         words.sort_by(|a, b| b.frequency().cmp(&a.frequency()));
+        println!(
+            "Estimate dict size:{}",
+            words.len().separate_with_underscores()
+        );
         let d = Dictionary::from_unique_sorted_words(words);
         self.penalty(&d, Penalty::MAX)
     }
