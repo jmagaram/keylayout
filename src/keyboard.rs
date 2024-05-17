@@ -422,6 +422,21 @@ impl Keyboard {
         penalty
     }
 
+    pub fn penalty_to_beat_2(
+        &self,
+        dictionary: &Dictionary,
+        to_beat: Penalty,
+        word_overlap: &WordOverlap,
+    ) -> (Penalty, PenaltyKind) {
+        let estimate = self.penalty_estimate2(word_overlap, false);
+        if estimate <= to_beat {
+            let precise = self.penalty(dictionary, to_beat);
+            (precise, PenaltyKind::Precise)
+        } else {
+            (estimate, PenaltyKind::Estimate)
+        }
+    }
+
     pub fn penalty_to_beat(
         &self,
         dictionary: &Dictionary,
@@ -476,10 +491,6 @@ impl Keyboard {
             .map(|word_index| overlap.word_from_index(word_index).unwrap().clone())
             .collect::<Vec<Word>>();
         words.sort_by(|a, b| b.frequency().cmp(&a.frequency()));
-        println!(
-            "Estimate dict size:{}",
-            words.len().separate_with_underscores()
-        );
         let d = Dictionary::from_unique_sorted_words(words);
         self.penalty(&d, Penalty::MAX)
     }

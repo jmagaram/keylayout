@@ -1,4 +1,5 @@
 use crate::keyboard::PenaltyKind;
+use crate::word_overlap::WordOverlap;
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     prohibited::Prohibited, single_key_penalties::SingleKeyPenalties, solution::Solution,
@@ -33,6 +34,7 @@ struct Genetic<'a> {
     dictionary: &'a Dictionary,
     single_key_penalties: &'a SingleKeyPenalties,
     sender: &'a Sender<StatusMessage>,
+    word_overlap: &'a WordOverlap,
 }
 
 impl<'a> Iterator for Genetic<'a> {
@@ -74,11 +76,8 @@ impl<'a> Iterator for Genetic<'a> {
         let best_child = children
             .into_par_iter()
             .map(|k| {
-                let (penalty, penalty_kind) = k.penalty_to_beat(
-                    self.dictionary,
-                    self.best.penalty(),
-                    self.single_key_penalties,
-                );
+                let (penalty, penalty_kind) =
+                    k.penalty_to_beat_2(self.dictionary, self.best.penalty(), &self.word_overlap);
                 match penalty_kind {
                     PenaltyKind::Estimate => {
                         self.sender.send(StatusMessage::CalculatedEstimate);
@@ -109,6 +108,7 @@ pub struct FindBestArgs<'a> {
     pub key_count: u8,
     pub prohibited: Prohibited,
     pub single_key_penalties: &'a SingleKeyPenalties,
+    pub word_overlap: &'a WordOverlap,
 }
 
 /// Tries to find the best keyboard using a genetic algorithm. Runs forever.
@@ -172,6 +172,7 @@ pub fn find_best<'a>(args: FindBestArgs<'a>) -> impl Iterator<Item = Option<Solu
             single_key_penalties: args.single_key_penalties,
             dictionary: args.dictionary,
             sender: &sender,
+            word_overlap: &args.word_overlap,
         }
         .last();
         match (solution, &best) {

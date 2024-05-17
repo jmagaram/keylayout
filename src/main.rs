@@ -136,12 +136,15 @@ fn genetic() {
     let dict = Dictionary::load();
     let prohibited = Prohibited::with_top_n_letter_pairs(&dict, 50);
     let single_key_penalties = SingleKeyPenalties::load();
+    let dict_small = Dictionary::load().filter_top_n_words(100_000);
+    let word_overlap = WordOverlap::load_from_csv(&dict_small, "./word_overlaps_200k.csv");
     let args = genetic::FindBestArgs {
         dictionary: &dict,
         die_threshold: Penalty::new(0.000001),
         key_count: 10,
         prohibited,
         single_key_penalties: &single_key_penalties,
+        word_overlap: &word_overlap,
     };
     for result in genetic::find_best(args) {
         if let Some(solution) = result {
