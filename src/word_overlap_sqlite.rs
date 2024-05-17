@@ -1,19 +1,7 @@
-use std::time::{Duration, Instant};
-
-use crate::{dictionary::Dictionary, util::choose, word::Word};
-use humantime::{format_duration, FormattedDuration};
+use crate::{dictionary::Dictionary, util::choose, util::DurationFormatter, word::Word};
 use rusqlite::{Connection, Result};
+use std::time::Instant;
 use thousands::Separable;
-
-trait DurationFormatter {
-    fn round_to_seconds(&self) -> FormattedDuration;
-}
-
-impl DurationFormatter for Duration {
-    fn round_to_seconds(&self) -> FormattedDuration {
-        format_duration(Duration::from_secs(self.as_secs()))
-    }
-}
 
 const PATH: &str = "./pair_penalties.db3";
 
