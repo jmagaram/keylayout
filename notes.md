@@ -4,6 +4,7 @@
 0.0249𝕡 akw bn cej dfq gmx hiv ly ot prz su'
 0.0249𝕡 akw bn cejq dfx' gm hiv lyz ot pr su
 0.0247𝕡 akw bn cvy dh efjz gmx' il ot pqr su
+0.0247𝕡 akw bn cvy dhq' efjz gmx il ot pr su
 
 # Best multiple key from exhaustive search (FINISHED)
 
