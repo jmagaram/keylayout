@@ -93,9 +93,9 @@ fn calculate_overlaps_with_sql() {
 }
 
 fn calculate_overlaps_with_memory() {
-    let dictionary = Dictionary::load().filter_top_n_words(20_000);
+    let dictionary = Dictionary::load().filter_top_n_words(150_000);
     let file_name = "./word_overlaps_one_pair.csv";
-    let overlap = WordOverlap::calculate(&dictionary, 1);
+    let overlap = WordOverlap::calculate(&dictionary, 2);
     overlap.save_to_csv(file_name).unwrap();
     let overlap_read = WordOverlap::load_from_csv(&dictionary, file_name);
     overlap_read.print();
