@@ -1,10 +1,9 @@
 use crate::{
     dictionary::Dictionary, key::Key, keyboard::Keyboard, penalty::Penalty,
     single_key_penalties::SingleKeyPenalties, solution::Solution, tally::Tally,
-    word_overlap::WordOverlap,
+    util::DurationFormatter, word_overlap::WordOverlap,
 };
 use crossbeam_channel::*;
-use humantime::{format_duration, FormattedDuration};
 use std::{
     cell::{Cell, RefCell},
     ops::Deref,
@@ -16,16 +15,6 @@ use std::{
     time::{Duration, Instant},
 };
 use thousands::Separable;
-
-trait DurationFormatter {
-    fn round_to_seconds(&self) -> FormattedDuration;
-}
-
-impl DurationFormatter for Duration {
-    fn round_to_seconds(&self) -> FormattedDuration {
-        format_duration(Duration::from_secs(self.as_secs()))
-    }
-}
 
 pub struct Args {
     pub threads: u8,

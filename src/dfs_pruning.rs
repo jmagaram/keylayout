@@ -9,19 +9,7 @@ use crate::{
 };
 use core::fmt;
 use dialoguer::{Input, Select};
-use humantime::{format_duration, FormattedDuration};
-use std::time::Duration;
 use thousands::Separable;
-
-trait DurationFormatter {
-    fn round_to_seconds(&self) -> FormattedDuration;
-}
-
-impl DurationFormatter for Duration {
-    fn round_to_seconds(&self) -> FormattedDuration {
-        format_duration(Duration::from_secs(self.as_secs()))
-    }
-}
 
 pub mod keyboard_status {
     use std::fmt;
@@ -99,8 +87,8 @@ pub mod keyboard_status {
 }
 
 pub mod statistics {
-    use super::{keyboard_status::KeyboardStatus, DurationFormatter};
-    use crate::{solution::Solution, tally::Tally};
+    use super::keyboard_status::KeyboardStatus;
+    use crate::{solution::Solution, tally::Tally, util::DurationFormatter};
     use hashbrown::HashMap;
     use std::{fmt, time::Instant};
     use thousands::Separable;

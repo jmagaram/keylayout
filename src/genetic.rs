@@ -1,26 +1,16 @@
 use crate::keyboard::PenaltyKind;
+use crate::util::DurationFormatter;
 use crate::word_overlap::WordOverlap;
 use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     prohibited::Prohibited, single_key_penalties::SingleKeyPenalties, solution::Solution,
 };
-use humantime::{format_duration, FormattedDuration};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::borrow::Borrow;
 use std::sync::mpsc::*;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use thousands::Separable;
-
-trait DurationFormatter {
-    fn round_to_seconds(&self) -> FormattedDuration;
-}
-
-impl DurationFormatter for Duration {
-    fn round_to_seconds(&self) -> FormattedDuration {
-        format_duration(Duration::from_secs(self.as_secs()))
-    }
-}
 
 pub enum StatusMessage {
     CalculatedEstimate,

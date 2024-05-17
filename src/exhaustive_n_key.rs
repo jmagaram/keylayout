@@ -3,27 +3,17 @@ use crate::keyboard::Pruneable;
 use crate::letter::Letter;
 use crate::partitions::Partitions;
 use crate::prohibited::Prohibited;
+use crate::util::DurationFormatter;
 use crate::vec_threads;
 use crate::vec_threads::VecThreads;
 use crate::{dictionary::Dictionary, keyboard::Keyboard, penalty::Penalty, solution::Solution};
 use dialoguer::{Input, Select};
-use humantime::{format_duration, FormattedDuration};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::sync::{Arc, Mutex};
 use std::thread::{sleep, spawn, JoinHandle};
 use std::time::Duration;
 use std::time::Instant;
 use thousands::Separable;
-
-trait DurationFormatter {
-    fn round_to_seconds(&self) -> FormattedDuration;
-}
-
-impl DurationFormatter for Duration {
-    fn round_to_seconds(&self) -> FormattedDuration {
-        format_duration(Duration::from_secs(self.as_secs()))
-    }
-}
 
 #[derive(Clone)]
 struct PruneableKeyboard {

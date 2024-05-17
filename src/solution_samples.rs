@@ -2,18 +2,7 @@ use crate::{
     dictionary::Dictionary, keyboard::Keyboard, partitions::Partitions, penalty::Penalty,
     prohibited::Prohibited, solution::Solution, vec_threads::VecThreads,
 };
-use humantime::{format_duration, FormattedDuration};
-use std::{ops::RangeInclusive, sync::Arc, thread, time::Duration};
-
-trait DurationFormatter {
-    fn round_to_seconds(&self) -> FormattedDuration;
-}
-
-impl DurationFormatter for Duration {
-    fn round_to_seconds(&self) -> FormattedDuration {
-        format_duration(Duration::from_secs(self.as_secs()))
-    }
-}
+use std::{ops::RangeInclusive, sync::Arc, thread};
 
 #[derive(Clone)]
 pub struct Args<'a> {
