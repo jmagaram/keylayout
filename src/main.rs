@@ -1,12 +1,10 @@
 use dictionary::Dictionary;
-use humantime::{format_duration, FormattedDuration};
 use keyboard::Keyboard;
 use overlap_penalties::OverlapPenalties;
 use partitions::Partitions;
 use penalty::Penalty;
 use prohibited::Prohibited;
 use single_key_penalties::SingleKeyPenalties;
-use std::time::Duration;
 use thousands::Separable;
 use word_overlap::WordOverlap;
 
@@ -36,20 +34,11 @@ mod word;
 mod word_overlap;
 mod word_overlap_sqlite;
 
-trait DurationFormatter {
-    fn round_to_seconds(&self) -> FormattedDuration;
-}
-
-impl DurationFormatter for Duration {
-    fn round_to_seconds(&self) -> FormattedDuration {
-        format_duration(Duration::from_secs(self.as_secs()))
-    }
-}
-
 fn penalty_estimate_comparison() {
     let dict = Dictionary::load();
     let dict_small = Dictionary::load().filter_top_n_words(100_000);
     let overlaps = WordOverlap::load_from_csv(&dict_small, "./word_overlaps_200k.csv");
+    let overlap_penalties = OverlapPenalties::load_from_csv("./overlap_penalties.csv");
     let layout = Partitions {
         sum: 27,
         parts: 10,
@@ -64,9 +53,11 @@ fn penalty_estimate_comparison() {
         let kludge = k.penalty_estimate(&single_keys);
         let two_pr = k.penalty_estimate2(&overlaps, true);
         let one_pr = k.penalty_estimate2(&overlaps, false);
+        let one_pair_penalties = k.penalty_estimate3(&overlap_penalties);
         println!("");
-        println!("precise:  {}", precise);
-        println!("kludge:     {}", kludge);
+        println!("precise: {}", precise);
+        println!("kludge:  {}", kludge);
+        println!("simp pr: {}", one_pair_penalties);
         println!("new 2pr: {}", two_pr);
         println!("new 1pr: {}", one_pr);
         println!("small:   {}", small_dict);
