@@ -105,7 +105,11 @@ fn custom() {
 fn dfs_simpler() {
     let args = dfs::Args {
         max_key_size: 5,
-        prohibited_pairs: 60,
+        ten_key_prune_threshold: Penalty::new(0.030),
+        prohibited_pairs: 65,
+        prune_factor: 1.00, // 0.87 is good
+        prune_from_key_count: 12,
+        prune_to_key_count: 18,
     };
     args.solve();
 }
