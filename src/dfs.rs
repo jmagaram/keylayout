@@ -131,36 +131,13 @@ impl<'a> Dfs<'a> {
             Some(letter) => {
                 let prune = {
                     if k.len() >= self.prune_from_key_count && k.len() <= self.prune_to_key_count {
-                        let pairs = self
-                            .keys
-                            .iter()
-                            .filter(|k| k.len() >= 2)
-                            .flat_map(|k| k.subsets_of_size(2))
-                            .collect::<Vec<Key>>();
-                        let key_sets = {
-                            let one_pair = pairs.iter().map(|p| KeySet::with_pairs(vec![*p]));
-                            let two_pairs_indexes = (0..pairs.len() - 1)
-                                .flat_map(|i| ((i + 1)..pairs.len()).map(move |j| (i, j)));
-                            let two_pairs = two_pairs_indexes
-                                .map(|(i, j)| KeySet::with_pairs(vec![pairs[i], pairs[j]]));
-                            one_pair.chain(two_pairs)
-                        };
-                        let mut words = key_sets
-                            .map(|ks| self.overlaps.words_for_pairs(&ks))
-                            .fold(HashSet::<u32>::new(), |mut total, i| {
-                                total.extend(i);
-                                total
-                            })
-                            .iter()
-                            .filter_map(|inx| {
-                                self.overlaps.word_from_index(*inx).map(|w| w.clone())
-                            })
-                            .collect::<Vec<Word>>();
-                        words.sort_unstable_by(|a, b| b.frequency().cmp(a.frequency()));
-                        let estimate_dictionary = Dictionary::from_unique_sorted_words(words);
-                        let estimate = k.penalty(&estimate_dictionary, Penalty::MAX);
                         let factor = self.prune_factor.powi(k.len() as i32 - 10);
                         let threshold = Penalty::new(self.ten_key_threshold.to_f32() * factor);
+                        // Ideally would build this up incrementally as new letters and letter pairs
+                        // are added. It was too slow to create this on the fly from letter pairs and
+                        // the overlap list.
+                        let estimate_dictionary = self.dictionary;
+                        let estimate = k.penalty(&estimate_dictionary, threshold);
                         let should_prune = estimate > threshold;
                         if should_prune {
                             self.pruned.replace(self.pruned.get() + 1);
