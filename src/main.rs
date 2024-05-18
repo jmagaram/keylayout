@@ -8,6 +8,7 @@ use single_key_penalties::SingleKeyPenalties;
 use thousands::Separable;
 use word_overlap::WordOverlap;
 
+mod dfs;
 mod dfs_pruning;
 mod dictionary;
 mod exhaustive_n_key;
@@ -37,7 +38,7 @@ mod word_overlap_sqlite;
 fn penalty_estimate_comparison() {
     let dict = Dictionary::load();
     let dict_small = Dictionary::load().filter_top_n_words(100_000);
-    let overlaps = WordOverlap::load_from_csv(&dict_small, "./word_overlaps_200k.csv");
+    let overlaps = WordOverlap::load_from_csv(&dict, "./word_overlaps_200k.csv");
     let overlap_penalties = OverlapPenalties::load_from_csv("./overlap_penalties.csv");
     let layout = Partitions {
         sum: 27,
@@ -99,6 +100,14 @@ fn calculate_overlaps() {
 
 fn custom() {
     println!("No custom action defined yet.");
+}
+
+fn dfs_simpler() {
+    let args = dfs::Args {
+        max_key_size: 5,
+        prohibited_pairs: 60,
+    };
+    args.solve();
 }
 
 fn dfs_pruning() {
@@ -173,6 +182,7 @@ fn main() {
         ("DFS search", dfs_pruning),
         ("DFS preconfigured", dfs_pruning_preconfigured),
         ("DFS using pairing technique", pairings),
+        ("DFS optimized", dfs_simpler),
         ("Genetic algorithm", genetic),
         ("Find best N key", find_best_n_key),
         ("Print keyboard score", print_keyboard_score),
@@ -189,7 +199,7 @@ fn main() {
             Select::new().with_prompt("What do you want to do?"),
             |menu, item| menu.item(item),
         )
-        .default(9)
+        .default(3)
         .interact()
         .unwrap();
     let command = choices.iter().nth(selection).map(|(_, f)| f);
