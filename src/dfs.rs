@@ -3,7 +3,6 @@
 
 use std::{
     cell::{Cell, RefCell},
-    collections::HashSet,
     time::Instant,
 };
 
@@ -12,18 +11,9 @@ use rand::thread_rng;
 use thousands::Separable;
 
 use crate::{
-    dictionary::Dictionary,
-    key::Key,
-    key_set::KeySet,
-    keyboard::Keyboard,
-    letter::Letter,
-    penalty::Penalty,
-    prohibited::Prohibited,
-    solution::Solution,
-    tally::Tally,
-    util::DurationFormatter,
-    word::Word,
-    word_overlap::{self, WordOverlap},
+    dictionary::Dictionary, key::Key, keyboard::Keyboard, letter::Letter, penalty::Penalty,
+    prohibited::Prohibited, solution::Solution, tally::Tally, util::DurationFormatter,
+    word_overlap::WordOverlap,
 };
 
 pub struct Args {
@@ -91,7 +81,7 @@ impl<'a> Dfs<'a> {
     pub fn go(&self) {
         self.seen.replace(self.seen.get() + 1);
         self.seen_at.borrow_mut().increment(self.alphabet_index);
-        if self.seen.get().rem_euclid(1000) == 0 {
+        if self.seen.get().rem_euclid(10_000) == 0 {
             let seen_per_second =
                 (self.seen.get() as f32) / self.started_at.elapsed().as_secs_f32();
             println!("");
