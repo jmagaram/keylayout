@@ -89,52 +89,48 @@ struct Dfs<'a> {
 
 impl<'a> Dfs<'a> {
     pub fn go(&self) {
-        let letter = self.alphabet.get(self.alphabet_index);
         self.seen.replace(self.seen.get() + 1);
-        self.seen_at.borrow_mut().increment(27 - self.keys.len());
-        if self.seen.get().rem_euclid(500) == 0 {
+        self.seen_at.borrow_mut().increment(self.alphabet_index);
+        if self.seen.get().rem_euclid(1000) == 0 {
             let seen_per_second =
                 (self.seen.get() as f32) / self.started_at.elapsed().as_secs_f32();
             println!("");
+            println!("Pruned: {}", self.pruned.get().separate_with_underscores());
             println!(
-                "Seen: {} ({}/sec)",
+                "Seen:   {} ({}/sec)",
                 self.seen.get().separate_with_underscores(),
                 (seen_per_second as u32).separate_with_underscores()
             );
-            (10..=27).for_each(|key_count| {
+            (1..=27).for_each(|key_count| {
                 let total = self.seen_at.borrow().count(&key_count);
                 if total > 0 {
-                    println!("  {:<2}: {}", key_count, total.separate_with_underscores());
+                    println!("  {}: {}", key_count, total.separate_with_underscores());
                 }
             });
-            println!("Pruned: {}", self.pruned.get().separate_with_underscores());
             println!("Elapsed: {}", self.started_at.elapsed().round_to_seconds());
             if let Some(best) = self.best.borrow().as_ref() {
                 println!("Best: {}", best);
             }
         }
+        let k = Keyboard::with_keys(self.keys.clone()).fill_missing(self.dictionary.alphabet());
+        let letter = self.alphabet.get(self.alphabet_index);
         match letter {
             None => {
-                let keyboard = Keyboard::with_keys(self.keys.clone());
                 let best_penalty = self
                     .best
                     .borrow()
                     .as_ref()
                     .map(|b| b.penalty())
                     .unwrap_or(Penalty::MAX);
-                let penalty = keyboard.penalty(&self.dictionary, best_penalty);
+                let penalty = k.penalty(&self.dictionary, best_penalty);
                 if penalty < best_penalty {
-                    let solution = keyboard.to_solution(penalty, "".into());
+                    let solution = k.to_solution(penalty, "".into());
                     self.best.replace(Some(solution));
                 }
             }
             Some(letter) => {
                 let prune = {
-                    let kbd = Keyboard::with_keys(self.keys.clone())
-                        .fill_missing(self.dictionary.alphabet());
-                    if kbd.len() >= self.prune_from_key_count
-                        && kbd.len() <= self.prune_to_key_count
-                    {
+                    if k.len() >= self.prune_from_key_count && k.len() <= self.prune_to_key_count {
                         let pairs = self
                             .keys
                             .iter()
@@ -162,8 +158,8 @@ impl<'a> Dfs<'a> {
                             .collect::<Vec<Word>>();
                         words.sort_unstable_by(|a, b| b.frequency().cmp(a.frequency()));
                         let estimate_dictionary = Dictionary::from_unique_sorted_words(words);
-                        let estimate = kbd.penalty(&estimate_dictionary, Penalty::MAX);
-                        let factor = self.prune_factor.powi(kbd.len() as i32 - 10);
+                        let estimate = k.penalty(&estimate_dictionary, Penalty::MAX);
+                        let factor = self.prune_factor.powi(k.len() as i32 - 10);
                         let threshold = Penalty::new(self.ten_key_threshold.to_f32() * factor);
                         let should_prune = estimate > threshold;
                         if should_prune {
@@ -184,15 +180,19 @@ impl<'a> Dfs<'a> {
                                 Some(keys)
                             }
                             false => {
-                                let mut keys = self.keys.clone();
-                                let key = keys[i].add(*letter);
-                                let key_is_prohibited = key.is_prohibited(&self.prohibited);
-                                match key_is_prohibited {
-                                    true => None,
-                                    false => {
-                                        keys[i] = key;
-                                        Some(keys)
+                                if (self.keys[i].len() as usize) < self.max_key_size {
+                                    let mut keys = self.keys.clone();
+                                    let key = keys[i].add(*letter);
+                                    let key_is_prohibited = key.is_prohibited(&self.prohibited);
+                                    match key_is_prohibited {
+                                        true => None,
+                                        false => {
+                                            keys[i] = key;
+                                            Some(keys)
+                                        }
                                     }
+                                } else {
+                                    None
                                 }
                             }
                         };
