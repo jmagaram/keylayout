@@ -173,7 +173,7 @@ pub mod statistics {
             writeln!(f, "")?;
             writeln!(
                 f,
-                "Seen:    {} ({:0.}/sec)",
+                "Seen:    {} ({:0}/sec)",
                 self.seen.separate_with_underscores(),
                 self.seen_per_second().separate_with_underscores()
             )?;
